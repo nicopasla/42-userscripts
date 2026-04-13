@@ -101,21 +101,6 @@
     return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}h`;
   };
 
-  function getRemainingWeekdays(year, month) {
-    const now = new Date();
-    const lastDay = new Date(year, month, 0).getDate();
-    let count = 0;
-
-    for (let d = now.getDate(); d <= lastDay; d++) {
-      const date = new Date(year, month - 1, d);
-      const dayOfWeek = date.getDay();
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        count++;
-      }
-    }
-    return count || 1;
-  }
-
   function render(stats) {
     if (!stats) return;
     const byMonth = {};
@@ -145,9 +130,6 @@
       const divisor = CONFIG.AVG_ONLY_ACTIVE_DAYS ? (Object.values(data).filter(s => s > 0).length || 1) : (isCurrent ? now.getDate() : lastDayDate);
       const avg = total / divisor;
 
-      const remainingWeekdays = isCurrent ? getRemainingWeekdays(year, mon) : 1;
-      const targetPerDay = isCurrent ? Math.max(((CONFIG.GOAL_HOURS * 3600) - total) / remainingWeekdays, 0) : 0;
-
       const card = document.createElement('div');
       card.className = `month-card ${isCurrent ? 'current-month' : ''}`;
       card.style.cssText = `
@@ -160,11 +142,11 @@
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <span style="font-size:22px; font-weight:700; color:${CONFIG.COLORS.TEXT_DARK};">${new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(year, mon - 1))}</span>
-          <span style="font-size:16px; font-weight:800; color:${CONFIG.LABELS_COLOR}; background:rgba(38,166,65,0.08); padding:4px 10px; border-radius:8px;">${fmtHours(total)}</span>
+          <span style="font-size:16px; font-weight:800; color:${CONFIG.LABELS_COLOR}; background:rgba(38,166,65,0.08); padding:4px 10px; border-radius:8px;">${fmtHours(total)} / ${CONFIG.GOAL_HOURS}h</span>
         </div>
         <div style="display:flex; justify-content:space-between; font-size:14px; color:${CONFIG.LABELS_COLOR}; margin-bottom:10px;">
           <span>Avg: <b>${fmtHours(avg)}</b></span>
-          <span>Target: <b>${isCurrent ? fmtHours(targetPerDay) : '0h'}</b></span>
+          <span><b>${Math.round(Math.min((total / (CONFIG.GOAL_HOURS * 3600)) * 100, 100))}%</b></span>
         </div>
         <div style="width:100%; height:4px; background:#f1f5f9; border-radius:2px; margin-bottom:16px; overflow:hidden;">
           <div style="width:${Math.min((total / (CONFIG.GOAL_HOURS * 3600)) * 100, 100)}%; height:100%; background:${CONFIG.LABELS_COLOR};"></div>
