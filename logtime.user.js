@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         42 Logtime
 // @namespace    https://github.com/nicopasla/42-userscripts
-// @version      0.0.3
+// @version      0.0.4
 // @updateURL	 https://raw.githubusercontent.com/nicopasla/42-userscripts/main/logtime.user.js
 // @license      MIT
 // @author       nicopasla
@@ -147,7 +147,7 @@
 
 		<div style="display:flex; justify-content:space-between; align-items:center; font-size:14px; color:${CONFIG.LABELS_COLOR}; margin-bottom:10px;">
 			<div class="day-cell" style="background:transparent; width:auto; height:auto; padding:0; cursor:help;">
-			<b>${Math.round(Math.min((total / (CONFIG.GOAL_HOURS * 3600)) * 100, 100))}%</b>
+			<b>${Math.round((total / (CONFIG.GOAL_HOURS * 3600)) * 100, 100)}%</b>
 			<div class="day-tooltip">Remaining: ${fmtHours(Math.max(0, (CONFIG.GOAL_HOURS * 3600) - total))}</div>
 			</div>
 			
