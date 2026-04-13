@@ -24,7 +24,7 @@
     GAP_BETWEEN_CARDS: '16px',
     CARD_WIDTH: '280px',
     HOVER_OPACITY: 1.0,
-    PAST_MONTHS_OPACITY: 0.5,
+    PAST_MONTHS_OPACITY: 0.8,
     AVG_ONLY_ACTIVE_DAYS: true,
     COLORS: {
       BORDER: '#e2e8f0',
@@ -32,7 +32,7 @@
       TEXT_LIGHT: '#94a3b8',
       CELL_EMPTY: '#f8fafc'
     },
-    INTRA_FONT: '"Futura PT", "Futura", "Helvetica", "Sans-serif"'
+    INTRA_FONT: 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
   };
 
   const style = document.createElement('style');
@@ -140,18 +140,24 @@
       `;
 
       card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-size:22px; font-weight:700; color:${CONFIG.COLORS.TEXT_DARK};">${new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(year, mon - 1))}</span>
-          <span style="font-size:16px; font-weight:800; color:${CONFIG.LABELS_COLOR}; background:rgba(38,166,65,0.08); padding:4px 10px; border-radius:8px;">${fmtHours(total)} / ${CONFIG.GOAL_HOURS}h</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:14px; color:${CONFIG.LABELS_COLOR}; margin-bottom:10px;">
-          <span>Avg: <b>${fmtHours(avg)}</b></span>
-          <span><b>${Math.round(Math.min((total / (CONFIG.GOAL_HOURS * 3600)) * 100, 100))}%</b></span>
-        </div>
-        <div style="width:100%; height:4px; background:#f1f5f9; border-radius:2px; margin-bottom:16px; overflow:hidden;">
-          <div style="width:${Math.min((total / (CONFIG.GOAL_HOURS * 3600)) * 100, 100)}%; height:100%; background:${CONFIG.LABELS_COLOR};"></div>
-        </div>
-      `;
+		<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+			<span style="font-size:22px; font-weight:700; color:${CONFIG.COLORS.TEXT_DARK};">${new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(year, mon - 1))}</span>
+			<span style="font-size:16px; font-weight:800; color:${CONFIG.LABELS_COLOR}; background:rgba(38,166,65,0.08); padding:4px 10px; border-radius:8px;">${fmtHours(total)} / ${CONFIG.GOAL_HOURS}h</span>
+		</div>
+
+		<div style="display:flex; justify-content:space-between; align-items:center; font-size:14px; color:${CONFIG.LABELS_COLOR}; margin-bottom:10px;">
+			<div class="day-cell" style="background:transparent; width:auto; height:auto; padding:0; cursor:help;">
+			<b>${Math.round(Math.min((total / (CONFIG.GOAL_HOURS * 3600)) * 100, 100))}%</b>
+			<div class="day-tooltip">Remaining: ${fmtHours(Math.max(0, (CONFIG.GOAL_HOURS * 3600) - total))}</div>
+			</div>
+			
+			<span>Avg: <b>${fmtHours(avg)}</b></span>
+		</div>
+
+		<div style="width:100%; height:4px; background:#f1f5f9; border-radius:2px; margin-bottom:16px; overflow:hidden;">
+			<div style="width:${Math.min((total / (CONFIG.GOAL_HOURS * 3600)) * 100, 100)}%; height:100%; background:${CONFIG.LABELS_COLOR};"></div>
+		</div>
+		`;
 
       const grid = document.createElement('div');
       grid.style.cssText = `display:grid; grid-template-columns:repeat(7, 1fr) 58px; gap:8px 5px;`;
