@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         42 Logtime
 // @namespace    https://github.com/nicopasla/42-userscripts
-// @version      0.0.2
+// @version      0.0.3
 // @updateURL	 https://raw.githubusercontent.com/nicopasla/42-userscripts/main/logtime.user.js
 // @license      MIT
 // @author       nicopasla
