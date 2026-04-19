@@ -26,7 +26,7 @@ Improves readability and allows local profile/background image customization.
 - Change profile/background images by clicking your profile picture (local only)
 - Image settings are stored in local storage
 
-### [shortcuts.user.js](https://raw.githubusercontent.com/nicopasla/42-userscripts/main/profile.user.js)
+### [shortcuts.user.js](https://raw.githubusercontent.com/nicopasla/42-userscripts/main/shortcuts.user.js)
 
 Improves readability and allows local profile/background image customization.
 
