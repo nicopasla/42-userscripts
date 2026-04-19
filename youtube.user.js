@@ -1,27 +1,31 @@
 // ==UserScript==
 // @name         42 Intra YouTube
 // @namespace    https://github.com/nicopasla/42-userscripts
-// @version      0.0.1
+// @version      0.0.2
 // @updateURL    https://raw.githubusercontent.com/nicopasla/42-userscripts/main/youtube.user.js
 // @license      MIT
 // @author       nicopasla
 // @description  Totally useless Youtube player inside 42 Intra v3
 // @match        https://profile-v3.intra.42.fr/
-// @grant        none
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @grant        GM_deleteValue
 // ==/UserScript==
 
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "yt-intra-v3-last-id";
+  const STORAGE_KEY = "42_intra_youtube_v1";
   const DEFAULT_VIDEO = "dQw4w9WgXcQ";
-  const INTRA_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  const INTRA_FONT =
+    'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
   function createYouTubeBox() {
-    const savedId = localStorage.getItem(STORAGE_KEY) || DEFAULT_VIDEO;
+    const savedId = GM_getValue(STORAGE_KEY) || DEFAULT_VIDEO;
     const box = document.createElement("div");
     box.id = "youtube-box-v3";
-    box.className = "bg-white dark:bg-zinc-900 md:h-96 overflow-hidden md:drop-shadow-md md:rounded-lg p-0 mb-4 transition-all";
+    box.className =
+      "bg-white dark:bg-zinc-900 md:h-96 overflow-hidden md:drop-shadow-md md:rounded-lg p-0 mb-4 transition-all";
     box.style.fontFamily = INTRA_FONT;
 
     box.innerHTML = `
@@ -46,37 +50,45 @@
     const iframe = box.querySelector("#yt-iframe");
 
     const updateVideo = () => {
-      let url = input.value.trim();
-      let match = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      const raw = input.value.trim();
 
-      if (match) {
-        const videoId = match[1];
-        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-        localStorage.setItem(STORAGE_KEY, videoId);
-        input.value = `https://youtu.be/${savedId}`;
-      }
-      if (!match) {
+      const idMatch =
+        raw.match(/^[a-zA-Z0-9_-]{11}$/) ||
+        raw.match(
+          /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        );
+
+      if (!idMatch) {
         input.classList.add("border-red-500");
         return;
       }
+
+      const videoId = idMatch[1] || idMatch[0];
+      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+      GM_setValue(STORAGE_KEY, videoId);
+
+      input.classList.remove("border-red-500");
+      input.value = `https://youtu.be/${videoId}`;
     };
 
     button.addEventListener("click", updateVideo);
-    input.addEventListener("keypress", (e) => { if (e.key === "Enter") updateVideo(); });
-    
+    input.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") updateVideo();
+    });
 
     return box;
   }
 
   function initializeBox() {
-    if (window.location.pathname !== "/" && window.location.pathname !== "") return;
+    if (window.location.pathname !== "/" && window.location.pathname !== "")
+      return;
     if (document.getElementById("youtube-box-v3")) return;
 
-    const targetContainer = [...document.querySelectorAll('[class*="grid"]')].find(
-      (el) => el.children.length > 2 && el.offsetParent !== null
-    );
+    const targetContainer = [
+      ...document.querySelectorAll('[class*="grid"]'),
+    ].find((el) => el.children.length > 2 && el.offsetParent !== null);
 
-   if (targetContainer) {
+    if (targetContainer) {
       targetContainer.appendChild(createYouTubeBox());
     }
   }
@@ -84,8 +96,6 @@
   const observer = new MutationObserver(() => {
     if (!document.getElementById("youtube-box-v3")) {
       initializeBox();
-    } else {
-      observer.disconnect();
     }
   });
 
