@@ -1,23 +1,28 @@
 // ==UserScript==
 // @name         42 Intra Profile
 // @namespace    https://github.com/nicopasla/42-userscripts
-// @version      0.0.1
+// @version      0.0.2
 // @updateURL	   https://raw.githubusercontent.com/nicopasla/42-userscripts/main/profile.user.js
 // @license      MIT
 // @author       nicopasla
 // @description  Replace your profile and background pics
-// @match        https://profile-v3.intra.42.fr/
-// @grant        none
+// @match        https://profile-v3.intra.42.fr/*
+// @grant        GM.getValue
+// @grant        GM.setValue
+// @grant        GM.deleteValue
 // ==/UserScript==
 
-(function () {
+(async function () {
   "use strict";
 
-  const getSettings = () => ({
-    img: localStorage.getItem("custom-42-img-url"),
-    bg: localStorage.getItem("custom-42-bg-url"),
+  const isBaseProfilePage = location.pathname === "/";
+
+  const getSettings = async () => ({
+    img: await GM.getValue("custom-42-img-url", null),
+    bg: await GM.getValue("custom-42-bg-url", null),
   });
-  const INTRA_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+  const INTRA_FONT =
+    'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
   const isValidUrl = (url) => {
     if (!url) return false;
@@ -34,45 +39,76 @@
     }
   };
 
-  const injectStyles = () => {
-    if (document.getElementById("custom-42-styles")) return;
+  const injectProfileStyles = () => {
+    if (document.getElementById("custom-42-profile-styles")) return;
     const style = document.createElement("style");
-    style.id = "custom-42-styles";
+    style.id = "custom-42-profile-styles";
     style.textContent = `
-            .bg-ft-gray b { font-size: 1rem !important; margin-right: 5px; font-family: ${INTRA_FONT};}
-            .bg-ft-gray span { font-size: 1.2rem !important; font-weight: bold !important; font-family: ${INTRA_FONT};}
-            .user-primary h1, .user-name { font-size: 2.5rem !important; font-family: ${INTRA_FONT};}
-            .custom-clickable-avatar { cursor: pointer !important; transition: filter 0.2s; }
-            .custom-clickable-avatar:hover { filter: brightness(0.8); }
-        `;
+      .bg-ft-gray b { font-size: 1rem !important; margin-right: 5px; font-family: ${INTRA_FONT};}
+      .bg-ft-gray span { font-size: 1.2rem !important; font-weight: bold !important; font-family: ${INTRA_FONT};}
+      .user-primary h1, .user-name { font-size: 2.5rem !important; font-family: ${INTRA_FONT};}
+      p.text-sm:nth-child(2) { font-size: 0.95rem !important; }
+    `;
     document.head.appendChild(style);
   };
 
-  const createSettingsModal = () => {
+  const injectBasePageStyles = () => {
+    if (document.getElementById("custom-42-base-styles")) return;
+    const style = document.createElement("style");
+    style.id = "custom-42-base-styles";
+    style.textContent = `
+      .custom-clickable-avatar { cursor: pointer !important; transition: filter 0.2s; }
+      .custom-clickable-avatar:hover { filter: brightness(0.8); }
+      #profile-settings-modal .modal-content { background:#fff; border-radius:12px; max-width:420px; width:94%; overflow:visible; box-shadow:0 20px 25px -5px rgba(0,0,0,.1); font-family:${INTRA_FONT}; position:relative; }
+      #profile-settings-modal .modal-header { padding:12px 14px; border-bottom:1px solid #e2e8f0; font-weight:700; color:#1e293b; display:flex; align-items:center; }
+      #profile-settings-modal .modal-title { flex-grow:1; text-align:center; font-size:15px; letter-spacing:-.01em; }
+      #reset-urls { background:#fff; border:1px solid #fee2e2; color:#ef4444; font-size:11px; padding:4px 8px; border-radius:6px; cursor:pointer; font-weight:700; transition:all .2s ease; }
+      #reset-urls:hover { background:#fef2f2; border-color:#f87171; }
+      #close-profile-modal { display:flex; position:relative; width:28px; height:28px; padding:0; border:none; border-radius:50%; background:#f1f5f9; color:#64748b; cursor:pointer; transition:all .3s ease; }
+      #close-profile-modal:hover { background:#e2e8f0; color:#1e293b; }
+      #close-profile-modal::before, #close-profile-modal::after { content:" "; position:absolute; top:50%; left:50%; width:2px; height:14px; background-color:currentColor; border-radius:1px; }
+      #close-profile-modal::before { transform:translate(-50%,-50%) rotate(45deg); }
+      #close-profile-modal::after { transform:translate(-50%,-50%) rotate(-45deg); }
+      #profile-settings-modal .modal-body { padding:12px 14px; display:flex; flex-direction:column; gap:10px; font-family:${INTRA_FONT}; }
+      #profile-settings-modal .field-row { display:flex; flex-direction:column; gap:6px; border:1px solid #e2e8f0; border-radius:8px; padding:8px; background:#fafcff; }
+      #profile-settings-modal .field-row label { font-size:13px; font-weight:600; color:#1e293b; text-transform:none; }
+      #profile-settings-modal .field-control {width: 100%;box-sizing: border-box;font-size: 14px;font-family: ${INTRA_FONT};padding: 10px 12px;min-height: 42px;border: 1px solid #cbd5e1;border-radius: 6px;background: #fff;}
+      #profile-settings-modal .modal-footer { padding:12px 14px; border-top:1px solid #e2e8f0; }
+      #save-profile-cfg { width:100%; padding:9px; background:#00BCBA; color:#fff; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; transition:opacity .2s; font-family:${INTRA_FONT}; }
+      #save-profile-cfg:hover { opacity:.9; }
+    `;
+    document.head.appendChild(style);
+  };
+
+  const createSettingsModal = async () => {
     if (document.getElementById("profile-settings-modal")) return;
     const modal = document.createElement("div");
     modal.id = "profile-settings-modal";
     modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: none; align-items: center; justify-content: center; z-index: 10000; font-family: ${INTRA_FONT};`;
 
-    const initial = getSettings();
+    const initial = await getSettings();
 
     modal.innerHTML = `
-            <div style="background: white; border-radius: 12px; max-width: 350px; width: 90%; overflow: visible; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); position: relative;">
-                <div style="padding: 15px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #1e293b; display: flex; justify-content: space-between; align-items: center;">
-                    Profile Settings
-                    <button id="reset-urls" style="background: transparent; border: 1px solid #cbd5e1; color: #64748b; font-size: 10px; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-weight: 600;">RESTORE DEFAULTS</button>
-                    <button id="close-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b;">&times;</button>
-                </div>
-                <div style="padding: 15px; display: flex; flex-direction: column; gap: 12px;">
-                    <label style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Profile Image URL</label>
-                    <input type="text" id="set-img-url" value="${initial.img || ""}" placeholder="GIF/PNG/JPG" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; width: 100%; box-sizing: border-box;">
-                    <label style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Background Image URL</label>
-                    <input type="text" id="set-bg-url" value="${initial.bg || ""}" placeholder="GIF/PNG/JPG" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; width: 100%; box-sizing: border-box;">
-                </div>
-                <div style="padding: 15px; border-top: 1px solid #e2e8f0;">
-                    <button id="save-42-cfg" style="width: 100%; padding: 10px; background: #00BCBA; color: white; border: none; border-radius: 6px; font-weight: 700; cursor: pointer;">SAVE & RELOAD</button>
-                </div>
-            </div>`;
+      <div class="modal-content">
+        <div class="modal-header">
+          <button id="reset-urls">Reset</button>
+          <span class="modal-title">Settings</span>
+          <button id="close-profile-modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="field-row">
+            <label for="set-img-url">Profile Image URL</label>
+            <input class="field-control" type="text" id="set-img-url" value="${initial.img || ""}" placeholder="PNG/GIF/JPEG URL">
+          </div>
+          <div class="field-row">
+            <label for="set-bg-url">Background Image URL</label>
+            <input class="field-control" type="text" id="set-bg-url" value="${initial.bg || ""}" placeholder="PNG/GIF/JPEG URL">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="save-profile-cfg">Save & Reload</button>
+        </div>
+      </div>`;
 
     document.body.appendChild(modal);
 
@@ -104,36 +140,51 @@
     inputImg.oninput = liveUpdate;
     inputBg.oninput = liveUpdate;
 
-    modal.querySelector("#save-42-cfg").onclick = () => {
-      localStorage.setItem("custom-42-img-url", inputImg.value.trim());
-      localStorage.setItem("custom-42-bg-url", inputBg.value.trim());
+    modal.querySelector("#save-profile-cfg").onclick = async () => {
+      await GM.setValue("custom-42-img-url", inputImg.value.trim());
+      await GM.setValue("custom-42-bg-url", inputBg.value.trim());
       location.reload();
     };
 
-    modal.querySelector("#reset-urls").onclick = () => {
+    modal.querySelector("#reset-urls").onclick = async () => {
       if (confirm("Reset profile and background?")) {
-        localStorage.removeItem("custom-42-img-url");
-        localStorage.removeItem("custom-42-bg-url");
+        await GM.deleteValue("custom-42-img-url");
+        await GM.deleteValue("custom-42-bg-url");
         location.reload();
       }
     };
 
-    modal.querySelector("#close-modal").onclick = () => {
-      modal.style.display = "none";
-    };
+    const closeModal = () => (modal.style.display = "none");
+    const closeBtn = modal.querySelector("#close-profile-modal");
+    closeBtn.type = "button";
+    closeBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    });
+    closeBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeModal();
+    });
+
+    modal.querySelector(".modal-content").addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+
     modal.onclick = (e) => {
-      if (e.target === modal) modal.style.display = "none";
+      if (e.target === modal) closeModal();
     };
   };
 
-  const updateUI = () => {
+  const updateUI = async () => {
     const avatar = document.querySelector(
       'div.rounded-full[style*="background-image"]',
     );
     const bannerContainer = document.querySelector(
       "div.border-neutral-600.bg-ft-gray\\/50",
     );
-    const settings = getSettings();
+    const settings = await getSettings();
 
     if (avatar && !avatar.dataset.customized) {
       avatar.dataset.orig = avatar.style.backgroundImage;
@@ -165,16 +216,18 @@
     );
   };
 
-  injectStyles();
-  createSettingsModal();
+  injectProfileStyles();
+  if (!isBaseProfilePage) return;
+  injectBasePageStyles();
+  await createSettingsModal();
 
   let scheduled = false;
   const observer = new MutationObserver(() => {
     if (scheduled) return;
     scheduled = true;
-    requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
       scheduled = false;
-      const done = updateUI();
+      const done = await updateUI();
       if (done) observer.disconnect();
     });
   });
