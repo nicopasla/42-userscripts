@@ -1,5 +1,5 @@
 # 42 Userscripts
-Userscripts to improve UI and UX of the 42 Intra v3.
+Collection of Userscripts to improve UI and UX of the 42 Intra v3.
 
 ## Userscripts
 
@@ -28,7 +28,7 @@ Improves readability and allows local profile/background image customization.
 
 ### [shortcuts.user.js](https://raw.githubusercontent.com/nicopasla/42-userscripts/main/shortcuts.user.js)
 
-Improves readability and allows local profile/background image customization.
+Add up to 8 shortcuts next to the announcements
 
 <img alt="Profile screenshot" src="images/shortcuts.png"/>
 
