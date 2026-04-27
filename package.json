@@ -1,0 +1,16 @@
+{
+  "name": "42_intra_hub",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vite": "^7.3.2",
+    "vite-plugin-monkey": "^7.1.9"
+  }
+}
