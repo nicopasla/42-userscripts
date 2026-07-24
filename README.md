@@ -44,8 +44,9 @@ Replaces the default logtime view with a monthly calendar showing your logged ho
 
 ### 🖥️ Clusters
 
-* **Directional markers** — small arrows on the cluster map showing which way each seat faces. Works for **Belgium** clusters (shi, fu, mi, a1, a2). Toggle on/off from the cluster tab bar.
-* **Cluster picker** — a dropdown on the cluster tab bar to quickly switch clusters, with a markers on/off button.
+* **Directional markers** — small indicators on the cluster map showing which way each chair faces. Works for **Belgium** clusters (shi, fu, mi, a1, a2). Toggle on/off from the cluster tab bar.
+* **Cluster picker** — a dropdown on the cluster tab bar to quickly switch clusters.
+* **Markers toggle** — a button on the cluster tab bar to show/hide chair direction indicators.
 * **Default cluster** — set your preferred cluster and it loads automatically when you open the page.
 * **Open in new tab** — optionally open user profiles in a new tab when clicking seats on the cluster map.
 
@@ -55,7 +56,7 @@ Replaces the default logtime view with a monthly calendar showing your logged ho
 
 A live interactive cluster map popup accessible from profile quick-link buttons.
 
-* **Real-time seat occupancy** — see user avatars overlaid on occupied seats with login tooltips. Polls every 30 seconds with a "Updated X min ago" indicator.
+* **Real-time seat occupancy** — see user avatars overlaid on occupied seats with login tooltips. Polls every minute with a "Updated X min ago" indicator.
 * **Seat counts** — a badge on each cluster tab shows taken/total occupancy (e.g. `C1 14/42`). A smaller badge in the map corner shows the same for the current cluster.
 * **Wi-Fi tab** — a dedicated tab showing who's currently connected via Wi-Fi, with avatars, logins, connection time, and a live user count.
 * **Zoom controls** — zoom in/out (30%–300%) with + and - buttons. The current zoom percentage is displayed.
@@ -76,15 +77,16 @@ A live interactive cluster map popup accessible from profile quick-link buttons.
 * **Project badges** — projects in the Projects card appear as colour-coded badges (green for normal projects, red for exams) for quick visual scanning.
 * **Event filtering** — filter your agenda by campus and event type (exam, conference, workshop, hackathon, etc.).
 * **Slots redirection** — automatically redirects slots and defense links for Belgium campus users when your campus is detected.
-* **Sort evaluation slots** — pending evaluations split into "Evaluator" and "Evaluated" sections for easier browsing.
+* **Sort pending evaluations** — pending evaluations are sorted into "To Feedback", "Evaluator", and "Evaluated" sections with counts for easier browsing.
 * **Achievement milestones** — completed achievements get a subtle animated glow.
-* **Full achievements list** — replaces the native "Last Achievements" card with a scrollable list of all achievements.
+* **Full achievements list** — replaces the native "Last Achievements" card with a scrollable list of all achievements, sorted by newest first.
 * **Completed projects (marks)** — the Projects card lists all your graded projects with dates and scores. Multi-attempt projects expand to show each attempt. Sort by newest or oldest first. Projects flagged "Outstanding" during evaluation get a ⭐ next to their name — visible on any user's profile. ☁️
+* **Download Transcript** — a "Transcript" button appears in the Projects card letting you download your academic transcript as a PDF. Choose your cursus, language, and year range. Only available for **Belgium** campus. ☁️
 * **Projects sort** — sort the projects list on any user's profile by name or date, with toggleable ascending/descending order.
 * **Freeze alerts** — a freeze card appears on profiles of frozen students.
 * **Clickable seat label** — click someone's seat on their profile to open the cluster map with their seat highlighted and pulsating.
-* **Thursday Roulette** — a dashboard card showing the current profile's roulette win history, total points, and a live countdown to the next Thursday 8:00 draw. Works on any user's profile. ☁️
-* **Evaluation stats** — the Thursday Roulette card also shows your monthly evaluation history as a corrector: total evaluations, failures, and success percentage. ☁️
+* **Thursday Roulette** — a dashboard card showing the current profile's roulette win history, total points, and a live countdown to the next Friday 8:00 draw. Works on any user's profile. ☁️
+* **Correction stats** — a dashboard card showing your monthly evaluation history as a corrector: total evaluations, failures, and success percentage. ☁️
 * **Moulinette robot icons** — on project corrected pages, the default moulinette image is replaced with a robot icon (normal for passed, broken for failed).
 * **Info card badges** — wallet, level, rank, score, and seat shown as coloured badges below the profile header. Can be hidden in settings.
 * **Campus flags** — the campus badge shows a country flag emoji matching your campus location.
@@ -99,7 +101,7 @@ A live interactive cluster map popup accessible from profile quick-link buttons.
 Your 42 campus is detected automatically — no manual setup.
 
 * **Passive detection** — visiting your profile page silently detects your campus from the intra's own API. Your detected campus appears as a badge in the Advanced settings tab.
-* **Seat direction markers** — cluster screen arrows load automatically for your detected campus. Available for all campuses with submitted cluster data.
+* **Chair direction indicators** — cluster screen markers load automatically for your detected campus. Available for all campuses with submitted cluster data.
 * **Contributing** — add your campus by submitting cluster name/ID data via a pull request to the [campuses/](https://github.com/nicopasla/better-intra/tree/main/campuses) directory.
 
 ---
@@ -136,8 +138,6 @@ Discord DM notifications when your evaluations change state.
 
 * **Discord DMs** — receive alerts in your DMs via the Better Intra bot when an evaluation is booked or when correcteds are revealed. Connect your Discord account from the Discord hub tab — auto-joins **Le Bassin** server to enable direct messages.
 * **Quiet hours** — pause Discord notifications during specified hours (e.g. 22:00 to 08:00) so you're not disturbed at night.
-* **State tracking** — automatically alerts you via Discord DM when an evaluation is booked or when correcteds are revealed.
-* **Feedback sections** — pending evaluations are sorted into "To Feedback", "Evaluator", and "Evaluated" sections with counts for easier browsing.
 * Configure from the **Discord** tab in the Settings Hub.
 
 ---
