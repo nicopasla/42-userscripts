@@ -15,7 +15,9 @@
     "web-ext:chrome": "web-ext run -t chromium --source-dir dist-chrome --start-url https://profile-v3.intra.42.fr",
     "web-ext:brave": "web-ext run -t chromium --chromium-binary \"C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe\" --source-dir dist-chrome --start-url https://profile-v3.intra.42.fr",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "generate:store-images": "node scripts/generate-store-images.js",
+    "generate:description": "node scripts/convert-description.js"
   },
   "devDependencies": {
     "@types/chrome": "^0.2.2",
