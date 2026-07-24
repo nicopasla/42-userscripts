@@ -16,6 +16,7 @@ import { initProjectsSort } from "./projects-sort.ts";
 import { initRouletteStats } from "./roulette-stats.ts";
 import { initEvaluations } from "./evaluations.ts";
 import { initBadges } from "./badges.ts";
+import { initTranscript } from "./transcript.ts";
 import { ensureCampusData } from "../clusters/clusters.data.ts";
 
 const waitForBody = () =>
@@ -72,6 +73,7 @@ export async function initProfile() {
           handleProfileRedirect(),
           initMilestones(),
           initBadges(),
+          initTranscript(),
         ]);
         // Fire-and-forget: features with >2s timeouts or slow network fetches
         initFreezeCard();

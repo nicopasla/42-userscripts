@@ -5,16 +5,16 @@
     "#hub-shadow-wrapper", "#events-shadow-wrapper", "#profile-shadow-wrapper",
     "#profile-badges-shadow", "#cluster-shadow-host",
     "#shortcuts-shadow-wrapper", "#friends-shadow-wrapper",
-    "#ft-friend-btn-shadow",
-    "#logtime-shadow-wrapper", "#popup-root", "#project-badges-shadow",
-    "#cluster-map-dialog", "#profile-modal-host", "#better-intra-sort-host",
-    "#ft-tracker-card";
+    "#ft-friend-btn-shadow", "#logtime-shadow-wrapper", "#popup-root",
+    "#project-badges-shadow", "#cluster-map-dialog", "#profile-modal-host",
+    "#better-intra-sort-host", "#ft-tracker-card", "#ft-transcript-dialog";
   themes:
-    "light", "dark", "valentine", "cupcake", "bumblebee", "emerald", "corporate",
-    "retro", "garden", "lofi", "pastel", "fantasy", "wireframe", "cmyk", "autumn",
-    "acid", "lemonade", "winter", "nord", "caramellatte", "silk",
-    "synthwave", "forest", "halloween", "dracula", "night", "sunset", "luxury",
-    "cyberpunk", "dim", "black", "coffee", "aqua", "soap", "citrus", "neon";
+    "light", "dark", "valentine", "cupcake", "bumblebee", "emerald",
+    "corporate", "retro", "garden", "lofi", "pastel", "fantasy", "wireframe",
+    "cmyk", "autumn", "acid", "lemonade", "winter", "nord", "caramellatte",
+    "silk", "synthwave", "forest", "halloween", "dracula", "night", "sunset",
+    "luxury", "cyberpunk", "dim", "black", "coffee", "aqua", "soap", "citrus",
+    "neon";
   include:
     [ "button",
     "toggle",
