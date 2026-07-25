@@ -3,6 +3,14 @@ import { MAX_INTENSITY_SECS } from "./constants";
 import { fmtHours, hexToRgba } from "./utils";
 import { LogtimeConfig } from "./logtime";
 
+export function getMondayWeekStart(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  return d;
+}
+
 interface CellData {
   date: string;
   day: number;

@@ -77,20 +77,21 @@ export async function getTrackerState(): Promise<TrackerState | null> {
   return THRESHOLDS[mode];
 }
 
+export function getLogtimeWeekStart(date: Date = new Date()): Date {
+  const day = date.getDay();
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const daysSinceSaturday = day === 0 ? 1 : (day - 6 + 7) % 7;
+  start.setDate(start.getDate() - daysSinceSaturday);
+  return start;
+}
+
 export function getCurrentWeekProgress(
   stats: Record<string, string>,
 ): { daysDone: number; hoursDone: number } | null {
   const dates = Object.keys(stats).sort();
   if (dates.length === 0) return null;
 
-  const now = new Date();
-  const day = now.getDay();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  const daysSinceSaturday = day === 0 ? 1 : (day - 6 + 7) % 7;
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - daysSinceSaturday);
-
+  const weekStart = getLogtimeWeekStart();
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
 

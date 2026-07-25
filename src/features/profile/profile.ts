@@ -17,6 +17,7 @@ import { initRouletteStats } from "./roulette-stats.ts";
 import { initEvaluations } from "./evaluations.ts";
 import { initBadges } from "./badges.ts";
 import { initTranscript } from "./transcript.ts";
+import { initPace } from "./pace.ts";
 import { ensureCampusData } from "../clusters/clusters.data.ts";
 
 const waitForBody = () =>
@@ -74,6 +75,7 @@ export async function initProfile() {
           initMilestones(),
           initBadges(),
           initTranscript(),
+          initPace(),
         ]);
         // Fire-and-forget: features with >2s timeouts or slow network fetches
         initFreezeCard();
