@@ -132,53 +132,50 @@ function buildRouletteSection(
   const counters = document.createElement("div");
   counters.className = "flex flex-row justify-around items-stretch my-2 gap-3";
 
-  const winCol = document.createElement("div");
+  const winCol = document.createElement("span");
   winCol.style.cssText =
-    "background: rgba(59,130,246,0.08); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: row; align-items: center; gap: 6px;";
-  const winNum = document.createElement("span");
-  winNum.className = "text-2xl font-bold text-blue-600";
-  winNum.textContent = String(wins);
+    "display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 10px; color: rgb(59,130,246); background: rgba(59,130,246,0.1);";
   const winLabel = document.createElement("span");
   winLabel.className =
     "text-sm font-semibold opacity-70 uppercase tracking-wide";
   winLabel.textContent = "Wins";
   winCol.appendChild(winLabel);
-  winCol.appendChild(winNum);
+  const winValue = document.createElement("span");
+  winValue.style.cssText =
+    "font-size: 26px; font-weight: 700; margin-left: 6px;";
+  winValue.textContent = String(wins);
+  winCol.appendChild(winValue);
   counters.appendChild(winCol);
 
-  const ptsCol = document.createElement("div");
+  const ptsCol = document.createElement("span");
   ptsCol.style.cssText =
-    "background: rgba(34,197,94,0.08); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: row; align-items: center; gap: 6px;";
-  const ptsNum = document.createElement("span");
-  ptsNum.className = "text-2xl font-bold text-green-600";
-  ptsNum.textContent = String(points);
+    "display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 10px; color: rgb(34,197,94); background: rgba(34,197,94,0.1);";
   const ptsLabel = document.createElement("span");
   ptsLabel.className =
     "text-sm font-semibold opacity-70 uppercase tracking-wide";
   ptsLabel.textContent = "Points";
   ptsCol.appendChild(ptsLabel);
-  ptsCol.appendChild(ptsNum);
+  const ptsValue = document.createElement("span");
+  ptsValue.style.cssText =
+    "font-size: 26px; font-weight: 700; margin-left: 6px;";
+  ptsValue.textContent = String(points);
+  ptsCol.appendChild(ptsValue);
   counters.appendChild(ptsCol);
 
-  const nextCol = document.createElement("div");
+  const nextCol = document.createElement("span");
   nextCol.style.cssText =
-    "display: flex; flex-direction: column; align-items: center; justify-content: center;";
-  const nextRow = document.createElement("div");
-  nextRow.style.cssText =
-    "background: rgba(245,158,11,0.08); border-radius: 10px; padding: 10px 14px; display: flex; flex-direction: row; align-items: center; gap: 6px;";
-  const countdownText = document.createElement("span");
-  countdownText.id = "ft-roulette-countdown";
-  countdownText.className = "text-2xl font-bold text-amber-600";
-  countdownText.style.cssText =
-    "font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';";
-  countdownText.textContent = formatCountdownText();
+    "display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 10px; color: rgb(245,158,11); background: rgba(245,158,11,0.1);";
   const nextLabel = document.createElement("span");
   nextLabel.className =
     "text-sm font-semibold opacity-70 uppercase tracking-wide";
-  nextLabel.textContent = "Next draw in";
-  nextRow.appendChild(nextLabel);
-  nextRow.appendChild(countdownText);
-  nextCol.appendChild(nextRow);
+  nextLabel.textContent = "Next";
+  nextCol.appendChild(nextLabel);
+  const countdownText = document.createElement("span");
+  countdownText.id = "ft-roulette-countdown";
+  countdownText.style.cssText =
+    "font-size: 26px; font-weight: 700; margin-left: 6px; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';";
+  countdownText.textContent = formatCountdownText();
+  nextCol.appendChild(countdownText);
   counters.appendChild(nextCol);
 
   section.appendChild(counters);
@@ -203,13 +200,14 @@ function buildRouletteSection(
     for (const [dateStr, totalSum] of grouped) {
       const badge = document.createElement("span");
       badge.style.cssText =
-        "display: inline-flex; align-items: center; gap: 6px; background: rgba(34,197,94,0.1); color: rgb(34,197,94); font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 999px; white-space: nowrap;";
+        "display: inline-flex; align-items: center; gap: 8px; background: rgba(34,197,94,0.1); color: rgb(34,197,94); font-size: 14px; font-weight: 600; padding: 6px 16px; border-radius: 999px; white-space: nowrap;";
       const datePart = document.createElement("span");
-      datePart.style.cssText = "opacity: 0.65; font-size: 11px;";
+      datePart.style.cssText =
+        "opacity: 0.65; font-size: 13px; font-weight: 600;";
       datePart.textContent = dateStr;
       badge.appendChild(datePart);
       const plus = document.createElement("span");
-      plus.style.cssText = "font-size: 14px; font-weight: 700;";
+      plus.style.cssText = "font-size: 16px; font-weight: 700;";
       plus.textContent = `+${totalSum}`;
       badge.appendChild(plus);
       list.appendChild(badge);
@@ -282,14 +280,14 @@ function buildEvalStatsSection(data: EvalStatsData): HTMLElement {
     const color =
       data.global.successPercentage >= 70 ? "rgb(34,197,94)" : "rgb(239,68,68)";
     const badge = document.createElement("span");
-    badge.style.cssText = `font-size: 20px; font-weight: 700; padding: 8px 16px; border-radius: 10px; color: ${color}; background: rgba(${data.global.successPercentage >= 70 ? "34,197,94" : "239,68,68"},0.1);`;
+    badge.style.cssText = `font-size: 20px; font-weight: 700; padding: 10px 20px; border-radius: 10px; color: ${color}; background: rgba(${data.global.successPercentage >= 70 ? "34,197,94" : "239,68,68"},0.1);`;
     badge.textContent = `${data.global.successPercentage}%`;
     badgesWrap.appendChild(badge);
   }
 
   badgesWrap.appendChild(
     makeBadge(
-      "display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 10px; color: rgb(59,130,246); background: rgba(59,130,246,0.1);",
+      "display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 10px; color: rgb(59,130,246); background: rgba(59,130,246,0.1);",
       "total",
       String(data.global.total),
     ),
@@ -297,7 +295,7 @@ function buildEvalStatsSection(data: EvalStatsData): HTMLElement {
 
   badgesWrap.appendChild(
     makeBadge(
-      "display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 10px; color: rgb(239,68,68); background: rgba(239,68,68,0.1);",
+      "display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 10px; color: rgb(239,68,68); background: rgba(239,68,68,0.1);",
       "failed",
       String(data.global.failed),
     ),
