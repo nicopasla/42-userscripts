@@ -245,7 +245,7 @@ function buildEvalStatsSection(data: EvalStatsData): HTMLElement {
     tooltipEl.className =
       "bg-gray-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg z-50 pointer-events-none w-64";
     tooltipEl.textContent =
-      "Shows how many times you acted as a corrector (evaluator) per month, and how many of those evaluations you failed (marked below 50%) — with the success percentage";
+      "Shows how many times you acted as a corrector (evaluator) per month, and how many of those evaluations you marked as failed (below 50%) — with the success percentage";
     tooltipEl.style.cssText = `position: fixed; left: ${rect.left}px; bottom: ${window.innerHeight - rect.top + 8}px;`;
     document.body.appendChild(tooltipEl);
   });
@@ -280,9 +280,9 @@ function buildEvalStatsSection(data: EvalStatsData): HTMLElement {
 
   if (data.global.successPercentage !== null) {
     const color =
-      data.global.successPercentage >= 80 ? "rgb(34,197,94)" : "rgb(239,68,68)";
+      data.global.successPercentage >= 70 ? "rgb(34,197,94)" : "rgb(239,68,68)";
     const badge = document.createElement("span");
-    badge.style.cssText = `font-size: 20px; font-weight: 700; padding: 8px 16px; border-radius: 10px; color: ${color}; background: rgba(${data.global.successPercentage >= 80 ? "34,197,94" : "239,68,68"},0.1);`;
+    badge.style.cssText = `font-size: 20px; font-weight: 700; padding: 8px 16px; border-radius: 10px; color: ${color}; background: rgba(${data.global.successPercentage >= 70 ? "34,197,94" : "239,68,68"},0.1);`;
     badge.textContent = `${data.global.successPercentage}%`;
     badgesWrap.appendChild(badge);
   }
