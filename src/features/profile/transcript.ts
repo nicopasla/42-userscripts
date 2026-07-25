@@ -2,6 +2,7 @@ import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { getConfig } from "../../config.ts";
 import { getCloudLogin } from "../account/account.ts";
+import { getEffectiveTheme, THEMES } from "./theme/theme-manager.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 
 const TRANSCRIPTS: {
@@ -30,18 +31,12 @@ async function openTranscriptDialog(login: string) {
   if (document.getElementById("ft-transcript-dialog")) return;
   const currentYear = new Date().getFullYear();
 
-  const themePref = await getConfig("BETTER_INTRA_THEME");
-  const isDark =
-    themePref === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-      : themePref !== "light";
+  const effectiveTheme = await getEffectiveTheme();
   const presetKey = (await getConfig("PROFILE_THEME_PRESET")) || "dark";
   const currentTheme =
-    presetKey !== "dark" && presetKey !== "light"
+    presetKey !== "dark" && presetKey !== "light" && THEMES[presetKey]
       ? presetKey
-      : isDark
-        ? "dark"
-        : "light";
+      : effectiveTheme;
 
   const dialog = Object.assign(document.createElement("dialog"), {
     id: "ft-transcript-dialog",
