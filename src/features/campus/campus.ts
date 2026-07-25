@@ -69,14 +69,17 @@ export async function fetchCampusList(): Promise<CampusManifest> {
 
 export async function loadCampusData(
   campusId: string,
+  force?: boolean,
 ): Promise<ClusterDataFile> {
   const cacheKey = `${CACHE_PREFIX}${campusId}`;
-  const cached = await chrome.storage.local.get(cacheKey);
-  const cachedData = cached[cacheKey] as
-    | { data: ClusterDataFile; timestamp: number }
-    | undefined;
-  if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
-    return cachedData.data;
+  if (!force) {
+    const cached = await chrome.storage.local.get(cacheKey);
+    const cachedData = cached[cacheKey] as
+      | { data: ClusterDataFile; timestamp: number }
+      | undefined;
+    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
+      return cachedData.data;
+    }
   }
   const prefix = await resolveCampusFolder(campusId);
   const res = await fetch(`${CAMPUS_BASE}/${prefix}_clusters.json`);

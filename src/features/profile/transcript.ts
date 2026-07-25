@@ -208,8 +208,11 @@ export async function initTranscript() {
 
   let transcripts: TranscriptEntry[];
   try {
-    const data = await loadCampusData(campusId);
-    if (!data.transcripts || data.transcripts.length === 0) return;
+    let data = await loadCampusData(campusId);
+    if (!data.transcripts || data.transcripts.length === 0) {
+      data = await loadCampusData(campusId, true);
+      if (!data.transcripts || data.transcripts.length === 0) return;
+    }
     transcripts = data.transcripts;
   } catch {
     return;
