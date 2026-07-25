@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-07-25
+
+### Features 🎉
+
+- feat(pace): implement pace tracking feature with weekly visualization ([32a04a6](https://github.com/nicopasla/better-intra/commit/32a04a6))
+- feat(transcript): add transcript configuration support for campuses ([91acf68](https://github.com/nicopasla/better-intra/commit/91acf68))
+- feat(transcript): add transcript option like on the Intra v2 ([807ea55](https://github.com/nicopasla/better-intra/commit/807ea55))
+- feat(cluster-dialog): add totals badge for seat occupancy display ([8774081](https://github.com/nicopasla/better-intra/commit/8774081))
+- feat(friend-badge): implement friend button in profile section ([fba59d4](https://github.com/nicopasla/better-intra/commit/fba59d4))
+
+### Bug fixes 🐛
+
+- fix(roulette-stats): improve styling and layout of roulette stats display components ([b58efc1](https://github.com/nicopasla/better-intra/commit/b58efc1))
+- fix(roulette-stats): update tooltip text for clarity and adjust success percentage threshold to 70% ([b7163b7](https://github.com/nicopasla/better-intra/commit/b7163b7))
+- fix(roulette-stats): add force parameter to profile stats fetch and update tooltip text for clarity ([2762797](https://github.com/nicopasla/better-intra/commit/2762797))
+- fix(transcript): ensure campus data is reloaded if not found in cache ([e4ee380](https://github.com/nicopasla/better-intra/commit/e4ee380))
+- fix(transcript): integrate theme management for transcript dialog ([2bffe87](https://github.com/nicopasla/better-intra/commit/2bffe87))
+- fix(marks): update svgs colors on dark mode ([223b3f1](https://github.com/nicopasla/better-intra/commit/223b3f1))
+- fix(profile-card): add responsive styles for info card badges ([01e3a66](https://github.com/nicopasla/better-intra/commit/01e3a66))
+
+### Maintenance 🧹
+
+- chore(images): add scripts to generate and store images for Chrome Web Store ([e48661e](https://github.com/nicopasla/better-intra/commit/e48661e))
+
+### Other Changes 🔄
+
+- docs(readme): update cluster features and add transcript download option ([424998f](https://github.com/nicopasla/better-intra/commit/424998f))
+
 ## [1.6.1] - 2026-07-20
 
 ### Features 🎉
@@ -878,7 +906,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.6.1...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.6.2...HEAD
+[1.6.2]: https://github.com/nicopasla/better-intra/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/nicopasla/better-intra/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/nicopasla/better-intra/compare/v1.5.4...v1.6.0
 [1.5.4]: https://github.com/nicopasla/better-intra/compare/v1.5.3...v1.5.4
