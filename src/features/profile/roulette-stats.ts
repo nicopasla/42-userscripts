@@ -94,6 +94,7 @@ async function fetchProfileStats(targetLogin: string): Promise<{
     const params = new URLSearchParams({
       login: hashedLogin,
       target: targetLogin,
+      force: "1",
     });
     const res = await fetch(
       `${WORKER_URL}/api/v1/private/profile-stats?${params}`,
@@ -244,7 +245,7 @@ function buildEvalStatsSection(data: EvalStatsData): HTMLElement {
     tooltipEl.className =
       "bg-gray-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg z-50 pointer-events-none w-64";
     tooltipEl.textContent =
-      "Shows how many times you acted as a corrector (evaluator) per month, and how many of those evaluations failed — with the success percentage";
+      "Shows how many times you acted as a corrector (evaluator) per month, and how many of those evaluations you failed (marked below 50%) — with the success percentage";
     tooltipEl.style.cssText = `position: fixed; left: ${rect.left}px; bottom: ${window.innerHeight - rect.top + 8}px;`;
     document.body.appendChild(tooltipEl);
   });
