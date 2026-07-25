@@ -58,7 +58,13 @@ campuses/
 }
 ```
 
-### Fields
+- `transcripts[]` *(optional)* — available transcript configurations for this campus
+  - `cursusLabel` — display name for the cursus (e.g., `"42cursus"`, `"C Piscine Brussels"`)
+  - `records[]` — available language options for this cursus
+    - `label` — language name (e.g., `"English"`, `"Français"`)
+    - `sr_id` — subsidiary record ID used by `projects.intra.42.fr` (find via DevTools on that site)
+
+### Optional fields
 
 - `clusters[]` — list of clusters on this campus
   - `id` — cluster ID from the 42 API

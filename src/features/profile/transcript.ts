@@ -3,31 +3,13 @@ import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { getConfig } from "../../config.ts";
 import { getCloudLogin } from "../account/account.ts";
 import { getEffectiveTheme, THEMES } from "./theme/theme-manager.ts";
+import { loadCampusData, TranscriptEntry } from "../campus/campus.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 
-const TRANSCRIPTS: {
-  cursusLabel: string;
-  records: { label: string; sr_id: number }[];
-}[] = [
-  {
-    cursusLabel: "42cursus",
-    records: [
-      { label: "English", sr_id: 14 },
-      { label: "Français", sr_id: 120 },
-      { label: "Dutch", sr_id: 119 },
-    ],
-  },
-  {
-    cursusLabel: "C Piscine Brussels",
-    records: [
-      { label: "English", sr_id: 118 },
-      { label: "Français", sr_id: 116 },
-      { label: "Dutch", sr_id: 122 },
-    ],
-  },
-];
-
-async function openTranscriptDialog(login: string) {
+async function openTranscriptDialog(
+  login: string,
+  transcripts: TranscriptEntry[],
+) {
   if (document.getElementById("ft-transcript-dialog")) return;
   const currentYear = new Date().getFullYear();
 
@@ -104,7 +86,7 @@ async function openTranscriptDialog(login: string) {
   };
 
   const renderFormContent = (cursusIdx: number, langSrId?: string) => {
-    const entry = TRANSCRIPTS[cursusIdx];
+    const entry = transcripts[cursusIdx];
     const records = entry.records;
     const currentLang = langSrId || String(records[0].sr_id);
 
@@ -130,7 +112,7 @@ async function openTranscriptDialog(login: string) {
           </div>
 
           <div class="join">
-            ${TRANSCRIPTS.map(
+            ${transcripts.map(
               (t, i) =>
                 html`<input
                   type="radio"
@@ -222,7 +204,16 @@ export async function initTranscript() {
   if (!cloudLogin || !token) return;
 
   const campusId = await getConfig("CLUSTERS_CAMPUS");
-  if (campusId !== "12") return;
+  if (!campusId) return;
+
+  let transcripts: TranscriptEntry[];
+  try {
+    const data = await loadCampusData(campusId);
+    if (!data.transcripts || data.transcripts.length === 0) return;
+    transcripts = data.transcripts;
+  } catch {
+    return;
+  }
 
   const tryInject = () => {
     const cards = document.querySelectorAll<HTMLElement>(".bg-white.md\\:h-96");
@@ -252,7 +243,7 @@ export async function initTranscript() {
     transcriptBtn.textContent = "Transcript";
     transcriptBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      openTranscriptDialog(cloudLogin);
+      openTranscriptDialog(cloudLogin, transcripts);
     });
 
     const actionRow = inner.querySelector<HTMLElement>(".flex.flex-row.gap-2");

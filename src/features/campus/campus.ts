@@ -1,7 +1,13 @@
 import { getConfig } from "../../config.ts";
 
+export interface TranscriptEntry {
+  cursusLabel: string;
+  records: { label: string; sr_id: number }[];
+}
+
 interface ClusterDataFile {
   clusters: { id: string; name: string; svg?: string }[];
+  transcripts?: TranscriptEntry[];
   definitions: Record<string, unknown>;
 }
 
