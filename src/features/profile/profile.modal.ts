@@ -675,6 +675,10 @@ export const createSettingsModal = async (
         alert("File too large. Maximum size is 7 MB.");
         return;
       }
+      if (!file.type.startsWith("image/")) {
+        alert("Only image files are allowed.");
+        return;
+      }
       if (state.uploading) return;
       state.uploading = key;
       rerender();
