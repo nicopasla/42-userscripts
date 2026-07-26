@@ -671,6 +671,10 @@ export const createSettingsModal = async (
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
+      if (file.size > 7 * 1024 * 1024) {
+        alert("File too large. Maximum size is 7 MB.");
+        return;
+      }
       if (state.uploading) return;
       state.uploading = key;
       rerender();
