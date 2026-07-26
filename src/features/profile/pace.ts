@@ -29,6 +29,82 @@ function formatDuration(totalMin: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+function parseDays(el: SVGTextElement): number {
+  const m = el.textContent?.match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+function applyDaysView(
+  titleEl: HTMLElement,
+  countText: SVGTextElement,
+  totalText: SVGTextElement,
+  path: SVGPathElement | null,
+  elapsed: number,
+  total: number,
+  circumference: number,
+  timeLeft: boolean,
+) {
+  if (timeLeft) {
+    const remaining = Math.max(0, total - elapsed);
+    titleEl.textContent = "Time left";
+    countText.textContent = `${remaining} days`;
+    totalText.textContent = `Of ${total}`;
+    path?.setAttribute(
+      "stroke-dashoffset",
+      String(circumference * (remaining / total)),
+    );
+  } else {
+    titleEl.textContent = "Elapsed time";
+    countText.textContent = `${elapsed} days`;
+    totalText.textContent = `On ${total}`;
+    path?.setAttribute(
+      "stroke-dashoffset",
+      String(circumference * (1 - elapsed / total)),
+    );
+  }
+}
+
+function setupDaysToggle(barsContainer: HTMLElement) {
+  const row = barsContainer.closest<HTMLElement>(".flex.flex-row.items-center");
+  if (!row || row.dataset.ftDaysToggle === "true") return;
+  row.dataset.ftDaysToggle = "true";
+
+  const ringSection = row.querySelector<HTMLElement>(".w-2\\/5");
+  if (!ringSection) return;
+
+  const svg = ringSection.querySelector("svg");
+  const titleEl = ringSection.querySelector("p");
+  const texts = svg?.querySelectorAll("text");
+  if (!svg || !titleEl || !texts || texts.length < 2) return;
+
+  const countText = texts[0];
+  const totalText = texts[1];
+  const path = svg.querySelector<SVGPathElement>(".stroke-legacy-main");
+  const circumference = parseFloat(
+    path?.getAttribute("stroke-dasharray") || "0",
+  );
+  const originalElapsed = parseDays(countText);
+  const totalDays = parseDays(totalText);
+  if (!totalDays || !circumference) return;
+
+  let showTimeLeft = false;
+
+  svg.style.cursor = "pointer";
+  svg.addEventListener("click", () => {
+    showTimeLeft = !showTimeLeft;
+    applyDaysView(
+      titleEl,
+      countText,
+      totalText,
+      path,
+      originalElapsed,
+      totalDays,
+      circumference,
+      showTimeLeft,
+    );
+  });
+}
+
 function updatePaceBars() {
   if (!paceData) return;
   if (pacePollAttempts > 300) return;
@@ -62,6 +138,7 @@ function updatePaceBars() {
   }
 
   pacePollAttempts = 0;
+  setupDaysToggle(barsContainer);
 
   const currentMonday = getMondayWeekStart(new Date());
 
