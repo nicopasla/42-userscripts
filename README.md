@@ -9,8 +9,7 @@ To install this extension, click the buttons below or visit the [Releases](https
 
 <a href="https://github.com/nicopasla/better-intra/releases/latest/download/better-intra.xpi" target="_blank" rel="noopener noreferrer">
   <img alt="Install button firefox" src="images/get-the-addon-firefox.svg" height="60"/>
-</a>
-<a href="https://chromewebstore.google.com/detail/better-intra/dljoflohpfgjpdgiiofalechbdlbejpi" target="_blank" rel="noopener noreferrer">
+</a><a href="https://chromewebstore.google.com/detail/better-intra/dljoflohpfgjpdgiiofalechbdlbejpi" target="_blank" rel="noopener noreferrer">
   <img alt="Install button chrome" src="images/get-the-addon-chrome.svg" height="60"/>
 </a>
 
