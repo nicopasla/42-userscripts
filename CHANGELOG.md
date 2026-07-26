@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-07-26
+
+### Features 🎉
+
+- feat(pace): add click toggle on days counter for elapsed/time left ([7f8f8fa](https://github.com/nicopasla/better-intra/commit/7f8f8fa))
+- feat(profile): add hover effect and edit label to avatar in modal ([ec676c4](https://github.com/nicopasla/better-intra/commit/ec676c4))
+- feat(profile): update avatar section layout and styling in settings modal ([76f31c6](https://github.com/nicopasla/better-intra/commit/76f31c6))
+- feat(profile): add alert dialog for file upload errors and validations ([eb44870](https://github.com/nicopasla/better-intra/commit/eb44870))
+- feat(profile): add validation for image file type in settings modal upload ([ff115f7](https://github.com/nicopasla/better-intra/commit/ff115f7))
+- feat(profile): add file size validation for uploads in settings modal ([1d85bdb](https://github.com/nicopasla/better-intra/commit/1d85bdb))
+- feat(profile): enhance profile settings with visual cloud keys and skeleton loading ([129673c](https://github.com/nicopasla/better-intra/commit/129673c))
+- feat(profile): implement image upload functionality for profile visuals ([b18fbb6](https://github.com/nicopasla/better-intra/commit/b18fbb6))
+- feat(profile): add history management for profile avatar, banner, and background ([92325a8](https://github.com/nicopasla/better-intra/commit/92325a8))
+
+### Bug fixes 🐛
+
+- fix(pace): work on any profile by using direct DOM selector ([fd10a44](https://github.com/nicopasla/better-intra/commit/fd10a44))
+- fix(logtime): refactor setupScrollHandlers to return cleanup function and improve event handling ([07c0b50](https://github.com/nicopasla/better-intra/commit/07c0b50))
+- fix(readme): update campus file naming convention and add compatibility note ([44cbcc1](https://github.com/nicopasla/better-intra/commit/44cbcc1))
+- fix(pace): improve pace polling logic and reset attempts ([093c152](https://github.com/nicopasla/better-intra/commit/093c152))
+- fix(readme): restructure install buttons ([925b51e](https://github.com/nicopasla/better-intra/commit/925b51e))
+- fix(readme): remove space between install buttons ([99f2397](https://github.com/nicopasla/better-intra/commit/99f2397))
+- fix(svg): add fill attribute to chevron-down SVG for better styling ([88457a3](https://github.com/nicopasla/better-intra/commit/88457a3))
+
 ## [1.6.2] - 2026-07-25
 
 ### Features 🎉
@@ -906,7 +930,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.6.2...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.6.3...HEAD
+[1.6.3]: https://github.com/nicopasla/better-intra/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/nicopasla/better-intra/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/nicopasla/better-intra/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/nicopasla/better-intra/compare/v1.5.4...v1.6.0
