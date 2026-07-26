@@ -1,12 +1,18 @@
 import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import { getConfig } from "../../config.ts";
-import { syncMyVisuals } from "../account/account.ts";
+import { getConfig, VISUAL_CLOUD_KEYS } from "../../config.ts";
+import {
+  fetchMySettings,
+  loginWith42,
+  clearAuthFailed,
+  syncMyVisuals,
+} from "../account/account.ts";
 import { applyImgs, injectCustomStyles, VisualUrls } from "./visuals.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 import LINK_SVG from "../../assets/svg/link.svg?raw";
 import { renderAvatarEditor } from "./avatar-editor.ts";
 import { uploadImage } from "./image-upload.ts";
+import FORTY_TWO_SVG from "../../assets/svg/42_Logo.svg?raw";
 
 interface FormState {
   avatar: string;
@@ -156,6 +162,9 @@ function renderPanelContent(
   history: { avatar: string[]; banner: string[]; background: string[] },
   onUpload: (key: string) => void,
   onClearHistory: (key: "avatar" | "banner" | "background") => void,
+  isConnected: boolean,
+  needsReconnect: boolean,
+  onConnect: () => void,
 ) {
   const isTransparent = state.avatarBg === "transparent";
 
@@ -181,261 +190,301 @@ function renderPanelContent(
         </button>
       </div>
 
-      <div class="flex flex-col gap-3">
-        <!-- Top row: Avatar (left) + Preview (right) -->
-        <div class="shrink-0 flex gap-5">
-          <!-- Avatar card -->
-          <div
-            class="flex-1 rounded-box border border-base-300 bg-base-200/50 p-3"
-          >
+      ${!isConnected
+        ? html`
             <div
-              class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
+              class="flex flex-col items-center gap-4 py-12 px-6 text-center"
             >
-              Avatar
-            </div>
-            ${renderUrlField(
-              "PROFILE_IMAGE_URL",
-              "Image URL",
-              state.avatar,
-              (val) => onFormUpdate({ avatar: val }),
-              history.avatar,
-              "avatar",
-              state.uploading,
-              () => onClearHistory("avatar"),
-            )}
-            <div class="flex gap-2 items-center mt-2">
-              <div class="join w-full">
-                <input
-                  type="radio"
-                  name="PROFILE_AVATAR_BG_MODE"
-                  class="btn btn-sm join-item flex-1"
-                  aria-label="Transparent"
-                  value="transparent"
-                  ?checked="${isTransparent}"
-                  @change="${() => onFormUpdate({ avatarBg: "transparent" })}"
-                />
-                <input
-                  type="radio"
-                  name="PROFILE_AVATAR_BG_MODE"
-                  class="btn btn-sm join-item flex-1"
-                  aria-label="Color"
-                  value="custom"
-                  ?checked="${!isTransparent}"
-                  @change="${() => onFormUpdate({ avatarBg: "#00bcba" })}"
-                />
-              </div>
-              <div
-                id="ft-avatar-bg-color-wrap"
-                class="${isTransparent ? "hidden" : ""}"
+              <p class="opacity-50 max-w-72 text-sm">
+                ${needsReconnect
+                  ? "Session expired. Reconnect to customize your profile pictures."
+                  : "Connect your 42 account to customize your profile pictures."}
+              </p>
+              <button
+                type="button"
+                class="btn bg-[#00babc] text-white border-none hover:bg-[#1fd2d4] flex items-center justify-center gap-3 mt-2"
+                style="height:3rem; min-width:15rem; font-size:1rem;"
+                @click="${onConnect}"
               >
-                <input
-                  type="color"
-                  id="PROFILE_AVATAR_BG_COLOR"
-                  class="input input-bordered input-sm p-1 h-8 w-14"
-                  .value="${isTransparent ? "#00bcba" : state.avatarBg}"
-                  @input="${(e: Event) =>
-                    onFormUpdate({
-                      avatarBg: (e.target as HTMLInputElement).value,
-                    })}"
-                />
-              </div>
-            </div>
-            <div class="pt-2">
-              <span class="text-xs opacity-60">Border</span>
-              <div class="join w-full mt-1">
-                <input
-                  type="radio"
-                  name="PROFILE_DECORATION"
-                  class="btn btn-sm join-item flex-1"
-                  aria-label="None"
-                  value="none"
-                  ?checked="${state.decoration === "none"}"
-                  @change="${() => onFormUpdate({ decoration: "none" })}"
-                />
-                <input
-                  type="radio"
-                  name="PROFILE_DECORATION"
-                  class="btn btn-sm join-item flex-1"
-                  aria-label="Solid"
-                  value="solid"
-                  ?checked="${state.decoration === "solid"}"
-                  @change="${() => onFormUpdate({ decoration: "solid" })}"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Preview -->
-          <div class="w-64 shrink-0 flex flex-col items-center gap-3">
-            <span
-              class="text-xs font-semibold uppercase tracking-wider opacity-50"
-              >Preview</span
-            >
-            ${state.avatar
-              ? renderAvatarEditor(
-                  {
-                    url: state.avatar,
-                    posX: state.avatarPosX,
-                    posY: state.avatarPosY,
-                    scale: state.avatarScale,
-                    bgColor: state.avatarBg,
-                    decoration: state.decoration,
-                  },
-                  (changes) => {
-                    const updates: Partial<FormState> = {};
-                    if (changes.scale !== undefined)
-                      updates.avatarScale = changes.scale;
-                    if (changes.posX !== undefined)
-                      updates.avatarPosX = changes.posX;
-                    if (changes.posY !== undefined)
-                      updates.avatarPosY = changes.posY;
-                    onFormUpdate(updates);
-                  },
-                )
-              : html`<div
-                  class="w-52 h-52 rounded-full bg-base-300 flex items-center justify-center"
+                <span class="font-bold tracking-wide"
+                  >${needsReconnect ? "Reconnect" : "Connect with"}</span
                 >
-                  <span class="text-xs opacity-50">No avatar URL set</span>
-                </div>`}
-          </div>
-        </div>
+                <span
+                  class="size-8 flex items-center justify-center [&_polygon]:fill-current"
+                >
+                  ${unsafeHTML(FORTY_TWO_SVG)}
+                </span>
+              </button>
+            </div>
+          `
+        : html`
+            <div class="flex flex-col gap-3">
+              <!-- Top row: Avatar (left) + Preview (right) -->
+              <div class="shrink-0 flex gap-5">
+                <!-- Avatar card -->
+                <div
+                  class="flex-1 rounded-box border border-base-300 bg-base-200/50 p-3"
+                >
+                  <div
+                    class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
+                  >
+                    Avatar
+                  </div>
+                  ${renderUrlField(
+                    "PROFILE_IMAGE_URL",
+                    "Image URL",
+                    state.avatar,
+                    (val) => onFormUpdate({ avatar: val }),
+                    history.avatar,
+                    "avatar",
+                    state.uploading,
+                    () => onClearHistory("avatar"),
+                  )}
+                  <div class="flex gap-2 items-center mt-2">
+                    <div class="join w-full">
+                      <input
+                        type="radio"
+                        name="PROFILE_AVATAR_BG_MODE"
+                        class="btn btn-sm join-item flex-1"
+                        aria-label="Transparent"
+                        value="transparent"
+                        ?checked="${isTransparent}"
+                        @change="${() =>
+                          onFormUpdate({ avatarBg: "transparent" })}"
+                      />
+                      <input
+                        type="radio"
+                        name="PROFILE_AVATAR_BG_MODE"
+                        class="btn btn-sm join-item flex-1"
+                        aria-label="Color"
+                        value="custom"
+                        ?checked="${!isTransparent}"
+                        @change="${() => onFormUpdate({ avatarBg: "#00bcba" })}"
+                      />
+                    </div>
+                    <div
+                      id="ft-avatar-bg-color-wrap"
+                      class="${isTransparent ? "hidden" : ""}"
+                    >
+                      <input
+                        type="color"
+                        id="PROFILE_AVATAR_BG_COLOR"
+                        class="input input-bordered input-sm p-1 h-8 w-14"
+                        .value="${isTransparent ? "#00bcba" : state.avatarBg}"
+                        @input="${(e: Event) =>
+                          onFormUpdate({
+                            avatarBg: (e.target as HTMLInputElement).value,
+                          })}"
+                      />
+                    </div>
+                  </div>
+                  <div class="pt-2">
+                    <span class="text-xs opacity-60">Border</span>
+                    <div class="join w-full mt-1">
+                      <input
+                        type="radio"
+                        name="PROFILE_DECORATION"
+                        class="btn btn-sm join-item flex-1"
+                        aria-label="None"
+                        value="none"
+                        ?checked="${state.decoration === "none"}"
+                        @change="${() => onFormUpdate({ decoration: "none" })}"
+                      />
+                      <input
+                        type="radio"
+                        name="PROFILE_DECORATION"
+                        class="btn btn-sm join-item flex-1"
+                        aria-label="Solid"
+                        value="solid"
+                        ?checked="${state.decoration === "solid"}"
+                        @change="${() => onFormUpdate({ decoration: "solid" })}"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-        <!-- Banner + Background row -->
-        <div class="shrink-0 flex gap-5">
-          <div
-            class="flex-1 rounded-box border border-base-300 bg-base-200/50 p-3"
-          >
-            <div
-              class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
-            >
-              Banner
-            </div>
-            ${state.bannerColor
-              ? ""
-              : html`${renderUrlField(
-                  "PROFILE_BANNER_URL",
-                  "Image URL",
-                  state.banner,
-                  (val) => onFormUpdate({ banner: val }),
-                  history.banner,
-                  "banner",
-                  state.uploading,
-                  () => onClearHistory("banner"),
-                )}
-                ${renderModeRadios(
-                  "PROFILE_BANNER_MODE",
-                  state.bannerMode,
-                  (val) => onFormUpdate({ bannerMode: val }),
-                )}`}
-            ${state.bannerColor
-              ? html`<div class="form-control w-full">
-                  <label class="label py-1">
-                    <span class="label-text opacity-80">Color</span>
-                  </label>
-                  <input
-                    type="color"
-                    class="input input-bordered w-full h-10 p-1"
-                    .value="${state.bannerColor}"
-                    @input="${(e: Event) =>
-                      onFormUpdate({
-                        bannerColor: (e.target as HTMLInputElement).value,
-                      })}"
-                  />
-                </div>`
-              : ""}
-            <div class="join w-full mt-2">
-              <input
-                type="radio"
-                name="PROFILE_BANNER_TYPE"
-                class="btn btn-sm join-item flex-1"
-                aria-label="Image"
-                value="image"
-                ?checked="${!state.bannerColor}"
-                @change="${() => onFormUpdate({ bannerColor: "", banner: "" })}"
-              />
-              <input
-                type="radio"
-                name="PROFILE_BANNER_TYPE"
-                class="btn btn-sm join-item flex-1"
-                aria-label="Color"
-                value="color"
-                ?checked="${state.bannerColor !== ""}"
-                @change="${() =>
-                  onFormUpdate({ bannerColor: "#333333", banner: "" })}"
-              />
-            </div>
-          </div>
+                <!-- Preview -->
+                <div class="w-64 shrink-0 flex flex-col items-center gap-3">
+                  <span
+                    class="text-xs font-semibold uppercase tracking-wider opacity-50"
+                    >Preview</span
+                  >
+                  ${state.avatar
+                    ? renderAvatarEditor(
+                        {
+                          url: state.avatar,
+                          posX: state.avatarPosX,
+                          posY: state.avatarPosY,
+                          scale: state.avatarScale,
+                          bgColor: state.avatarBg,
+                          decoration: state.decoration,
+                        },
+                        (changes) => {
+                          const updates: Partial<FormState> = {};
+                          if (changes.scale !== undefined)
+                            updates.avatarScale = changes.scale;
+                          if (changes.posX !== undefined)
+                            updates.avatarPosX = changes.posX;
+                          if (changes.posY !== undefined)
+                            updates.avatarPosY = changes.posY;
+                          onFormUpdate(updates);
+                        },
+                      )
+                    : html`<div
+                        class="w-52 h-52 rounded-full bg-base-300 flex items-center justify-center"
+                      >
+                        <span class="text-xs opacity-50"
+                          >No avatar URL set</span
+                        >
+                      </div>`}
+                </div>
+              </div>
 
-          <div
-            class="flex-1 rounded-box border border-base-300 bg-base-200/50 p-3"
-          >
-            <div
-              class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
-            >
-              Background
-            </div>
-            ${state.backgroundColor
-              ? ""
-              : html`${renderUrlField(
-                  "PROFILE_BACKGROUND_URL",
-                  "Image URL",
-                  state.background,
-                  (val) => onFormUpdate({ background: val }),
-                  history.background,
-                  "background",
-                  state.uploading,
-                  () => onClearHistory("background"),
-                )}
-                ${renderModeRadios(
-                  "PROFILE_BACKGROUND_MODE",
-                  state.backgroundMode,
-                  (val) => onFormUpdate({ backgroundMode: val }),
-                )}`}
-            ${state.backgroundColor
-              ? html`<div class="form-control w-full">
-                  <label class="label py-1">
-                    <span class="label-text opacity-80">Color</span>
-                  </label>
-                  <input
-                    type="color"
-                    class="input input-bordered w-full h-10 p-1"
-                    .value="${state.backgroundColor}"
-                    @input="${(e: Event) =>
-                      onFormUpdate({
-                        backgroundColor: (e.target as HTMLInputElement).value,
-                      })}"
-                  />
-                </div>`
-              : ""}
-            <div class="join w-full mt-2">
-              <input
-                type="radio"
-                name="PROFILE_BACKGROUND_TYPE"
-                class="btn btn-sm join-item flex-1"
-                aria-label="Image"
-                value="image"
-                ?checked="${!state.backgroundColor}"
-                @change="${() =>
-                  onFormUpdate({ backgroundColor: "", background: "" })}"
-              />
-              <input
-                type="radio"
-                name="PROFILE_BACKGROUND_TYPE"
-                class="btn btn-sm join-item flex-1"
-                aria-label="Color"
-                value="color"
-                ?checked="${state.backgroundColor !== ""}"
-                @change="${() =>
-                  onFormUpdate({ backgroundColor: "#333333", background: "" })}"
-              />
-            </div>
-          </div>
-        </div>
+              <!-- Banner + Background row -->
+              <div class="shrink-0 flex gap-5">
+                <div
+                  class="flex-1 rounded-box border border-base-300 bg-base-200/50 p-3"
+                >
+                  <div
+                    class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
+                  >
+                    Banner
+                  </div>
+                  ${state.bannerColor
+                    ? ""
+                    : html`${renderUrlField(
+                        "PROFILE_BANNER_URL",
+                        "Image URL",
+                        state.banner,
+                        (val) => onFormUpdate({ banner: val }),
+                        history.banner,
+                        "banner",
+                        state.uploading,
+                        () => onClearHistory("banner"),
+                      )}
+                      ${renderModeRadios(
+                        "PROFILE_BANNER_MODE",
+                        state.bannerMode,
+                        (val) => onFormUpdate({ bannerMode: val }),
+                      )}`}
+                  ${state.bannerColor
+                    ? html`<div class="form-control w-full">
+                        <label class="label py-1">
+                          <span class="label-text opacity-80">Color</span>
+                        </label>
+                        <input
+                          type="color"
+                          class="input input-bordered w-full h-10 p-1"
+                          .value="${state.bannerColor}"
+                          @input="${(e: Event) =>
+                            onFormUpdate({
+                              bannerColor: (e.target as HTMLInputElement).value,
+                            })}"
+                        />
+                      </div>`
+                    : ""}
+                  <div class="join w-full mt-2">
+                    <input
+                      type="radio"
+                      name="PROFILE_BANNER_TYPE"
+                      class="btn btn-sm join-item flex-1"
+                      aria-label="Image"
+                      value="image"
+                      ?checked="${!state.bannerColor}"
+                      @change="${() =>
+                        onFormUpdate({ bannerColor: "", banner: "" })}"
+                    />
+                    <input
+                      type="radio"
+                      name="PROFILE_BANNER_TYPE"
+                      class="btn btn-sm join-item flex-1"
+                      aria-label="Color"
+                      value="color"
+                      ?checked="${state.bannerColor !== ""}"
+                      @change="${() =>
+                        onFormUpdate({ bannerColor: "#333333", banner: "" })}"
+                    />
+                  </div>
+                </div>
 
-        <button id="profile-save" class="btn btn-success font-bold shrink-0">
-          Save Changes
-        </button>
-      </div>
+                <div
+                  class="flex-1 rounded-box border border-base-300 bg-base-200/50 p-3"
+                >
+                  <div
+                    class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
+                  >
+                    Background
+                  </div>
+                  ${state.backgroundColor
+                    ? ""
+                    : html`${renderUrlField(
+                        "PROFILE_BACKGROUND_URL",
+                        "Image URL",
+                        state.background,
+                        (val) => onFormUpdate({ background: val }),
+                        history.background,
+                        "background",
+                        state.uploading,
+                        () => onClearHistory("background"),
+                      )}
+                      ${renderModeRadios(
+                        "PROFILE_BACKGROUND_MODE",
+                        state.backgroundMode,
+                        (val) => onFormUpdate({ backgroundMode: val }),
+                      )}`}
+                  ${state.backgroundColor
+                    ? html`<div class="form-control w-full">
+                        <label class="label py-1">
+                          <span class="label-text opacity-80">Color</span>
+                        </label>
+                        <input
+                          type="color"
+                          class="input input-bordered w-full h-10 p-1"
+                          .value="${state.backgroundColor}"
+                          @input="${(e: Event) =>
+                            onFormUpdate({
+                              backgroundColor: (e.target as HTMLInputElement)
+                                .value,
+                            })}"
+                        />
+                      </div>`
+                    : ""}
+                  <div class="join w-full mt-2">
+                    <input
+                      type="radio"
+                      name="PROFILE_BACKGROUND_TYPE"
+                      class="btn btn-sm join-item flex-1"
+                      aria-label="Image"
+                      value="image"
+                      ?checked="${!state.backgroundColor}"
+                      @change="${() =>
+                        onFormUpdate({ backgroundColor: "", background: "" })}"
+                    />
+                    <input
+                      type="radio"
+                      name="PROFILE_BACKGROUND_TYPE"
+                      class="btn btn-sm join-item flex-1"
+                      aria-label="Color"
+                      value="color"
+                      ?checked="${state.backgroundColor !== ""}"
+                      @change="${() =>
+                        onFormUpdate({
+                          backgroundColor: "#333333",
+                          background: "",
+                        })}"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                id="profile-save"
+                class="btn btn-success font-bold shrink-0"
+              >
+                Save Changes
+              </button>
+            </div>
+          `}
     </div>
   `;
 }
@@ -445,38 +494,10 @@ export const createSettingsModal = async (
 ) => {
   if (document.getElementById("profile-modal-host")) return;
 
-  const saved = {
-    avatar: await getConfig("PROFILE_IMAGE_URL"),
-    banner: await getConfig("PROFILE_BANNER_URL"),
-    bannerMode: (await getConfig("PROFILE_BANNER_MODE")) || "fill",
-    bannerColor: await getConfig("PROFILE_BANNER_COLOR"),
-    background: await getConfig("PROFILE_BACKGROUND_URL"),
-    backgroundMode: (await getConfig("PROFILE_BACKGROUND_MODE")) || "fill",
-    backgroundColor: await getConfig("PROFILE_BACKGROUND_COLOR"),
-    avatarBg: await getConfig("PROFILE_AVATAR_BG"),
-    decoration: await getConfig("PROFILE_DECORATION"),
-    avatarPosX: await getConfig("PROFILE_AVATAR_POSITION_X"),
-    avatarPosY: await getConfig("PROFILE_AVATAR_POSITION_Y"),
-    avatarScale: await getConfig("PROFILE_AVATAR_SCALE"),
-  };
-
-  const state: FormState = { ...saved, uploading: "" };
-
-  const imgHistory = {
-    avatar: await getConfig("PROFILE_IMAGE_HISTORY"),
-    banner: await getConfig("PROFILE_BANNER_HISTORY"),
-    background: await getConfig("PROFILE_BACKGROUND_HISTORY"),
-  };
-
-  if (saved.avatar)
-    imgHistory.avatar = addToHistory(saved.avatar, imgHistory.avatar);
-  if (saved.banner)
-    imgHistory.banner = addToHistory(saved.banner, imgHistory.banner);
-  if (saved.background)
-    imgHistory.background = addToHistory(
-      saved.background,
-      imgHistory.background,
-    );
+  const token = await getConfig("CLOUD_TOKEN");
+  const authFailed = !!(await getConfig("CLOUD_AUTH_FAILED"));
+  const isConnected = !!token && !authFailed;
+  const needsReconnect = !!token && authFailed;
 
   const themePref = await getConfig("BETTER_INTRA_THEME");
   const isDark =
@@ -512,6 +533,85 @@ export const createSettingsModal = async (
 
   const shadow = content.attachShadow({ mode: "open" });
 
+  const skeleton = html`
+    <style>
+      :host { display: block; }
+      ${unsafeHTML(sharedCSS)}
+    </style>
+    <div
+      data-theme="${currentTheme}"
+      class="flex flex-col p-4 gap-3 bg-base-100 rounded-2xl"
+    >
+      <div class="flex justify-between items-center">
+        <div class="skeleton h-8 w-16"></div>
+        <div class="skeleton h-8 w-8 rounded-full"></div>
+      </div>
+      <div class="flex gap-5">
+        <div class="skeleton flex-1 h-64 rounded-xl"></div>
+        <div class="skeleton flex-1 h-64 rounded-xl"></div>
+      </div>
+      <div class="flex gap-5">
+        <div class="skeleton flex-1 h-48 rounded-xl"></div>
+        <div class="skeleton flex-1 h-48 rounded-xl"></div>
+      </div>
+      <div class="skeleton h-12 w-full rounded-xl"></div>
+    </div>
+  `;
+
+  render(skeleton, shadow);
+  dialog.showModal();
+
+  content.addEventListener("click", (e) => e.stopPropagation());
+  dialog.addEventListener("click", () => close());
+
+  if (isConnected) {
+    const cloudSettings = await fetchMySettings();
+    if (cloudSettings) {
+      const visualData: Record<string, unknown> = {};
+      for (const key of VISUAL_CLOUD_KEYS) {
+        if (key in cloudSettings) {
+          visualData[key] = (cloudSettings as Record<string, unknown>)[key];
+        }
+      }
+      if (Object.keys(visualData).length > 0) {
+        await chrome.storage.local.set(visualData);
+      }
+    }
+  }
+
+  const saved = {
+    avatar: await getConfig("PROFILE_IMAGE_URL"),
+    banner: await getConfig("PROFILE_BANNER_URL"),
+    bannerMode: (await getConfig("PROFILE_BANNER_MODE")) || "fill",
+    bannerColor: await getConfig("PROFILE_BANNER_COLOR"),
+    background: await getConfig("PROFILE_BACKGROUND_URL"),
+    backgroundMode: (await getConfig("PROFILE_BACKGROUND_MODE")) || "fill",
+    backgroundColor: await getConfig("PROFILE_BACKGROUND_COLOR"),
+    avatarBg: await getConfig("PROFILE_AVATAR_BG"),
+    decoration: await getConfig("PROFILE_DECORATION"),
+    avatarPosX: await getConfig("PROFILE_AVATAR_POSITION_X"),
+    avatarPosY: await getConfig("PROFILE_AVATAR_POSITION_Y"),
+    avatarScale: await getConfig("PROFILE_AVATAR_SCALE"),
+  };
+
+  const state: FormState = { ...saved, uploading: "" };
+
+  const imgHistory = {
+    avatar: await getConfig("PROFILE_IMAGE_HISTORY"),
+    banner: await getConfig("PROFILE_BANNER_HISTORY"),
+    background: await getConfig("PROFILE_BACKGROUND_HISTORY"),
+  };
+
+  if (saved.avatar)
+    imgHistory.avatar = addToHistory(saved.avatar, imgHistory.avatar);
+  if (saved.banner)
+    imgHistory.banner = addToHistory(saved.banner, imgHistory.banner);
+  if (saved.background)
+    imgHistory.background = addToHistory(
+      saved.background,
+      imgHistory.background,
+    );
+
   const close = () => {
     dialog.close();
     dialog.remove();
@@ -535,6 +635,13 @@ export const createSettingsModal = async (
     ]);
     close();
     location.reload();
+  };
+
+  const handleConnect42 = () => {
+    loginWith42(async () => {
+      await clearAuthFailed();
+      window.location.reload();
+    });
   };
 
   const handleFormUpdate = (updates: Partial<FormState>) => {
@@ -593,103 +700,108 @@ export const createSettingsModal = async (
         imgHistory,
         handleUpload,
         handleClearHistory,
+        isConnected,
+        needsReconnect,
+        handleConnect42,
       ),
       shadow,
     );
     bindButtons(shadow, close, reset);
-    bindUploadButtons(shadow, handleUpload);
+    if (isConnected) bindUploadButtons(shadow, handleUpload);
   };
 
   injectCustomStyles();
   rerender();
 
-  content.addEventListener("click", (e) => e.stopPropagation());
-  dialog.addEventListener("click", () => close());
+  if (isConnected) {
+    shadow
+      .querySelector("#profile-save")
+      ?.addEventListener("click", async () => {
+        const batchData: Record<string, string | number> = {};
+        const keysToRemove: string[] = [];
 
-  dialog.showModal();
+        if (!state.avatar) {
+          keysToRemove.push("PROFILE_IMAGE_URL");
+        } else {
+          batchData["PROFILE_IMAGE_URL"] = state.avatar;
+        }
 
-  shadow.querySelector("#profile-save")?.addEventListener("click", async () => {
-    const batchData: Record<string, string | number> = {};
-    const keysToRemove: string[] = [];
+        if (!state.banner) {
+          keysToRemove.push("PROFILE_BANNER_URL", "PROFILE_BANNER_MODE");
+        } else {
+          batchData["PROFILE_BANNER_URL"] = state.banner;
+          batchData["PROFILE_BANNER_MODE"] = state.bannerMode;
+        }
 
-    if (!state.avatar) {
-      keysToRemove.push("PROFILE_IMAGE_URL");
-    } else {
-      batchData["PROFILE_IMAGE_URL"] = state.avatar;
-    }
+        if (!state.bannerColor) {
+          keysToRemove.push("PROFILE_BANNER_COLOR");
+        } else {
+          batchData["PROFILE_BANNER_COLOR"] = state.bannerColor;
+        }
 
-    if (!state.banner) {
-      keysToRemove.push("PROFILE_BANNER_URL", "PROFILE_BANNER_MODE");
-    } else {
-      batchData["PROFILE_BANNER_URL"] = state.banner;
-      batchData["PROFILE_BANNER_MODE"] = state.bannerMode;
-    }
+        if (!state.background) {
+          keysToRemove.push(
+            "PROFILE_BACKGROUND_URL",
+            "PROFILE_BACKGROUND_MODE",
+          );
+        } else {
+          batchData["PROFILE_BACKGROUND_URL"] = state.background;
+          batchData["PROFILE_BACKGROUND_MODE"] = state.backgroundMode;
+        }
 
-    if (!state.bannerColor) {
-      keysToRemove.push("PROFILE_BANNER_COLOR");
-    } else {
-      batchData["PROFILE_BANNER_COLOR"] = state.bannerColor;
-    }
+        if (!state.backgroundColor) {
+          keysToRemove.push("PROFILE_BACKGROUND_COLOR");
+        } else {
+          batchData["PROFILE_BACKGROUND_COLOR"] = state.backgroundColor;
+        }
 
-    if (!state.background) {
-      keysToRemove.push("PROFILE_BACKGROUND_URL", "PROFILE_BACKGROUND_MODE");
-    } else {
-      batchData["PROFILE_BACKGROUND_URL"] = state.background;
-      batchData["PROFILE_BACKGROUND_MODE"] = state.backgroundMode;
-    }
+        batchData["PROFILE_AVATAR_BG"] = state.avatarBg;
+        batchData["PROFILE_DECORATION"] = state.decoration;
+        batchData["PROFILE_AVATAR_POSITION_X"] = state.avatarPosX;
+        batchData["PROFILE_AVATAR_POSITION_Y"] = state.avatarPosY;
+        batchData["PROFILE_AVATAR_SCALE"] = state.avatarScale;
 
-    if (!state.backgroundColor) {
-      keysToRemove.push("PROFILE_BACKGROUND_COLOR");
-    } else {
-      batchData["PROFILE_BACKGROUND_COLOR"] = state.backgroundColor;
-    }
+        if (Object.keys(batchData).length > 0)
+          await chrome.storage.local.set(batchData as Record<string, string>);
+        if (keysToRemove.length > 0)
+          await chrome.storage.local.remove(keysToRemove);
 
-    batchData["PROFILE_AVATAR_BG"] = state.avatarBg;
-    batchData["PROFILE_DECORATION"] = state.decoration;
-    batchData["PROFILE_AVATAR_POSITION_X"] = state.avatarPosX;
-    batchData["PROFILE_AVATAR_POSITION_Y"] = state.avatarPosY;
-    batchData["PROFILE_AVATAR_SCALE"] = state.avatarScale;
+        imgHistory.avatar = addToHistory(state.avatar, imgHistory.avatar);
+        imgHistory.banner = addToHistory(state.banner, imgHistory.banner);
+        imgHistory.background = addToHistory(
+          state.background,
+          imgHistory.background,
+        );
+        await chrome.storage.local.set({
+          PROFILE_IMAGE_HISTORY: imgHistory.avatar,
+          PROFILE_BANNER_HISTORY: imgHistory.banner,
+          PROFILE_BACKGROUND_HISTORY: imgHistory.background,
+        });
 
-    if (Object.keys(batchData).length > 0)
-      await chrome.storage.local.set(batchData as Record<string, string>);
-    if (keysToRemove.length > 0)
-      await chrome.storage.local.remove(keysToRemove);
+        const updatedVisuals: VisualUrls = {
+          avatar: state.avatar || "",
+          banner: state.banner || "",
+          bannerMode: state.bannerMode || "fill",
+          bannerColor: state.bannerColor || "",
+          background: state.background || "",
+          backgroundMode: state.backgroundMode || "fill",
+          backgroundColor: state.backgroundColor || "",
+          avatarBg: state.avatarBg,
+          decoration: state.decoration,
+          avatarPosX: state.avatarPosX,
+          avatarPosY: state.avatarPosY,
+          avatarScale: state.avatarScale,
+        };
 
-    imgHistory.avatar = addToHistory(state.avatar, imgHistory.avatar);
-    imgHistory.banner = addToHistory(state.banner, imgHistory.banner);
-    imgHistory.background = addToHistory(
-      state.background,
-      imgHistory.background,
-    );
-    await chrome.storage.local.set({
-      PROFILE_IMAGE_HISTORY: imgHistory.avatar,
-      PROFILE_BANNER_HISTORY: imgHistory.banner,
-      PROFILE_BACKGROUND_HISTORY: imgHistory.background,
-    });
-
-    const updatedVisuals: VisualUrls = {
-      avatar: state.avatar || "",
-      banner: state.banner || "",
-      bannerMode: state.bannerMode || "fill",
-      bannerColor: state.bannerColor || "",
-      background: state.background || "",
-      backgroundMode: state.backgroundMode || "fill",
-      backgroundColor: state.backgroundColor || "",
-      avatarBg: state.avatarBg,
-      decoration: state.decoration,
-      avatarPosX: state.avatarPosX,
-      avatarPosY: state.avatarPosY,
-      avatarScale: state.avatarScale,
-    };
-
-    try {
-      await syncMyVisuals(updatedVisuals);
-    } catch (e) {
-      console.error("Failed to sync visuals:", e);
-    }
-    onSaveCallback(updatedVisuals);
-    close();
-  });
+        try {
+          await syncMyVisuals(updatedVisuals);
+        } catch (e) {
+          console.error("Failed to sync visuals:", e);
+        }
+        onSaveCallback(updatedVisuals);
+        close();
+      });
+  }
 };
 
 function liveApplyBannerBg(state: FormState) {
