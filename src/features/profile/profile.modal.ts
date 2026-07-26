@@ -22,11 +22,48 @@ interface FormState {
   avatarScale: number;
 }
 
+function addToHistory(url: string, history: string[]): string[] {
+  if (!url) return history;
+  const filtered = history.filter((h) => h !== url);
+  return [url, ...filtered].slice(0, 10);
+}
+
+function extractLabel(url: string): string {
+  try {
+    const u = new URL(url);
+    const segs = u.pathname.split("/").filter(Boolean);
+    const last = decodeURIComponent(segs[segs.length - 1] || "");
+    if (last.length > 25) return last.slice(0, 22) + "...";
+    if (last) return last;
+  } catch {}
+  return url.length > 25 ? url.slice(0, 22) + "..." : url;
+}
+
+function renderUrlHistory(history: string[], onSelect: (val: string) => void) {
+  if (history.length === 0) return html``;
+  return html`
+    <div class="flex flex-wrap gap-1.5 mt-2">
+      ${history.map(
+        (url) => html`
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs gap-1 px-1.5 py-0.5 rounded-lg border border-base-300 hover:border-accent"
+            title="${url}"
+            @click="${() => onSelect(url)}"
+            style="background-image: url(${url}); background-size: cover; background-position: center; width: 2rem; height: 2rem; flex-shrink: 0;"
+          ></button>
+        `,
+      )}
+    </div>
+  `;
+}
+
 function renderUrlField(
   id: string,
   label: string,
   value: string,
   onInput: (val: string) => void,
+  history: string[] = [],
 ) {
   return html`
     <div class="form-control w-full">
@@ -36,8 +73,7 @@ function renderUrlField(
       <label
         class="input input-accent validator flex items-center gap-2 w-full"
       >
-        <span
-          class="h-[1em] opacity-50 flex items-center justify-center"
+        <span class="h-[1em] opacity-50 flex items-center justify-center"
           >${unsafeHTML(LINK_SVG)}</span
         >
         <input
@@ -51,6 +87,7 @@ function renderUrlField(
             onInput((e.target as HTMLInputElement).value)}"
         />
       </label>
+      ${renderUrlHistory(history, onInput)}
     </div>
   `;
 }
@@ -84,6 +121,7 @@ function renderPanelContent(
   state: FormState,
   currentTheme: string,
   onFormUpdate: (updates: Partial<FormState>) => void,
+  history: { avatar: string[]; banner: string[]; background: string[] },
 ) {
   const isTransparent = state.avatarBg === "transparent";
 
@@ -126,6 +164,7 @@ function renderPanelContent(
               "Image URL",
               state.avatar,
               (val) => onFormUpdate({ avatar: val }),
+              history.avatar,
             )}
             <div class="flex gap-2 items-center mt-2">
               <div class="join w-full">
@@ -241,6 +280,7 @@ function renderPanelContent(
                   "Image URL",
                   state.banner,
                   (val) => onFormUpdate({ banner: val }),
+                  history.banner,
                 )}
                 ${renderModeRadios(
                   "PROFILE_BANNER_MODE",
@@ -301,6 +341,7 @@ function renderPanelContent(
                   "Image URL",
                   state.background,
                   (val) => onFormUpdate({ background: val }),
+                  history.background,
                 )}
                 ${renderModeRadios(
                   "PROFILE_BACKGROUND_MODE",
@@ -378,6 +419,22 @@ export const createSettingsModal = async (
 
   const state: FormState = { ...saved };
 
+  const imgHistory = {
+    avatar: await getConfig("PROFILE_IMAGE_HISTORY"),
+    banner: await getConfig("PROFILE_BANNER_HISTORY"),
+    background: await getConfig("PROFILE_BACKGROUND_HISTORY"),
+  };
+
+  if (saved.avatar)
+    imgHistory.avatar = addToHistory(saved.avatar, imgHistory.avatar);
+  if (saved.banner)
+    imgHistory.banner = addToHistory(saved.banner, imgHistory.banner);
+  if (saved.background)
+    imgHistory.background = addToHistory(
+      saved.background,
+      imgHistory.background,
+    );
+
   const themePref = await getConfig("BETTER_INTRA_THEME");
   const isDark =
     themePref === "system"
@@ -444,7 +501,10 @@ export const createSettingsModal = async (
   };
 
   const rerender = () => {
-    render(renderPanelContent(state, currentTheme, handleFormUpdate), shadow);
+    render(
+      renderPanelContent(state, currentTheme, handleFormUpdate, imgHistory),
+      shadow,
+    );
     bindButtons(shadow, close, reset);
   };
 
@@ -502,6 +562,18 @@ export const createSettingsModal = async (
       await chrome.storage.local.set(batchData as Record<string, string>);
     if (keysToRemove.length > 0)
       await chrome.storage.local.remove(keysToRemove);
+
+    imgHistory.avatar = addToHistory(state.avatar, imgHistory.avatar);
+    imgHistory.banner = addToHistory(state.banner, imgHistory.banner);
+    imgHistory.background = addToHistory(
+      state.background,
+      imgHistory.background,
+    );
+    await chrome.storage.local.set({
+      PROFILE_IMAGE_HISTORY: imgHistory.avatar,
+      PROFILE_BANNER_HISTORY: imgHistory.banner,
+      PROFILE_BACKGROUND_HISTORY: imgHistory.background,
+    });
 
     const updatedVisuals: VisualUrls = {
       avatar: state.avatar || "",

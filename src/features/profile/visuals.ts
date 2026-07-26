@@ -33,6 +33,47 @@ export interface VisualUrls {
 }
 
 let isFetching = false;
+
+let historyListenerInstalled = false;
+
+function addToHistory(url: string, history: string[]): string[] {
+  if (!url) return history;
+  const filtered = history.filter((h) => h !== url);
+  return [url, ...filtered].slice(0, 10);
+}
+
+function installHistoryListener(): void {
+  if (historyListenerInstalled) return;
+  historyListenerInstalled = true;
+
+  const URL_KEYS = [
+    "PROFILE_IMAGE_URL",
+    "PROFILE_BANNER_URL",
+    "PROFILE_BACKGROUND_URL",
+  ] as const;
+  const HISTORY_KEYS = {
+    PROFILE_IMAGE_URL: "PROFILE_IMAGE_HISTORY",
+    PROFILE_BANNER_URL: "PROFILE_BANNER_HISTORY",
+    PROFILE_BACKGROUND_URL: "PROFILE_BACKGROUND_HISTORY",
+  } as const;
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+    for (const key of URL_KEYS) {
+      if (!(key in changes)) continue;
+      const newUrl = changes[key].newValue as string | undefined;
+      if (!newUrl) continue;
+      const historyKey = HISTORY_KEYS[key];
+      chrome.storage.local.get(historyKey).then(async (result) => {
+        const history = (result[historyKey] as string[]) || [];
+        const updated = addToHistory(newUrl, history);
+        if (updated !== history) {
+          await chrome.storage.local.set({ [historyKey]: updated });
+        }
+      });
+    }
+  });
+}
 let visualCache: VisualUrls | null = null;
 let lastUser: string | null = null;
 let showingOriginalAvatar = false;
@@ -398,6 +439,7 @@ const attachToggleListener = (avatarEl: HTMLElement) => {
 export const updateVisuals = async () => {
   const pathParts = location.pathname.split("/").filter((p) => p);
   injectCustomStyles();
+  installHistoryListener();
 
   let avatarEl = document.querySelector(AVATAR_SELECTOR) as HTMLElement;
 

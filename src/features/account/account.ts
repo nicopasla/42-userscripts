@@ -212,6 +212,11 @@ export async function syncMyVisuals(visuals: {
             PROFILE_AVATAR_POSITION_X: visuals.avatarPosX ?? 50,
             PROFILE_AVATAR_POSITION_Y: visuals.avatarPosY ?? 50,
             PROFILE_AVATAR_SCALE: visuals.avatarScale ?? 100,
+            PROFILE_IMAGE_HISTORY: await getConfig("PROFILE_IMAGE_HISTORY"),
+            PROFILE_BANNER_HISTORY: await getConfig("PROFILE_BANNER_HISTORY"),
+            PROFILE_BACKGROUND_HISTORY: await getConfig(
+              "PROFILE_BACKGROUND_HISTORY",
+            ),
           },
         }),
       },
