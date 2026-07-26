@@ -7,11 +7,14 @@ UI and UX improvements for 42 Intra v3: logtime calendar, cluster map tools, cus
 
 To install this extension, click the buttons below or visit the [Releases](https://github.com/nicopasla/better-intra/releases/latest/) page.
 
-<a href="https://github.com/nicopasla/better-intra/releases/latest/download/better-intra.xpi" target="_blank" rel="noopener noreferrer">
-  <img alt="Install button firefox" src="images/get-the-addon-firefox.svg" height="60"/>
-</a><a href="https://chromewebstore.google.com/detail/better-intra/dljoflohpfgjpdgiiofalechbdlbejpi" target="_blank" rel="noopener noreferrer">
-  <img alt="Install button chrome" src="images/get-the-addon-chrome.svg" height="60"/>
-</a>
+<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+  <a href="https://github.com/nicopasla/better-intra/releases/latest/download/better-intra.xpi" target="_blank" rel="noopener noreferrer">
+    <img alt="Install button firefox" src="images/get-the-addon-firefox.svg" height="60"/>
+  </a>
+  <a href="https://chromewebstore.google.com/detail/better-intra/dljoflohpfgjpdgiiofalechbdlbejpi" target="_blank" rel="noopener noreferrer">
+    <img alt="Install button chrome" src="images/get-the-addon-chrome.svg" height="60"/>
+  </a>
+</div>
 
 ---
 
