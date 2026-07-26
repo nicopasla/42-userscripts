@@ -182,7 +182,7 @@ function renderPanelContent(
         <button
           type="button"
           id="profile-reset-btn"
-          class="btn btn-ghost btn-sm text-error"
+          class="btn btn-outline btn-error btn-sm"
         >
           Reset
         </button>
@@ -220,127 +220,130 @@ function renderPanelContent(
           `
         : html`
             <div class="flex flex-col gap-3">
-              <!-- Top row: Avatar (left) + Preview (right) -->
-              <div class="shrink-0 flex gap-5">
-                <!-- Avatar card -->
+              <!-- Top row: Avatar card with preview inside -->
+              <div class="shrink-0">
                 <div
-                  class="flex-1 rounded-box border border-base-300 bg-base-200/50 p-3"
+                  class="rounded-box border border-base-300 bg-base-200/50 p-3"
                 >
                   <div
                     class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
                   >
                     Avatar
                   </div>
-                  ${renderUrlField(
-                    "PROFILE_IMAGE_URL",
-                    "Image URL",
-                    state.avatar,
-                    (val) => onFormUpdate({ avatar: val }),
-                    history.avatar,
-                    "avatar",
-                    state.uploading,
-                    () => onClearHistory("avatar"),
-                  )}
-                  <div class="flex gap-2 items-center mt-2">
-                    <div class="join w-full">
-                      <input
-                        type="radio"
-                        name="PROFILE_AVATAR_BG_MODE"
-                        class="btn btn-sm join-item flex-1"
-                        aria-label="Transparent"
-                        value="transparent"
-                        ?checked="${isTransparent}"
-                        @change="${() =>
-                          onFormUpdate({ avatarBg: "transparent" })}"
-                      />
-                      <input
-                        type="radio"
-                        name="PROFILE_AVATAR_BG_MODE"
-                        class="btn btn-sm join-item flex-1"
-                        aria-label="Color"
-                        value="custom"
-                        ?checked="${!isTransparent}"
-                        @change="${() => onFormUpdate({ avatarBg: "#00bcba" })}"
-                      />
-                    </div>
-                    <div
-                      id="ft-avatar-bg-color-wrap"
-                      class="${isTransparent ? "hidden" : ""}"
-                    >
-                      <input
-                        type="color"
-                        id="PROFILE_AVATAR_BG_COLOR"
-                        class="input input-bordered input-sm p-1 h-8 w-14"
-                        .value="${isTransparent ? "#00bcba" : state.avatarBg}"
-                        @input="${(e: Event) =>
-                          onFormUpdate({
-                            avatarBg: (e.target as HTMLInputElement).value,
-                          })}"
-                      />
-                    </div>
-                  </div>
-                  <div class="pt-2">
-                    <span class="text-xs opacity-60">Border</span>
-                    <div class="join w-full mt-1">
-                      <input
-                        type="radio"
-                        name="PROFILE_DECORATION"
-                        class="btn btn-sm join-item flex-1"
-                        aria-label="None"
-                        value="none"
-                        ?checked="${state.decoration === "none"}"
-                        @change="${() => onFormUpdate({ decoration: "none" })}"
-                      />
-                      <input
-                        type="radio"
-                        name="PROFILE_DECORATION"
-                        class="btn btn-sm join-item flex-1"
-                        aria-label="Solid"
-                        value="solid"
-                        ?checked="${state.decoration === "solid"}"
-                        @change="${() => onFormUpdate({ decoration: "solid" })}"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Preview -->
-                <div class="w-64 shrink-0 flex flex-col items-center gap-3">
-                  <span
-                    class="text-xs font-semibold uppercase tracking-wider opacity-50"
-                    >Preview</span
-                  >
-                  ${state.avatar
-                    ? renderAvatarEditor(
-                        {
-                          url: state.avatar,
-                          posX: state.avatarPosX,
-                          posY: state.avatarPosY,
-                          scale: state.avatarScale,
-                          bgColor: state.avatarBg,
-                          decoration: state.decoration,
-                        },
-                        (changes) => {
-                          const updates: Partial<FormState> = {};
-                          if (changes.scale !== undefined)
-                            updates.avatarScale = changes.scale;
-                          if (changes.posX !== undefined)
-                            updates.avatarPosX = changes.posX;
-                          if (changes.posY !== undefined)
-                            updates.avatarPosY = changes.posY;
-                          onFormUpdate(updates);
-                        },
-                      )
-                    : html`<div
-                        class="w-52 h-52 rounded-full bg-base-300 flex items-center justify-center"
-                      >
-                        <span class="text-xs opacity-50"
-                          >No avatar URL set</span
+                  <div class="flex gap-5 items-start">
+                    <div class="flex-1 min-w-0">
+                      ${renderUrlField(
+                        "PROFILE_IMAGE_URL",
+                        "Image URL",
+                        state.avatar,
+                        (val) => onFormUpdate({ avatar: val }),
+                        history.avatar,
+                        "avatar",
+                        state.uploading,
+                        () => onClearHistory("avatar"),
+                      )}
+                      <div class="flex gap-2 items-center mt-2">
+                        <div class="join w-full">
+                          <input
+                            type="radio"
+                            name="PROFILE_AVATAR_BG_MODE"
+                            class="btn btn-sm join-item flex-1"
+                            aria-label="Transparent"
+                            value="transparent"
+                            ?checked="${isTransparent}"
+                            @change="${() =>
+                              onFormUpdate({ avatarBg: "transparent" })}"
+                          />
+                          <input
+                            type="radio"
+                            name="PROFILE_AVATAR_BG_MODE"
+                            class="btn btn-sm join-item flex-1"
+                            aria-label="Color"
+                            value="custom"
+                            ?checked="${!isTransparent}"
+                            @change="${() =>
+                              onFormUpdate({ avatarBg: "#00bcba" })}"
+                          />
+                        </div>
+                        <div
+                          id="ft-avatar-bg-color-wrap"
+                          class="${isTransparent ? "hidden" : ""}"
                         >
-                      </div>`}
+                          <input
+                            type="color"
+                            id="PROFILE_AVATAR_BG_COLOR"
+                            class="input input-bordered input-sm p-1 h-8 w-14"
+                            .value="${isTransparent
+                              ? "#00bcba"
+                              : state.avatarBg}"
+                            @input="${(e: Event) =>
+                              onFormUpdate({
+                                avatarBg: (e.target as HTMLInputElement).value,
+                              })}"
+                          />
+                        </div>
+                      </div>
+                      <div class="pt-2">
+                        <span class="text-xs opacity-60">Border</span>
+                        <div class="join w-full mt-1">
+                          <input
+                            type="radio"
+                            name="PROFILE_DECORATION"
+                            class="btn btn-sm join-item flex-1"
+                            aria-label="None"
+                            value="none"
+                            ?checked="${state.decoration === "none"}"
+                            @change="${() =>
+                              onFormUpdate({ decoration: "none" })}"
+                          />
+                          <input
+                            type="radio"
+                            name="PROFILE_DECORATION"
+                            class="btn btn-sm join-item flex-1"
+                            aria-label="Solid"
+                            value="solid"
+                            ?checked="${state.decoration === "solid"}"
+                            @change="${() =>
+                              onFormUpdate({ decoration: "solid" })}"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Preview inside the card -->
+                    <div class="w-64 shrink-0 flex flex-col items-start">
+                      ${state.avatar
+                        ? renderAvatarEditor(
+                            {
+                              url: state.avatar,
+                              posX: state.avatarPosX,
+                              posY: state.avatarPosY,
+                              scale: state.avatarScale,
+                              bgColor: state.avatarBg,
+                              decoration: state.decoration,
+                            },
+                            (changes) => {
+                              const updates: Partial<FormState> = {};
+                              if (changes.scale !== undefined)
+                                updates.avatarScale = changes.scale;
+                              if (changes.posX !== undefined)
+                                updates.avatarPosX = changes.posX;
+                              if (changes.posY !== undefined)
+                                updates.avatarPosY = changes.posY;
+                              onFormUpdate(updates);
+                            },
+                          )
+                        : html`<div
+                            class="w-52 h-52 rounded-full bg-base-300 flex items-center justify-center"
+                          >
+                            <span class="text-xs opacity-50"
+                              >No avatar URL set</span
+                            >
+                          </div>`}
+                    </div>
+                  </div>
                 </div>
               </div>
-
               <!-- Banner + Background row -->
               <div class="shrink-0 flex gap-5">
                 <div
@@ -519,9 +522,9 @@ export const createSettingsModal = async (
   });
   Object.assign(dialog.style, {
     marginTop: "auto",
-    marginBottom: "10vh",
-    width: "min(740px, calc(100dvw - 2rem))",
-    maxHeight: "80vh",
+    marginBottom: "5vh",
+    width: "min(820px, calc(100dvw - 1.5rem))",
+    maxHeight: "92vh",
     borderRadius: "1.5rem",
     overflowY: "auto",
     padding: "0",
@@ -664,7 +667,9 @@ export const createSettingsModal = async (
 
     render(
       html`
-        <style>${unsafeHTML(sharedCSS)}</style>
+        <style>
+          ${unsafeHTML(sharedCSS)}
+        </style>
         <div
           data-theme="${currentTheme}"
           class="p-6 bg-base-100 rounded-2xl flex flex-col gap-4 text-center"
