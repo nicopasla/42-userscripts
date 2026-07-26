@@ -137,6 +137,8 @@ let isLoaded = false;
 let CONFIG: LogtimeConfig;
 export let lastStats: Record<string, string> | null = null;
 let currentTheme = "light";
+let scrollHandlersCleanup: (() => void) | null = null;
+let heatmapScrollHandler: ((e: Event) => void) | null = null;
 
 function isOwnProfile(): boolean {
   return (
@@ -383,9 +385,17 @@ function renderLogtime(
     ".log-slider-fixed",
   ) as HTMLElement;
   if (scrollWrapper) {
-    setupScrollHandlers(scrollWrapper);
+    if (scrollHandlersCleanup) {
+      scrollHandlersCleanup();
+      scrollHandlersCleanup = null;
+    }
+    scrollHandlersCleanup = setupScrollHandlers(scrollWrapper);
 
     if (CONFIG.calendar_view === "heatmap") {
+      if (heatmapScrollHandler) {
+        scrollWrapper.removeEventListener("scroll", heatmapScrollHandler);
+        heatmapScrollHandler = null;
+      }
       const yearLabel = shadowHost.shadowRoot!.getElementById(
         "heatmap-sticky-year",
       );
@@ -402,6 +412,7 @@ function renderLogtime(
           }
         }
       };
+      heatmapScrollHandler = handleYearScroll;
       scrollWrapper.addEventListener("scroll", handleYearScroll, {
         passive: true,
       });

@@ -86,20 +86,35 @@ function startCountdown(
 
   container.appendChild(countEl);
 
-  const intervalId = setInterval(() => {
+  if (_intervalId !== null) clearInterval(_intervalId);
+  _intervalId = setInterval(() => {
     const diff = new Date(endIso).getTime() - Date.now();
     if (diff <= 0) {
-      clearInterval(intervalId);
+      if (_intervalId !== null) {
+        clearInterval(_intervalId);
+        _intervalId = null;
+      }
       countEl.textContent = "0d 0h 0m 0s";
       return;
     }
     countEl.textContent = formatCountdown(endIso);
   }, 1000);
-
-  container.dataset.ftFreezeInterval = String(intervalId);
 }
 
 let _running = false;
+let _intervalId: ReturnType<typeof setInterval> | null = null;
+
+window.addEventListener(
+  "pagehide",
+  () => {
+    if (_intervalId !== null) {
+      clearInterval(_intervalId);
+      _intervalId = null;
+    }
+    _running = false;
+  },
+  { once: true },
+);
 
 export async function initFreezeCard() {
   if (_running) return;
@@ -110,13 +125,7 @@ export async function initFreezeCard() {
     if (pathParts[0] !== "users" || !pathParts[1]) return;
 
     const existingCard = document.getElementById(INJECTED_ID);
-    if (existingCard) {
-      const oldInterval = Number(
-        (existingCard as HTMLElement).dataset.ftFreezeInterval,
-      );
-      if (oldInterval) clearInterval(oldInterval);
-      return;
-    }
+    if (existingCard) return;
 
     const targetLogin = pathParts[1];
 

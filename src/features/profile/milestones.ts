@@ -3,6 +3,8 @@ export function initMilestones() {
   enhanceMilestones();
 }
 
+let _milestoneAttempts = 0;
+
 function enhanceMilestones() {
   const validated = document.querySelectorAll<HTMLElement>(
     ".bg-legacy-main.h-10[data-state]",
@@ -12,9 +14,11 @@ function enhanceMilestones() {
   );
 
   if (validated.length === 0 && muted.length === 0) {
+    if (++_milestoneAttempts > 300) return;
     requestAnimationFrame(enhanceMilestones);
     return;
   }
+  _milestoneAttempts = 0;
 
   validated.forEach((el) => {
     if (el.dataset.fireBg) return;

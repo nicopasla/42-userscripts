@@ -32,6 +32,9 @@ interface MarkedProject {
 
 const INJECTED_ID = "ft-marks-injected";
 
+const dateObservers = new WeakMap<HTMLElement, MutationObserver>();
+const sidebarObservers: MutationObserver[] = [];
+
 let marksCache: Record<string, MarkedProject[]> = {};
 let marksInitialized = false;
 let ownProfileLoading = false;
@@ -669,6 +672,9 @@ async function enhanceExistingMarks(
             };
             replaceDatesInContainer(card);
 
+            const existing = dateObservers.get(card);
+            if (existing) existing.disconnect();
+
             const dateObserver = new MutationObserver((mutations) => {
               for (const m of mutations) {
                 if (m.type === "childList") {
@@ -690,6 +696,7 @@ async function enhanceExistingMarks(
               attributes: true,
               attributeFilter: ["data-state", "hidden"],
             });
+            dateObservers.set(card, dateObserver);
           }
         }
 
@@ -916,6 +923,16 @@ export async function initMarks() {
         );
       });
       observer.observe(wrapper, { childList: true, subtree: true });
+      sidebarObservers.push(observer);
+
+      window.addEventListener(
+        "pagehide",
+        () => {
+          for (const obs of sidebarObservers) obs.disconnect();
+          sidebarObservers.length = 0;
+        },
+        { once: true },
+      );
     }
   }
 }

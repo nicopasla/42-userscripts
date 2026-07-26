@@ -21,38 +21,47 @@ export function hideOldLogtime(): void {
   });
 }
 
-export function setupScrollHandlers(scrollWrapper: HTMLElement): void {
+export function setupScrollHandlers(scrollWrapper: HTMLElement): () => void {
   let isDown = false;
   let startX: number;
   let scrollLeft: number;
 
-  scrollWrapper.addEventListener("mousedown", (e) => {
+  const onMouseDown = (e: MouseEvent) => {
     isDown = true;
     startX = e.pageX - scrollWrapper.offsetLeft;
     scrollLeft = scrollWrapper.scrollLeft;
-  });
+  };
 
   const stop = () => {
     isDown = false;
   };
-  scrollWrapper.addEventListener("mouseleave", stop);
-  scrollWrapper.addEventListener("mouseup", stop);
 
-  scrollWrapper.addEventListener("mousemove", (e) => {
+  const onMouseMove = (e: MouseEvent) => {
     if (!isDown) return;
     const x = e.pageX - scrollWrapper.offsetLeft;
     const walk = (x - startX) * 1.7;
     scrollWrapper.scrollLeft = scrollLeft - walk;
-  });
-  scrollWrapper.addEventListener(
-    "wheel",
-    (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.deltaY !== 0) {
-        scrollWrapper.scrollLeft += e.deltaY;
-      }
-    },
-    { passive: false },
-  );
+  };
+
+  const onWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.deltaY !== 0) {
+      scrollWrapper.scrollLeft += e.deltaY;
+    }
+  };
+
+  scrollWrapper.addEventListener("mousedown", onMouseDown);
+  scrollWrapper.addEventListener("mouseleave", stop);
+  scrollWrapper.addEventListener("mouseup", stop);
+  scrollWrapper.addEventListener("mousemove", onMouseMove);
+  scrollWrapper.addEventListener("wheel", onWheel, { passive: false });
+
+  return () => {
+    scrollWrapper.removeEventListener("mousedown", onMouseDown);
+    scrollWrapper.removeEventListener("mouseleave", stop);
+    scrollWrapper.removeEventListener("mouseup", stop);
+    scrollWrapper.removeEventListener("mousemove", onMouseMove);
+    scrollWrapper.removeEventListener("wheel", onWheel);
+  };
 }

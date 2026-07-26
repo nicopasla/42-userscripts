@@ -107,5 +107,10 @@ export async function initProfile() {
 
   if (location.pathname !== "/") {
     setTimeout(() => observer.disconnect(), 10000);
+  } else {
+    setTimeout(() => observer.disconnect(), 30000);
+    window.addEventListener("pagehide", () => observer.disconnect(), {
+      once: true,
+    });
   }
 }
