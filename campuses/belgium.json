@@ -6,6 +6,24 @@
     { "id": "164", "name": "a1" },
     { "id": "165", "name": "a2" }
   ],
+  "transcripts": [
+    {
+      "cursusLabel": "42cursus",
+      "records": [
+        { "label": "English", "sr_id": 14 },
+        { "label": "Français", "sr_id": 120 },
+        { "label": "Dutch", "sr_id": 119 }
+      ]
+    },
+    {
+      "cursusLabel": "C Piscine Brussels",
+      "records": [
+        { "label": "English", "sr_id": 118 },
+        { "label": "Français", "sr_id": 116 },
+        { "label": "Dutch", "sr_id": 122 }
+      ]
+    }
+  ],
   "definitions": {
     "shi": {
       "rows": [

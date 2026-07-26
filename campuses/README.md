@@ -3,11 +3,14 @@
 ## How to add your campus
 
 1. Find your campus ID from the [campus list](https://meta.intra.42.fr/clusters)
-2. Create a `{name-slug}_clusters.json` file using the lowercase-hyphenated campus name (e.g., `belgium_clusters.json`, `le-havre_clusters.json`)
-3. Update `campuses.json` to include your campus — the `name` field determines the filename
-4. Submit a pull request
+2. Create a `{name-slug}.json` file using the lowercase-hyphenated campus name (e.g., `belgium.json`, `le-havre.json`)
+3. If you also need badge support, add `badgeBaseUrl` and `badges` fields
+4. Update `campuses.json` to include your campus — the `name` field determines the filename
+5. Submit a pull request
 
 Seat definitions can be added later — start with just `"definitions": {}`.
+
+> **Note:** `{name-slug}_clusters.json` files are supported as a fallback for backward compatibility. New campuses should use `{name-slug}.json`.
 
 ## File structure
 
@@ -15,7 +18,7 @@ Seat definitions can be added later — start with just `"definitions": {}`.
 campuses/
 ├── README.md
 ├── campuses.json          Campus list (id → name mapping)
-├── belgium_clusters.json
+├── belgium.json
 ├── le-havre_clusters.json
 └── ...
 ```

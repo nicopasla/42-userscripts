@@ -9,6 +9,8 @@ interface ClusterDataFile {
   clusters: { id: string; name: string; svg?: string }[];
   transcripts?: TranscriptEntry[];
   definitions: Record<string, unknown>;
+  badgeBaseUrl?: string;
+  badges?: Record<string, string>;
 }
 
 interface CampusManifest {
@@ -82,7 +84,8 @@ export async function loadCampusData(
     }
   }
   const prefix = await resolveCampusFolder(campusId);
-  const res = await fetch(`${CAMPUS_BASE}/${prefix}_clusters.json`);
+  let res = await fetch(`${CAMPUS_BASE}/${prefix}.json`);
+  if (!res.ok) res = await fetch(`${CAMPUS_BASE}/${prefix}_clusters.json`);
   if (!res.ok) throw new Error(`Failed to fetch campus data for ${campusId}`);
   const data = (await res.json()) as ClusterDataFile;
   await chrome.storage.local.set({
