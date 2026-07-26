@@ -26,6 +26,37 @@ To install this extension, click the buttons below or visit the [Releases](https
 
 > ☁️ *marked features require cloud sync / 42 sign-in.*
 
+### 👤 Profile
+
+* **Custom visuals** — set your own avatar, banner, and background images with mode options (fill, fit, stretch, center, tile). **Click your avatar** on your profile page to open the customisation panel with zoom slider (50–200%), click-and-drag repositioning, and mouse wheel zoom on the preview. See a live preview as you type the image URL.
+* **Image upload** — upload images directly from your device via the Upload button next to each URL input. Images are stored in Cloudflare R2 with unguessable UUID URLs (not publicly discoverable).
+* **Link history** — the last 10 URLs used for each field are shown as thumbnail image badges below the input. Click a badge to reuse a link, or click the ✕ badge to clear history. History is synced to cloud.
+* **Avatar decoration** — toggle a transparent or solid-colour background behind your avatar with a colour picker. Add an optional solid border around your avatar.
+* **Visuals sync** — your custom images are visible to other Better Intra users when they view your profile. Click any custom avatar to see the original one. ☁️
+* **Instant profile visuals** — custom avatars, banners, and backgrounds are cached locally. After the first visit they appear instantly on any profile. Changes refresh silently in the background.
+* **Dashboard cards** — reorder your profile cards (Logtime, Agenda, Evaluations, Projects, Achievements) by dragging them. Hide cards you don't need.
+* **Project badges** — projects in the Projects card appear as colour-coded badges (green for normal projects, red for exams) for quick visual scanning.
+* **Event filtering** — filter your agenda by campus and event type (exam, conference, workshop, hackathon, etc.).
+* **Slots redirection** — automatically redirects slots and defense links for Belgium campus users when your campus is detected.
+* **Sort pending evaluations** — pending evaluations are sorted into "To Feedback", "Evaluator", and "Evaluated" sections with counts for easier browsing.
+* **Achievement milestones** — completed achievements get a subtle animated glow.
+* **Full achievements list** — replaces the native "Last Achievements" card with a scrollable list of all achievements, sorted by newest first.
+* **Completed projects (marks)** — the Projects card lists all your graded projects with dates and scores. Multi-attempt projects expand to show each attempt. Sort by newest or oldest first. Projects flagged "Outstanding" during evaluation get a ⭐ next to their name — visible on any user's profile. ☁️
+* **Download Transcript** — a "Transcript" button appears in the Projects card letting you download your academic transcript as a PDF. Choose your cursus, language, and year range. Only available for **Belgium** campus. ☁️
+* **Projects sort** — sort the projects list on any user's profile by name or date, with toggleable ascending/descending order.
+* **Freeze alerts** — a freeze card appears on profiles of frozen students.
+* **Clickable seat label** — click someone's seat on their profile to open the cluster map with their seat highlighted and pulsating.
+* **Thursday Roulette** — a dashboard card showing the current profile's roulette win history, total points, and a live countdown to the next Friday 8:00 draw. Works on any user's profile. ☁️
+* **Correction stats** — a dashboard card showing your monthly evaluation history as a corrector: total evaluations, failures, and success percentage. ☁️
+* **Moulinette robot icons** — on project corrected pages, the default moulinette image is replaced with a robot icon (normal for passed, broken for failed).
+* **Info card badges** — wallet, level, rank, score, and seat shown as coloured badges below the profile header. Can be hidden in settings.
+* **Campus flags** — the campus badge shows a country flag emoji matching your campus location.
+* **Nav bar custom avatar** — your custom avatar also appears in the site navigation bar.
+* **Phoenix/Pegasus tracker** — Hover the Pegasus/Phoenix badges for a progress popover showing days and hours done vs required.
+* **Wallet shop link** — clicking the wallet badge opens the 42 shop in a new tab.
+
+---
+
 ### 📅 Logtime
 
 Replaces the default logtime view with a monthly calendar showing your logged hours at a glance.
@@ -66,35 +97,6 @@ A live interactive cluster map popup accessible from profile quick-link buttons.
 * **Click to visit profile** — click any occupied seat to open that user's profile, optionally in a new tab.
 * **In-dialog settings** — toggle directional markers and set your default cluster from within the dialog.
 * **Belgium-only** — full live map for Belgian campuses (campus ID 12). Other campuses get a direct link to the cluster map page.
-
----
-
-### 👤 Profile
-
-* **Custom visuals** — set your own avatar, banner, and background images with mode options (fill, fit, stretch, center, tile). **Click your avatar** on your profile page to open the customisation panel with zoom slider (50–200%), click-and-drag repositioning, and mouse wheel zoom on the preview. See a live preview as you type the image URL.
-* **Avatar decoration** — toggle a transparent or solid-colour background behind your avatar with a colour picker. Add an optional solid border around your avatar.
-* **Visuals sync** — your custom images are visible to other Better Intra users when they view your profile. Click any custom avatar to see the original one. ☁️
-* **Instant profile visuals** — custom avatars, banners, and backgrounds are cached locally. After the first visit they appear instantly on any profile. Changes refresh silently in the background.
-* **Dashboard cards** — reorder your profile cards (Logtime, Agenda, Evaluations, Projects, Achievements) by dragging them. Hide cards you don't need.
-* **Project badges** — projects in the Projects card appear as colour-coded badges (green for normal projects, red for exams) for quick visual scanning.
-* **Event filtering** — filter your agenda by campus and event type (exam, conference, workshop, hackathon, etc.).
-* **Slots redirection** — automatically redirects slots and defense links for Belgium campus users when your campus is detected.
-* **Sort pending evaluations** — pending evaluations are sorted into "To Feedback", "Evaluator", and "Evaluated" sections with counts for easier browsing.
-* **Achievement milestones** — completed achievements get a subtle animated glow.
-* **Full achievements list** — replaces the native "Last Achievements" card with a scrollable list of all achievements, sorted by newest first.
-* **Completed projects (marks)** — the Projects card lists all your graded projects with dates and scores. Multi-attempt projects expand to show each attempt. Sort by newest or oldest first. Projects flagged "Outstanding" during evaluation get a ⭐ next to their name — visible on any user's profile. ☁️
-* **Download Transcript** — a "Transcript" button appears in the Projects card letting you download your academic transcript as a PDF. Choose your cursus, language, and year range. Only available for **Belgium** campus. ☁️
-* **Projects sort** — sort the projects list on any user's profile by name or date, with toggleable ascending/descending order.
-* **Freeze alerts** — a freeze card appears on profiles of frozen students.
-* **Clickable seat label** — click someone's seat on their profile to open the cluster map with their seat highlighted and pulsating.
-* **Thursday Roulette** — a dashboard card showing the current profile's roulette win history, total points, and a live countdown to the next Friday 8:00 draw. Works on any user's profile. ☁️
-* **Correction stats** — a dashboard card showing your monthly evaluation history as a corrector: total evaluations, failures, and success percentage. ☁️
-* **Moulinette robot icons** — on project corrected pages, the default moulinette image is replaced with a robot icon (normal for passed, broken for failed).
-* **Info card badges** — wallet, level, rank, score, and seat shown as coloured badges below the profile header. Can be hidden in settings.
-* **Campus flags** — the campus badge shows a country flag emoji matching your campus location.
-* **Nav bar custom avatar** — your custom avatar also appears in the site navigation bar.
-* **Phoenix/Pegasus tracker** — Hover the Pegasus/Phoenix badges for a progress popover showing days and hours done vs required.
-* **Wallet shop link** — clicking the wallet badge opens the 42 shop in a new tab.
 
 ---
 

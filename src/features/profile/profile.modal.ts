@@ -6,6 +6,7 @@ import { applyImgs, injectCustomStyles, VisualUrls } from "./visuals.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 import LINK_SVG from "../../assets/svg/link.svg?raw";
 import { renderAvatarEditor } from "./avatar-editor.ts";
+import { uploadImage } from "./image-upload.ts";
 
 interface FormState {
   avatar: string;
@@ -20,6 +21,7 @@ interface FormState {
   avatarPosX: number;
   avatarPosY: number;
   avatarScale: number;
+  uploading: string;
 }
 
 function addToHistory(url: string, history: string[]): string[] {
@@ -39,55 +41,85 @@ function extractLabel(url: string): string {
   return url.length > 25 ? url.slice(0, 22) + "..." : url;
 }
 
-function renderUrlHistory(history: string[], onSelect: (val: string) => void) {
+function renderUrlHistory(
+  history: string[],
+  onSelect: (val: string) => void,
+  onClear?: () => void,
+) {
   if (history.length === 0) return html``;
   return html`
-    <div class="flex flex-wrap gap-1.5 mt-2">
+    <div class="flex flex-wrap gap-1 mt-2">
       ${history.map(
         (url) => html`
           <button
             type="button"
-            class="btn btn-ghost btn-xs gap-1 px-1.5 py-0.5 rounded-lg border border-base-300 hover:border-accent"
+            class="rounded-lg border border-base-300 hover:border-accent"
             title="${url}"
             @click="${() => onSelect(url)}"
-            style="background-image: url(${url}); background-size: cover; background-position: center; width: 2rem; height: 2rem; flex-shrink: 0;"
+            style="background-image: url(${url}); background-size: cover; background-position: center; width: 2rem; height: 2rem; flex-shrink: 0; border-radius: 0.5rem; cursor: pointer;"
           ></button>
         `,
       )}
+      ${onClear
+        ? html`<button
+            type="button"
+            class="rounded-lg border border-base-300 text-xs font-bold opacity-50 hover:opacity-100 hover:border-error"
+            style="width: 2rem; height: 2rem; flex-shrink: 0; cursor: pointer; background: none;"
+            title="Clear history"
+            @click=${onClear}
+          >
+            ✕
+          </button>`
+        : ""}
     </div>
   `;
 }
-
 function renderUrlField(
   id: string,
   label: string,
   value: string,
   onInput: (val: string) => void,
   history: string[] = [],
+  uploadKey = "",
+  uploading = "",
+  onClearHistory?: () => void,
 ) {
+  const isUploading = uploading === uploadKey;
   return html`
     <div class="form-control w-full">
       <label class="label py-1">
         <span class="label-text opacity-80">${label}</span>
       </label>
-      <label
-        class="input input-accent validator flex items-center gap-2 w-full"
-      >
-        <span class="h-[1em] opacity-50 flex items-center justify-center"
-          >${unsafeHTML(LINK_SVG)}</span
+      <div class="flex gap-2 items-stretch">
+        <label
+          class="input input-accent validator flex items-center gap-2 flex-1"
         >
-        <input
-          type="url"
-          required
-          placeholder="https://example.com/image.png"
-          .value="${value}"
-          pattern="^(https?://)?.*"
-          class="grow"
-          @input="${(e: Event) =>
-            onInput((e.target as HTMLInputElement).value)}"
-        />
-      </label>
-      ${renderUrlHistory(history, onInput)}
+          <span class="h-[1em] opacity-50 flex items-center justify-center"
+            >${unsafeHTML(LINK_SVG)}</span
+          >
+          <input
+            type="url"
+            required
+            placeholder="https://example.com/image.png"
+            .value="${value}"
+            pattern="^(https?://)?.*"
+            class="grow"
+            @input="${(e: Event) =>
+              onInput((e.target as HTMLInputElement).value)}"
+          />
+        </label>
+        <button
+          type="button"
+          class="btn btn-accent shrink-0"
+          ?disabled="${isUploading}"
+          id="${id}-upload-btn"
+        >
+          ${isUploading
+            ? html`<span class="loading loading-spinner loading-xs"></span>`
+            : "Upload"}
+        </button>
+      </div>
+      ${renderUrlHistory(history, onInput, onClearHistory)}
     </div>
   `;
 }
@@ -122,6 +154,8 @@ function renderPanelContent(
   currentTheme: string,
   onFormUpdate: (updates: Partial<FormState>) => void,
   history: { avatar: string[]; banner: string[]; background: string[] },
+  onUpload: (key: string) => void,
+  onClearHistory: (key: "avatar" | "banner" | "background") => void,
 ) {
   const isTransparent = state.avatarBg === "transparent";
 
@@ -165,6 +199,9 @@ function renderPanelContent(
               state.avatar,
               (val) => onFormUpdate({ avatar: val }),
               history.avatar,
+              "avatar",
+              state.uploading,
+              () => onClearHistory("avatar"),
             )}
             <div class="flex gap-2 items-center mt-2">
               <div class="join w-full">
@@ -281,6 +318,9 @@ function renderPanelContent(
                   state.banner,
                   (val) => onFormUpdate({ banner: val }),
                   history.banner,
+                  "banner",
+                  state.uploading,
+                  () => onClearHistory("banner"),
                 )}
                 ${renderModeRadios(
                   "PROFILE_BANNER_MODE",
@@ -342,6 +382,9 @@ function renderPanelContent(
                   state.background,
                   (val) => onFormUpdate({ background: val }),
                   history.background,
+                  "background",
+                  state.uploading,
+                  () => onClearHistory("background"),
                 )}
                 ${renderModeRadios(
                   "PROFILE_BACKGROUND_MODE",
@@ -402,7 +445,7 @@ export const createSettingsModal = async (
 ) => {
   if (document.getElementById("profile-modal-host")) return;
 
-  const saved: FormState = {
+  const saved = {
     avatar: await getConfig("PROFILE_IMAGE_URL"),
     banner: await getConfig("PROFILE_BANNER_URL"),
     bannerMode: (await getConfig("PROFILE_BANNER_MODE")) || "fill",
@@ -417,7 +460,7 @@ export const createSettingsModal = async (
     avatarScale: await getConfig("PROFILE_AVATAR_SCALE"),
   };
 
-  const state: FormState = { ...saved };
+  const state: FormState = { ...saved, uploading: "" };
 
   const imgHistory = {
     avatar: await getConfig("PROFILE_IMAGE_HISTORY"),
@@ -500,12 +543,61 @@ export const createSettingsModal = async (
     rerender();
   };
 
+  const handleClearHistory = async (
+    key: "avatar" | "banner" | "background",
+  ) => {
+    const historyKey =
+      key === "avatar"
+        ? "PROFILE_IMAGE_HISTORY"
+        : key === "banner"
+          ? "PROFILE_BANNER_HISTORY"
+          : "PROFILE_BACKGROUND_HISTORY";
+    imgHistory[key] = [];
+    await chrome.storage.local.set({ [historyKey]: [] });
+    rerender();
+  };
+
+  const handleUpload = async (key: string) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (state.uploading) return;
+      state.uploading = key;
+      rerender();
+      try {
+        const url = await uploadImage(file);
+        const updates: Partial<FormState> = {};
+        if (key === "avatar") updates.avatar = url;
+        else if (key === "banner") updates.banner = url;
+        else if (key === "background") updates.background = url;
+        handleFormUpdate(updates);
+      } catch (e) {
+        alert(`Upload failed: ${(e as Error).message}`);
+      } finally {
+        state.uploading = "";
+        rerender();
+      }
+    };
+    input.click();
+  };
+
   const rerender = () => {
     render(
-      renderPanelContent(state, currentTheme, handleFormUpdate, imgHistory),
+      renderPanelContent(
+        state,
+        currentTheme,
+        handleFormUpdate,
+        imgHistory,
+        handleUpload,
+        handleClearHistory,
+      ),
       shadow,
     );
     bindButtons(shadow, close, reset);
+    bindUploadButtons(shadow, handleUpload);
   };
 
   injectCustomStyles();
@@ -628,5 +720,26 @@ function bindButtons(shadow: ShadowRoot, close: () => void, reset: () => void) {
   if (closeBtn && !closeBtn.dataset.bound) {
     closeBtn.addEventListener("click", close);
     closeBtn.dataset.bound = "1";
+  }
+}
+
+function bindUploadButtons(
+  shadow: ShadowRoot,
+  onUpload: (key: string) => void,
+) {
+  const ids = [
+    { id: "PROFILE_IMAGE_URL-upload-btn", key: "avatar" },
+    { id: "PROFILE_BANNER_URL-upload-btn", key: "banner" },
+    { id: "PROFILE_BACKGROUND_URL-upload-btn", key: "background" },
+  ];
+  for (const { id, key } of ids) {
+    const btn = shadow.querySelector(`#${id}`) as HTMLElement | null;
+    if (btn && !btn.dataset.bound) {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        onUpload(key);
+      });
+      btn.dataset.bound = "1";
+    }
   }
 }
