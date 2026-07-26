@@ -1,6 +1,7 @@
 import { getMondayWeekStart } from "../logtime/heatmap.ts";
 
 let paceData: Record<string, string> | null = null;
+let pacePollAttempts = 0;
 
 function getWeekKey(date: Date): string {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -24,6 +25,8 @@ function formatDuration(totalMin: number): string {
 
 function updatePaceBars() {
   if (!paceData) return;
+  if (pacePollAttempts > 300) return;
+  pacePollAttempts++;
 
   const paceSpan = [...document.querySelectorAll("span")].find(
     (s) => s.textContent?.trim() === "Pace",
@@ -44,6 +47,8 @@ function updatePaceBars() {
 
   const labelEls = labelsContainer.querySelectorAll(":scope > div");
   if (labelEls.length !== 4) { requestAnimationFrame(updatePaceBars); return; }
+
+  pacePollAttempts = 0;
 
   const currentMonday = getMondayWeekStart(new Date());
 
@@ -76,6 +81,8 @@ function updatePaceBars() {
 
   const tipTexts = weekMins.map((m) => formatDuration(m).toUpperCase());
   for (let i = 0; i < 4; i++) {
+    if (bars[i].dataset.ftPaceListener === "true") continue;
+    bars[i].dataset.ftPaceListener = "true";
     let pollId: number | undefined;
     bars[i].addEventListener("mouseenter", () => {
       let attempts = 0;
