@@ -2,13 +2,19 @@ import { getMondayWeekStart } from "../logtime/heatmap.ts";
 
 let paceData: Record<string, string> | null = null;
 let pacePollAttempts = 0;
+let paceInitialized = false;
 
 function getWeekKey(date: Date): string {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const year = d.getUTCFullYear();
-  const week = Math.ceil((((d.getTime() - new Date(Date.UTC(year, 0, 1)).getTime()) / 86400000) + 1) / 7);
+  const week = Math.ceil(
+    ((d.getTime() - new Date(Date.UTC(year, 0, 1)).getTime()) / 86400000 + 1) /
+      7,
+  );
   return `${year}-W${String(week).padStart(2, "0")}`;
 }
 
@@ -28,25 +34,32 @@ function updatePaceBars() {
   if (pacePollAttempts > 300) return;
   pacePollAttempts++;
 
-  const paceSpan = [...document.querySelectorAll("span")].find(
-    (s) => s.textContent?.trim() === "Pace",
+  const barsContainer = document.querySelector<HTMLElement>(
+    ".flex.flex-wrap-reverse",
   );
-  if (!paceSpan) { requestAnimationFrame(updatePaceBars); return; }
-
-  const paceSection = paceSpan.closest<HTMLElement>(".flex.h-full.flex-col");
-  if (!paceSection) { requestAnimationFrame(updatePaceBars); return; }
-
-  const barsContainer = paceSection.querySelector<HTMLElement>(".flex.flex-wrap-reverse");
-  if (!barsContainer) { requestAnimationFrame(updatePaceBars); return; }
+  if (!barsContainer) {
+    requestAnimationFrame(updatePaceBars);
+    return;
+  }
 
   const bars = barsContainer.querySelectorAll<HTMLElement>(".rounded-3xl");
-  if (bars.length !== 4) { requestAnimationFrame(updatePaceBars); return; }
+  if (bars.length !== 4) {
+    requestAnimationFrame(updatePaceBars);
+    return;
+  }
 
-  const labelsContainer = barsContainer.parentElement?.querySelector<HTMLElement>(".h-8.flex");
-  if (!labelsContainer) { requestAnimationFrame(updatePaceBars); return; }
+  const labelsContainer =
+    barsContainer.parentElement?.querySelector<HTMLElement>(".h-8.flex");
+  if (!labelsContainer) {
+    requestAnimationFrame(updatePaceBars);
+    return;
+  }
 
   const labelEls = labelsContainer.querySelectorAll(":scope > div");
-  if (labelEls.length !== 4) { requestAnimationFrame(updatePaceBars); return; }
+  if (labelEls.length !== 4) {
+    requestAnimationFrame(updatePaceBars);
+    return;
+  }
 
   pacePollAttempts = 0;
 
@@ -68,15 +81,19 @@ function updatePaceBars() {
 
   const maxY = 60;
   const weekMins: number[] = [];
-  const mainColor = getComputedStyle(document.documentElement).getPropertyValue("--legacy-main").trim() || "hsl(180, 100%, 37%)";
+  const mainColor =
+    getComputedStyle(document.documentElement)
+      .getPropertyValue("--legacy-main")
+      .trim() || "hsl(180, 100%, 37%)";
   for (let i = 0; i < 4; i++) {
     const totalMin = weekTotals[weeks[i]] || 0;
     weekMins.push(totalMin);
-    const percent = Math.min(((totalMin / 60) / maxY) * 100, 100);
+    const percent = Math.min((totalMin / 60 / maxY) * 100, 100);
     bars[i].style.height = `${percent}%`;
     bars[i].style.backgroundColor = mainColor;
     bars[i].classList.add("bg-legacy-main");
-    labelEls[i].textContent = i === 3 ? "This week" : weeks[i].replace(/^\d+-/, "");
+    labelEls[i].textContent =
+      i === 3 ? "This week" : weeks[i].replace(/^\d+-/, "");
   }
 
   const tipTexts = weekMins.map((m) => formatDuration(m).toUpperCase());
@@ -89,9 +106,15 @@ function updatePaceBars() {
       const poll = () => {
         attempts++;
         const tip = document.querySelector<HTMLElement>('[role="tooltip"]');
-        if (!tip) { if (attempts < 50) pollId = requestAnimationFrame(poll); return; }
+        if (!tip) {
+          if (attempts < 50) pollId = requestAnimationFrame(poll);
+          return;
+        }
         const outer = tip.closest<HTMLElement>('[class*="z-50"]');
-        if (!outer) { if (attempts < 50) pollId = requestAnimationFrame(poll); return; }
+        if (!outer) {
+          if (attempts < 50) pollId = requestAnimationFrame(poll);
+          return;
+        }
         if (outer.textContent?.trim() === tipTexts[i]) return;
         outer.childNodes.forEach((n) => {
           if (n.nodeType === Node.TEXT_NODE) n.textContent = ` ${tipTexts[i]} `;
@@ -107,8 +130,11 @@ function updatePaceBars() {
 }
 
 export function initPace() {
+  if (paceInitialized) return;
   if (location.hostname !== "profile-v3.intra.42.fr") return;
-  if (location.pathname !== "/" && !location.pathname.startsWith("/users/")) return;
+  if (location.pathname !== "/" && !location.pathname.startsWith("/users/"))
+    return;
+  paceInitialized = true;
 
   document.addEventListener("42_LOGTIME_DATA", (event: Event) => {
     const detail = (event as CustomEvent<Record<string, string>>).detail;
