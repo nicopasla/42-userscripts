@@ -216,6 +216,29 @@ export const injectCustomStyles = () => {
       backface-visibility: hidden;
       opacity: 0 !important;
     }
+    ${AVATAR_SELECTOR}[data-modal-listener] {
+      position: relative !important;
+    }
+    ${AVATAR_SELECTOR}[data-modal-listener]::after {
+      content: "Edit";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.45);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: system-ui, sans-serif;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    ${AVATAR_SELECTOR}[data-modal-listener]:hover::after {
+      opacity: 1;
+    }
     ${BANNER_SELECTOR},
     ${BACKGROUND_SELECTOR} {
       will-change: background-image, transform;
