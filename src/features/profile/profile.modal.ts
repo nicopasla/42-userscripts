@@ -13,6 +13,7 @@ import LINK_SVG from "../../assets/svg/link.svg?raw";
 import { renderAvatarEditor } from "./avatar-editor.ts";
 import { uploadImage } from "./image-upload.ts";
 import FORTY_TWO_SVG from "../../assets/svg/42_Logo.svg?raw";
+import TRIANGLE_EXCLAMATION_SVG from "../../assets/svg/triangle-exclamation.svg?raw";
 
 interface FormState {
   avatar: string;
@@ -644,6 +645,63 @@ export const createSettingsModal = async (
     });
   };
 
+  const showAlert = (message: string) => {
+    const existing = document.getElementById("ft-alert-host");
+    if (existing) existing.remove();
+
+    const dlg = Object.assign(document.createElement("dialog"), {
+      id: "ft-alert-host",
+      className: "bg-transparent backdrop:bg-black/50",
+    });
+    Object.assign(dlg.style, {
+      padding: "0",
+      borderRadius: "1rem",
+      maxWidth: "24rem",
+    });
+
+    const host = document.createElement("div");
+    const shadow = host.attachShadow({ mode: "open" });
+
+    render(
+      html`
+        <style>${unsafeHTML(sharedCSS)}</style>
+        <div
+          data-theme="${currentTheme}"
+          class="p-6 bg-base-100 rounded-2xl flex flex-col gap-4 text-center"
+        >
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-lg">Better Intra</h3>
+            <span
+              class="w-8 h-8 [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current text-red-500"
+              >${unsafeHTML(TRIANGLE_EXCLAMATION_SVG)}</span
+            >
+          </div>
+          <p class="opacity-70 text-sm">${message}</p>
+          <button
+            class="btn btn-primary btn-sm"
+            @click="${() => {
+              dlg.close();
+              dlg.remove();
+            }}"
+          >
+            OK
+          </button>
+        </div>
+      `,
+      shadow,
+    );
+
+    dlg.appendChild(host);
+    document.body.appendChild(dlg);
+    dlg.showModal();
+    dlg.addEventListener("click", (e) => {
+      if (e.target === dlg) {
+        dlg.close();
+        dlg.remove();
+      }
+    });
+  };
+
   const handleFormUpdate = (updates: Partial<FormState>) => {
     Object.assign(state, updates);
     liveApplyBannerBg(state);
@@ -672,11 +730,11 @@ export const createSettingsModal = async (
       const file = input.files?.[0];
       if (!file) return;
       if (file.size > 7 * 1024 * 1024) {
-        alert("File too large. Maximum size is 7 MB.");
+        showAlert("File too large. Maximum size is 7 MB.");
         return;
       }
       if (!file.type.startsWith("image/")) {
-        alert("Only image files are allowed.");
+        showAlert("Only image files are allowed.");
         return;
       }
       if (state.uploading) return;
@@ -690,7 +748,7 @@ export const createSettingsModal = async (
         else if (key === "background") updates.background = url;
         handleFormUpdate(updates);
       } catch (e) {
-        alert(`Upload failed: ${(e as Error).message}`);
+        showAlert(`Upload failed: ${(e as Error).message}`);
       } finally {
         state.uploading = "";
         rerender();
