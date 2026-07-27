@@ -79,7 +79,7 @@ function setupDaysToggle(barsContainer: HTMLElement) {
 
   const countText = texts[0];
   const totalText = texts[1];
-  const path = svg.querySelector<SVGPathElement>(".stroke-legacy-main");
+  const path = svg.querySelector<SVGPathElement>("path");
   const circumference = parseFloat(
     path?.getAttribute("stroke-dasharray") || "0",
   );
