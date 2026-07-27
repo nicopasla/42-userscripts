@@ -52,8 +52,10 @@
     },
     "mi": {
       "rows": [
-        { "range": "r1-r7", "pos": [1, 3, 5, 7], "dir": "UP" },
-        { "range": "r1-r7", "pos": [2, 4, 6, 8], "dir": "DOWN" }
+        { "range": "r1-r4", "pos": [1, 3, 5, 7], "dir": "DOWN" },
+        { "range": "r1-r4", "pos": [2, 4, 6, 8], "dir": "DOWN" },
+        { "range": "r5-r7", "pos": [1, 3], "dir": "UP" },
+        { "range": "r5-r7", "pos": [2], "dir": "DOWN" }
       ],
       "manual": [
         { "row": "c1", "pos": [1, 2], "dir": "DOWN" },
@@ -66,11 +68,11 @@
       ],
       "overrides": {
         "r1-p1": "UP",
-        "r1-p2": "UP",
+        "r1-p2": "DOWN",
         "r1-p3": "UP",
-        "r1-p4": "UP",
+        "r1-p4": "DOWN",
         "r1-p5": "UP",
-        "r1-p6": "UP",
+        "r1-p6": "DOWN",
         "r8-p1": "RIGHT",
         "r8-p2": "RIGHT",
         "r8-p3": "RIGHT"
