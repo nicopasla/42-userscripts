@@ -336,6 +336,9 @@ html.dark div[role="alertdialog"] p {
 }
 
 html.dark div[role="alertdialog"] label.rounded-full.bg-legacy-main {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background-color: hsl(var(--primary)) !important;
   border: 2px solid hsl(var(--primary)) !important;
   color: #fff !important;
