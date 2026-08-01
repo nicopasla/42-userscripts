@@ -18,6 +18,9 @@ import CAL_UP_SVG from "../../assets/svg/calendar-arrow-up.svg?raw";
 
 const WORKER_URL = "https://api.betterintra.com";
 
+const INITIAL_VISIBLE_COUNT = 60;
+const WINDOW_STEP = 90;
+
 type SortField = "name" | "date";
 type SortDir = "asc" | "desc";
 
@@ -215,6 +218,7 @@ export async function openStudentsDialog() {
 
   const toggleFilter = (key: "blackhole" | "alumni" | "freeze") => {
     filter = filter === key ? "none" : key;
+    visibleCount = INITIAL_VISIBLE_COUNT;
     rerender();
   };
 
@@ -307,6 +311,9 @@ export async function openStudentsDialog() {
   let lastFetched = 0;
   let query = "";
   let authError = false;
+  let visibleCount = INITIAL_VISIBLE_COUNT;
+  let searchTimeout: number | null = null;
+  let sentinelObserver: IntersectionObserver | null = null;
 
   const dialog = Object.assign(document.createElement("dialog"), {
     id: "students-dialog",
@@ -331,6 +338,11 @@ export async function openStudentsDialog() {
   const shadow = wrapper.attachShadow({ mode: "closed" });
 
   const close = () => {
+    if (sentinelObserver) {
+      sentinelObserver.disconnect();
+      sentinelObserver = null;
+    }
+    if (searchTimeout !== null) window.clearTimeout(searchTimeout);
     dialog.close();
     dialog.remove();
   };
@@ -364,6 +376,7 @@ export async function openStudentsDialog() {
     } else if (res?.data) {
       entries = sortEntries(res.data.data || []);
       lastFetched = res.data.cached_at || 0;
+      visibleCount = INITIAL_VISIBLE_COUNT;
     } else {
       entries = [];
       lastFetched = 0;
@@ -377,6 +390,7 @@ export async function openStudentsDialog() {
     tab = t;
     query = "";
     filter = "none";
+    visibleCount = INITIAL_VISIBLE_COUNT;
     rerender();
     await load();
   };
@@ -384,7 +398,12 @@ export async function openStudentsDialog() {
   function renderTemplate() {
     const years = yearOptions();
     const ago = lastFetched ? formatTimeAgo(lastFetched) : "";
-    const q = query.trim().toLowerCase();
+    const normalize = (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    const q = normalize(query.trim());
     const intakes = nextIntakes(new Date());
     const inFutureIntake = (e: StudentEntry): boolean => {
       const intake = beginAtIntake(e.begin_at);
@@ -406,6 +425,8 @@ export async function openStudentsDialog() {
       if (filter === "freeze" && !isFrozen(e)) return false;
       return !q || `${e.login} ${e.displayname}`.toLowerCase().includes(q);
     });
+    const windowed = filtered.slice(0, visibleCount);
+    const hasMore = filtered.length > windowed.length;
     const cursusLabel =
       tab === "pisciners"
         ? "Piscine Brussels"
@@ -497,7 +518,9 @@ export async function openStudentsDialog() {
                             '<svg width="16" height="16"',
                           ),
                         )}
-                        ${view === "list" ? formatShortDate(r.alumnized_at) : ""}
+                        ${view === "list"
+                          ? formatShortDate(r.alumnized_at)
+                          : ""}
                       </span>`
                     : ""}
                 </div>
@@ -768,7 +791,9 @@ export async function openStudentsDialog() {
               .value="${query}"
               @input="${(e: Event) => {
                 query = (e.target as HTMLInputElement).value;
-                rerender();
+                visibleCount = INITIAL_VISIBLE_COUNT;
+                if (searchTimeout !== null) window.clearTimeout(searchTimeout);
+                searchTimeout = window.setTimeout(() => rerender(), 150);
               }}"
             />
             <span
@@ -943,7 +968,7 @@ export async function openStudentsDialog() {
             </div>
           </div>
         </div>
-        <div class="flex-1 min-h-0 overflow-y-auto p-3">
+        <div class="scroll-area flex-1 min-h-0 overflow-y-auto p-3">
           ${loading
             ? html`<div class="flex items-center justify-center p-8">
                 <span class="loading loading-spinner loading-lg"></span>
@@ -956,36 +981,39 @@ export async function openStudentsDialog() {
                 ? html`<div class="text-center p-6 text-base-content/50">
                     ${entries.length === 0 ? "No data" : "No results"}
                   </div>`
-                : tab === "new"
-                  ? html`<div class="flex flex-col gap-5">
-                      ${intakes.map((i) => {
-                        const rows = filtered.filter((e) => {
-                          const intake = beginAtIntake(e.begin_at);
-                          return (
-                            intake &&
-                            intake.month === i.month &&
-                            intake.year === i.year
-                          );
-                        });
-                        if (rows.length === 0) return html``;
-                        return html`<div>
-                          <div class="flex items-center gap-2 mb-2 px-1">
-                            <span
-                              class="text-xs opacity-50 font-semibold uppercase tracking-wider"
-                            >
-                              ${i.label}
-                            </span>
-                            <span
-                              class="badge badge-sm"
-                              style="border-radius:var(--radius-field)"
-                              >${rows.length}</span
-                            >
-                          </div>
-                          ${renderRows(rows)}
-                        </div>`;
-                      })}
-                    </div>`
-                  : renderRows(filtered)}
+                : html`${tab === "new"
+                    ? html`<div class="flex flex-col gap-5">
+                        ${intakes.map((i) => {
+                          const rows = windowed.filter((e) => {
+                            const intake = beginAtIntake(e.begin_at);
+                            return (
+                              intake &&
+                              intake.month === i.month &&
+                              intake.year === i.year
+                            );
+                          });
+                          if (rows.length === 0) return html``;
+                          return html`<div>
+                            <div class="flex items-center gap-2 mb-2 px-1">
+                              <span
+                                class="text-xs opacity-50 font-semibold uppercase tracking-wider"
+                              >
+                                ${i.label}
+                              </span>
+                              <span
+                                class="badge badge-sm"
+                                style="border-radius:var(--radius-field)"
+                                >${rows.length}</span
+                              >
+                            </div>
+                            ${renderRows(rows)}
+                          </div>`;
+                        })}
+                      </div>`
+                    : renderRows(windowed)}
+                  ${hasMore
+                    ? html`<div class="sentinel" aria-hidden="true"></div>`
+                    : ""}`}
         </div>
       </div>
     `;
@@ -993,6 +1021,25 @@ export async function openStudentsDialog() {
 
   const rerender = () => {
     render(renderTemplate(), shadow);
+
+    if (sentinelObserver) {
+      sentinelObserver.disconnect();
+      sentinelObserver = null;
+    }
+    const sentinel = shadow.querySelector<HTMLElement>(".sentinel");
+    if (sentinel) {
+      const root = shadow.querySelector<HTMLElement>(".scroll-area");
+      sentinelObserver = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            visibleCount += WINDOW_STEP;
+            rerender();
+          }
+        },
+        { root, rootMargin: "400px" },
+      );
+      sentinelObserver.observe(sentinel);
+    }
   };
 
   rerender();
