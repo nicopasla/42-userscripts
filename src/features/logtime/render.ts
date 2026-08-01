@@ -1,4 +1,5 @@
 import { html } from "lit-html";
+import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import {
   AVG_ONLY_ACTIVE_DAYS,
   CELL_RADIUS,
@@ -10,6 +11,9 @@ import { fmtHours, hexToRgba, safeLabelsColor } from "./utils";
 import { LogtimeConfig, CalendarEvent, EventsByDate } from "./logtime";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 import LOGTIME_CSS from "./logtime.css?inline";
+import VIEW_NORMAL_SVG from "../../assets/svg/view-normal.svg?raw";
+import VIEW_COMPACT_SVG from "../../assets/svg/view-compact.svg?raw";
+import VIEW_HEATMAP_SVG from "../../assets/svg/view-heatmap.svg?raw";
 
 function renderDayCell(
   day: number,
@@ -290,6 +294,8 @@ export function renderHeaderContent(
   config: LogtimeConfig,
   calendarView: string,
   onViewChange: (value: string) => void,
+  primaryColor: string,
+  primaryContent: string,
 ) {
   let totalCappedEarnings = 0;
 
@@ -304,6 +310,16 @@ export function renderHeaderContent(
 
   const totalTacos = Math.floor(totalCappedEarnings / config.divisor);
 
+  const views: {
+    id: "normal" | "compact" | "heatmap";
+    label: string;
+    icon: string;
+  }[] = [
+    { id: "normal", label: "Normal", icon: VIEW_NORMAL_SVG },
+    { id: "compact", label: "Compact", icon: VIEW_COMPACT_SVG },
+    { id: "heatmap", label: "Heatmap", icon: VIEW_HEATMAP_SVG },
+  ];
+
   return html`<div class="flex items-center justify-between pb-3">
     <div
       class="font-bold uppercase text-sm tracking-tight flex items-center w-full"
@@ -315,21 +331,25 @@ export function renderHeaderContent(
             >${totalTacos} ${config.emoji}</span
           >`
         : ""}
-      <select
-        class="select select-xs ml-2 w-auto text-xs"
-        @change=${(e: Event) =>
-          onViewChange((e.target as HTMLSelectElement).value)}
-      >
-        <option value="normal" ?selected=${calendarView === "normal"}>
-          Normal
-        </option>
-        <option value="compact" ?selected=${calendarView === "compact"}>
-          Compact
-        </option>
-        <option value="heatmap" ?selected=${calendarView === "heatmap"}>
-          Heatmap
-        </option>
-      </select>
+      <div class="join ml-2">
+        ${views.map(
+          (v) =>
+            html`<button
+              type="button"
+              class="btn btn-sm join-item"
+              style="height:1.5rem;min-width:2.25rem;padding-left:0.75rem;padding-right:0.75rem;${calendarView ===
+              v.id
+                ? `background-color:${primaryColor};border-color:${primaryColor};color:${primaryContent};`
+                : "background-color:transparent;border-color:color-mix(in oklab, var(--color-base-content) 20%, transparent);color:var(--color-base-content);"}"
+              title="${v.label}"
+              @click="${() => onViewChange(v.id)}"
+            >
+              ${unsafeHTML(
+                v.icon.replace("<svg", '<svg width="16" height="16"'),
+              )}
+            </button>`,
+        )}
+      </div>
       ${lastSeenValue !== "N/A"
         ? html`<span
             class="ml-auto badge badge-success font-bold tracking-tight"

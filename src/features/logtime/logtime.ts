@@ -16,7 +16,7 @@ import {
 import { renderCompactMonthGroup, MonthEntry, chunkMonths } from "./compact.ts";
 import { renderHeatmapCard } from "./heatmap.ts";
 import { getLastSeenFormatted, limit } from "./utils.ts";
-import { getEffectiveTheme } from "../profile/theme/theme-manager.ts";
+import { getEffectiveTheme, THEMES } from "../profile/theme/theme-manager.ts";
 import { syncCalendarIcs } from "../calendar/calendar-sync.ts";
 
 export interface CalendarEvent {
@@ -137,6 +137,8 @@ let isLoaded = false;
 let CONFIG: LogtimeConfig;
 export let lastStats: Record<string, string> | null = null;
 let currentTheme = "light";
+let primaryColor = "hsl(199 89% 48%)";
+let primaryContent = "hsl(0 0% 100%)";
 let scrollHandlersCleanup: (() => void) | null = null;
 let heatmapScrollHandler: ((e: Event) => void) | null = null;
 
@@ -364,6 +366,8 @@ function renderLogtime(
     CONFIG,
     CONFIG.calendar_view,
     handleViewChange,
+    primaryColor,
+    primaryContent,
   );
 
   let shadowHost = document.getElementById("logtime-shadow-wrapper");
@@ -532,6 +536,10 @@ export async function initLogtime() {
 
   CONFIG = await getConfigs();
   currentTheme = await getEffectiveTheme();
+  const presetKey = await getConfig("PROFILE_THEME_PRESET");
+  const preset = THEMES[presetKey] ?? THEMES["dark"];
+  primaryColor = `hsl(${preset.primary})`;
+  primaryContent = `hsl(${preset.primaryForeground})`;
   installFetchHook();
 
   if (isProfileV3TargetPage()) {
