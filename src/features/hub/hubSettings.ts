@@ -5,7 +5,7 @@ import GEAR_SVG from "../../assets/svg/settings_gear.svg?raw";
 import USERS_SVG from "../../assets/svg/users.svg?raw";
 import { getActiveFeatures } from "./hubSettings.storage.ts";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import { openStudentsDialog } from "../profile/students-dialog.ts";
+import { openStudentsDialog } from "../profile/students/index.ts";
 
 function findSidebarMainGroup(): HTMLDivElement | null {
   const profileLink = document.querySelector<HTMLAnchorElement>(
