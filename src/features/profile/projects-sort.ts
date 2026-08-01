@@ -1,6 +1,10 @@
 import { getConfig } from "../../config.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
-import { getEffectiveTheme } from "./theme/theme-manager.ts";
+import { THEMES, getEffectiveTheme } from "./theme/theme-manager.ts";
+import SORT_AZ_SVG from "../../assets/svg/sort-az.svg?raw";
+import SORT_ZA_SVG from "../../assets/svg/sort-za.svg?raw";
+import CAL_DOWN_SVG from "../../assets/svg/calendar-arrow-down.svg?raw";
+import CAL_UP_SVG from "../../assets/svg/calendar-arrow-up.svg?raw";
 
 type SortField = "name" | "date";
 
@@ -140,6 +144,10 @@ export async function initProjectsSort() {
   if (titleRow.querySelector(`#${HOST_ID}`)) return;
 
   const currentTheme = await getEffectiveTheme();
+  const presetKey = await getConfig("PROFILE_THEME_PRESET");
+  const preset = THEMES[presetKey] ?? THEMES["dark"];
+  const primaryColor = `hsl(${preset.primary})`;
+  const primaryContent = `hsl(${preset.primaryForeground})`;
 
   const host = document.createElement("span");
   host.id = HOST_ID;
@@ -155,17 +163,58 @@ export async function initProjectsSort() {
   wrap.setAttribute("data-theme", currentTheme);
   wrap.className = "flex items-center gap-1";
 
-  const select = document.createElement("select");
-  select.className = "select select-xs ml-2 w-auto text-xs";
+  const join = document.createElement("div");
+  join.className = "join";
 
-  const rebuildOptions = () => {
-    select.replaceChildren();
+  const renderButtons = () => {
+    join.replaceChildren();
     for (const f of FIELD_VALUES) {
-      const option = document.createElement("option");
-      option.value = f;
-      option.textContent = FIELD_LABELS[f];
-      if (f === field) option.selected = true;
-      select.appendChild(option);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-sm join-item";
+      btn.style.height = "1.5rem";
+      btn.style.minWidth = "2.25rem";
+      btn.style.paddingLeft = "0.75rem";
+      btn.style.paddingRight = "0.75rem";
+      if (field === f) {
+        btn.style.backgroundColor = primaryColor;
+        btn.style.borderColor = primaryColor;
+        btn.style.color = primaryContent;
+      } else {
+        btn.style.backgroundColor = "transparent";
+        btn.style.borderColor =
+          "color-mix(in oklab, var(--color-base-content) 20%, transparent)";
+        btn.style.color = "var(--color-base-content)";
+      }
+      btn.title = `${FIELD_LABELS[f]}${
+        field === f ? ` (${asc ? "asc" : "desc"})` : ""
+      }`;
+      const icon =
+        f === "name"
+          ? field === "name"
+            ? asc
+              ? SORT_AZ_SVG
+              : SORT_ZA_SVG
+            : SORT_AZ_SVG
+          : field === "date"
+            ? asc
+              ? CAL_UP_SVG
+              : CAL_DOWN_SVG
+            : CAL_DOWN_SVG;
+      btn.insertAdjacentHTML(
+        "beforeend",
+        icon.replace("<svg", '<svg width="16" height="16"'),
+      );
+      btn.addEventListener("click", () => {
+        if (field === f) {
+          asc = !asc;
+        } else {
+          field = f;
+          asc = FIELD_DEFAULTS[f] === "asc";
+        }
+        applySort();
+      });
+      join.appendChild(btn);
     }
   };
 
@@ -183,31 +232,14 @@ export async function initProjectsSort() {
     for (const item of items) {
       container.appendChild(item.wrapper);
     }
-    rebuildOptions();
+    renderButtons();
   };
 
-  select.addEventListener("mousedown", (e) => {
-    const target = e.target as HTMLElement;
-    if (target instanceof HTMLOptionElement && target.value === field) {
-      asc = !asc;
-      applySort();
-    }
-  });
-
-  select.addEventListener("change", () => {
-    const newField = select.value as SortField;
-    if (newField !== field) {
-      field = newField;
-      asc = FIELD_DEFAULTS[field] === "asc";
-      applySort();
-    }
-  });
-
-  wrap.appendChild(select);
+  wrap.appendChild(join);
   root.appendChild(style);
   root.appendChild(wrap);
   titleRow.appendChild(host);
 
-  rebuildOptions();
+  renderButtons();
   applySort();
 }
