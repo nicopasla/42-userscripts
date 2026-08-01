@@ -1,5 +1,6 @@
 import { html, render } from "lit-html";
 import { FeatureId } from "./hubSettings.data.ts";
+import { getConfig } from "../../config.ts";
 import GEAR_SVG from "../../assets/svg/settings_gear.svg?raw";
 import USERS_SVG from "../../assets/svg/users.svg?raw";
 import { getActiveFeatures } from "./hubSettings.storage.ts";
@@ -119,6 +120,37 @@ export function mountGearButton(): void {
   const sidebar = findSidebarMainGroup();
   const legacy = findLegacyNavList();
 
+  const openStudents = () => {
+    try {
+      openStudentsDialog();
+    } catch (err) {}
+  };
+
+  void (async () => {
+    if (document.getElementById("ft-students-btn")) return;
+    if ((await getConfig("CLUSTERS_CAMPUS")) !== "12") return;
+
+    if (sidebar) {
+      const container = document.createElement("div");
+      render(renderStudentsButton(openStudents), container);
+      const firstLink = sidebar.firstElementChild;
+      if (firstLink) {
+        firstLink.after(container.firstElementChild!);
+      } else {
+        sidebar.appendChild(container.firstElementChild!);
+      }
+    } else if (legacy) {
+      const container = document.createElement("div");
+      render(renderLegacyStudentsButton(openStudents), container);
+      const firstLink = legacy.firstElementChild;
+      if (firstLink) {
+        firstLink.after(container.firstElementChild!);
+      } else {
+        legacy.appendChild(container.firstElementChild!);
+      }
+    }
+  })();
+
   if (document.getElementById("hub-gear-btn")) return;
 
   if (sidebar) {
@@ -129,34 +161,6 @@ export function mountGearButton(): void {
     const container = document.createElement("div");
     render(renderLegacyGearButton(open), container);
     legacy.appendChild(container.firstElementChild!);
-  }
-
-  if (document.getElementById("ft-students-btn")) return;
-
-  const openStudents = () => {
-    try {
-      openStudentsDialog();
-    } catch (err) {}
-  };
-
-  if (sidebar) {
-    const container = document.createElement("div");
-    render(renderStudentsButton(openStudents), container);
-    const firstLink = sidebar.firstElementChild;
-    if (firstLink) {
-      firstLink.after(container.firstElementChild!);
-    } else {
-      sidebar.appendChild(container.firstElementChild!);
-    }
-  } else if (legacy) {
-    const container = document.createElement("div");
-    render(renderLegacyStudentsButton(openStudents), container);
-    const firstLink = legacy.firstElementChild;
-    if (firstLink) {
-      firstLink.after(container.firstElementChild!);
-    } else {
-      legacy.appendChild(container.firstElementChild!);
-    }
   }
 }
 
