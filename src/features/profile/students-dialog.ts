@@ -341,7 +341,7 @@ export async function openStudentsDialog() {
 
   const yearOptions = (): number[] => {
     const years: number[] = [];
-    for (let y = currentYear; y >= 2023; y--) {
+    for (let y = 2023; y <= currentYear; y++) {
       years.push(y);
     }
     return years;
