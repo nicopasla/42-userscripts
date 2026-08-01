@@ -2,9 +2,15 @@ import { html, render } from "lit-html";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 import { getConfig } from "../../config.ts";
 import { hashLogin } from "../../utils/crypto.ts";
+import { getEffectiveTheme } from "./theme/theme-manager.ts";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import LIST_SVG from "../../assets/svg/list.svg?raw";
 import GRID_SVG from "../../assets/svg/grid.svg?raw";
+import SKULL_SVG from "../../assets/svg/skull.svg?raw";
+import GRADUATION_CAP_SVG from "../../assets/svg/graduation-cap.svg?raw";
+import POOL_SVG from "../../assets/svg/pool.svg?raw";
+import ENTRY_DATE_SVG from "../../assets/svg/entry-date.svg?raw";
+import FREEZE_SVG from "../../assets/svg/freeze.svg?raw";
 import SORT_AZ_SVG from "../../assets/svg/sort-az.svg?raw";
 import SORT_ZA_SVG from "../../assets/svg/sort-za.svg?raw";
 import CAL_DOWN_SVG from "../../assets/svg/calendar-arrow-down.svg?raw";
@@ -20,6 +26,12 @@ interface StudentEntry {
   displayname: string;
   image_url: string;
   begin_at?: string | null;
+  blackholed_at?: string | null;
+  active?: boolean;
+  alumni?: boolean;
+  pool_month?: string | null;
+  pool_year?: string | null;
+  alumnized_at?: string;
 }
 
 interface StudentsResponse {
@@ -52,7 +64,51 @@ function formatMonthYear(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(
+    d.getFullYear(),
+  ).slice(-2)}`;
+}
+
+function isBlackholed(e: StudentEntry): boolean {
+  return (
+    e.active === false &&
+    typeof e.blackholed_at === "string" &&
+    new Date(e.blackholed_at).getTime() < Date.now()
+  );
+}
+
+function formatShortDate(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+function formatBlackholeDate(iso?: string | null): string {
+  const s = formatShortDate(iso);
+  return s ? `Blackholed ${s}` : "";
+}
+
+function formatAlumniDate(iso?: string | null): string {
+  const s = formatShortDate(iso);
+  return s ? `Alumnized ${s}` : "";
+}
+
+function isFrozen(e: StudentEntry): boolean {
+  return (
+    e.active === false &&
+    typeof e.blackholed_at === "string" &&
+    new Date(e.blackholed_at).getTime() >= Date.now()
+  );
+}
+
+function formatPool(e: StudentEntry): string {
+  if (!e.pool_month || !e.pool_year) return "";
+  const d = new Date(Date.parse(`${e.pool_month} 1, 2000`));
+  if (Number.isNaN(d.getTime())) return "";
+  return `${String(d.getMonth() + 1).padStart(2, "0")}/${e.pool_year.slice(-2)}`;
 }
 
 function nextIntakes(now: Date): Intake[] {
@@ -142,26 +198,25 @@ export async function openStudentsDialog() {
   const now = new Date();
   const currentYear = now.getFullYear();
 
-  const themePref = await getConfig("BETTER_INTRA_THEME");
-  const isDark =
-    themePref === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-      : themePref !== "light";
   const presetKey = (await getConfig("PROFILE_THEME_PRESET")) || "dark";
   const currentTheme =
     presetKey !== "dark" && presetKey !== "light"
       ? presetKey
-      : isDark
-        ? "dark"
-        : "light";
+      : await getEffectiveTheme();
 
   let tab: "students" | "pisciners" | "new" = "students";
   let view: "grid" | "list" = "grid";
   let sortField: SortField = "name";
   let nameDir: SortDir = "asc";
   let dateDir: SortDir = "desc";
+  let filter: "none" | "blackhole" | "alumni" | "freeze" = "none";
   let selectedMonth = PISCINE_MONTHS[0];
   let selectedYear = currentYear;
+
+  const toggleFilter = (key: "blackhole" | "alumni" | "freeze") => {
+    filter = filter === key ? "none" : key;
+    rerender();
+  };
 
   const savedView = (await chrome.storage.local.get("STUDENTS_VIEW")) as {
     STUDENTS_VIEW?: "grid" | "list";
@@ -259,8 +314,8 @@ export async function openStudentsDialog() {
   });
   Object.assign(dialog.style, {
     margin: "auto",
-    width: "min(680px, calc(100dvw - 2rem))",
-    height: "min(640px, calc(100dvh - 2rem))",
+    width: "min(900px, calc(100dvw - 2rem))",
+    height: "min(800px, calc(100dvh - 2rem))",
     borderRadius: "1rem",
     overflow: "hidden",
     padding: "0",
@@ -321,6 +376,7 @@ export async function openStudentsDialog() {
     if (tab === t) return;
     tab = t;
     query = "";
+    filter = "none";
     rerender();
     await load();
   };
@@ -343,15 +399,25 @@ export async function openStudentsDialog() {
         : tab === "students"
           ? entries.filter((e) => !inFutureIntake(e))
           : entries;
-    const filtered = intakeFiltered.filter(
-      (e) => !q || `${e.login} ${e.displayname}`.toLowerCase().includes(q),
-    );
+    const activeCount = intakeFiltered.filter((e) => e.active !== false).length;
+    const filtered = intakeFiltered.filter((e) => {
+      if (filter === "blackhole" && !isBlackholed(e)) return false;
+      if (filter === "alumni" && !e.alumni) return false;
+      if (filter === "freeze" && !isFrozen(e)) return false;
+      return !q || `${e.login} ${e.displayname}`.toLowerCase().includes(q);
+    });
     const cursusLabel =
       tab === "pisciners"
         ? "Piscine Brussels"
         : tab === "new"
           ? "Future students"
           : "42 Cursus";
+    const countLabel =
+      tab === "pisciners"
+        ? "pisciners"
+        : tab === "new"
+          ? "future students"
+          : "students";
     const dateLabel =
       tab === "pisciners"
         ? `${selectedMonth.label} ${selectedYear}`
@@ -363,7 +429,9 @@ export async function openStudentsDialog() {
         ${rows.map(
           (r) =>
             html`<div
-              class="row"
+              class="row ${tab !== "new" && r.active === false
+                ? "inactive"
+                : ""}"
               @click="${() => {
                 window.open(
                   `https://profile.intra.42.fr/users/${r.login}`,
@@ -378,12 +446,84 @@ export async function openStudentsDialog() {
                 loading="lazy"
               />
               <div class="info">
-                <div class="displayname">${r.displayname || r.login}</div>
+                <div class="displayname">
+                  <span class="displayname-name"
+                    >${r.displayname || r.login}</span
+                  >
+                  ${isBlackholed(r) && tab !== "pisciners"
+                    ? html`<span
+                        class="blackhole-badge${view === "list"
+                          ? " with-text"
+                          : ""}"
+                        title="${formatBlackholeDate(r.blackholed_at)}"
+                      >
+                        ${unsafeHTML(
+                          SKULL_SVG.replace(
+                            "<svg",
+                            '<svg width="16" height="16"',
+                          ),
+                        )}
+                        ${view === "list"
+                          ? formatShortDate(r.blackholed_at)
+                          : ""}
+                      </span>`
+                    : ""}
+                  ${isFrozen(r) && tab !== "new" && tab !== "pisciners"
+                    ? html`<span
+                        class="freeze-badge${view === "list"
+                          ? " with-text"
+                          : ""}"
+                        title="Frozen"
+                      >
+                        ${unsafeHTML(
+                          FREEZE_SVG.replace(
+                            "<svg",
+                            '<svg width="16" height="16"',
+                          ),
+                        )}
+                        ${view === "list" ? "Frozen" : ""}
+                      </span>`
+                    : ""}
+                  ${r.alumni && tab !== "pisciners"
+                    ? html`<span
+                        class="alumni-badge${view === "list"
+                          ? " with-text"
+                          : ""}"
+                        title="${formatAlumniDate(r.alumnized_at)}"
+                      >
+                        ${unsafeHTML(
+                          GRADUATION_CAP_SVG.replace(
+                            "<svg",
+                            '<svg width="16" height="16"',
+                          ),
+                        )}
+                        ${view === "list" ? formatShortDate(r.alumnized_at) : ""}
+                      </span>`
+                    : ""}
+                </div>
                 <div class="login">${r.login}</div>
               </div>
-              ${formatMonthYear(r.begin_at)
-                ? html`<span class="date">${formatMonthYear(r.begin_at)}</span>`
-                : ""}
+              <div class="row-meta">
+                ${formatPool(r)
+                  ? html`<span class="pool-badge" title="Pool">
+                      ${unsafeHTML(
+                        POOL_SVG.replace("<svg", '<svg width="14" height="14"'),
+                      )}
+                      ${formatPool(r)}
+                    </span>`
+                  : ""}
+                ${formatMonthYear(r.begin_at)
+                  ? html`<span class="date-badge" title="Entry date">
+                      ${unsafeHTML(
+                        ENTRY_DATE_SVG.replace(
+                          "<svg",
+                          '<svg width="14" height="14"',
+                        ),
+                      )}
+                      ${formatMonthYear(r.begin_at)}
+                    </span>`
+                  : ""}
+              </div>
             </div>`,
         )}
       </div>
@@ -406,7 +546,12 @@ export async function openStudentsDialog() {
           flex-direction: column;
           align-items: center;
           gap: 0.25rem;
-          padding: 0.5rem;
+          padding: 0.6rem;
+          border: 1px solid var(--color-base-300);
+          border-radius: 0.75rem;
+        }
+        .grid .row:hover {
+          border-color: var(--color-primary);
         }
         .list .row {
           display: flex;
@@ -415,8 +560,8 @@ export async function openStudentsDialog() {
           padding: 0.5rem 1rem;
         }
         .avatar {
-          width: 2.5rem;
-          height: 2.5rem;
+          width: 2.75rem;
+          height: 2.75rem;
           border-radius: 50%;
           object-fit: cover;
           flex-shrink: 0;
@@ -433,33 +578,104 @@ export async function openStudentsDialog() {
           text-align: left;
         }
         .displayname {
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
           font-weight: 600;
-          font-size: 0.8rem;
+          font-size: 0.9rem;
           color: var(--color-base-content);
+        }
+        .displayname-name {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          min-width: 0;
+        }
+        .grid .displayname {
+          justify-content: center;
+        }
+        .blackhole-badge,
+        .freeze-badge,
+        .alumni-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          border-radius: 9999px;
+          padding: 0.3rem;
+          line-height: 0;
+        }
+        .blackhole-badge {
+          color: var(--color-error-content);
+          background: var(--color-error);
+        }
+        .blackhole-badge.with-text,
+        .freeze-badge.with-text,
+        .alumni-badge.with-text {
+          gap: 0.3rem;
+          height: 1.6rem;
+          padding: 0 0.5rem;
+          line-height: normal;
+          font-size: 0.7rem;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+        .freeze-badge {
+          color: var(--color-info-content);
+          background: var(--color-info);
+        }
+        .alumni-badge {
+          color: var(--color-secondary-content);
+          background: var(--color-secondary);
+        }
+        .blackhole-badge svg,
+        .freeze-badge svg,
+        .alumni-badge svg {
+          fill: currentColor;
+        }
+        .row.inactive {
+          opacity: 0.45;
         }
         .login {
-          font-size: 0.7rem;
+          font-size: 0.8rem;
           opacity: 0.5;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
-        .date {
-          font-size: 0.7rem;
-          opacity: 0.6;
-          font-weight: 600;
+        .row-meta {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
           flex-shrink: 0;
-          white-space: nowrap;
         }
-        .grid .date {
+        .grid .row-meta {
+          flex-direction: row;
+          justify-content: center;
           text-align: center;
           width: 100%;
         }
-        .list .date {
+        .list .row-meta {
           margin-left: auto;
+        }
+        .pool-badge,
+        .date-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          height: 1.8rem;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: var(--color-base-content);
+          background: var(--color-base-200);
+          border-radius: var(--radius-field);
+          padding: 0 0.6rem;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .pool-badge svg,
+        .date-badge svg {
+          fill: currentColor;
         }
         .grid {
           display: grid;
@@ -559,113 +775,171 @@ export async function openStudentsDialog() {
               class="badge badge-sm badge-accent h-8 flex-shrink-0 font-bold"
               style="white-space:nowrap;border-radius:var(--radius-field)"
               title="${cursusLabel} — ${dateLabel}"
-              >${intakeFiltered.length}</span
+              >${intakeFiltered.length} ${countLabel}</span
             >
-            ${tab === "pisciners"
-              ? html`
-                  <select
-                    class="select select-sm w-32"
-                    @change="${async (e: Event) => {
-                      const v = Number((e.target as HTMLSelectElement).value);
-                      selectedMonth =
-                        PISCINE_MONTHS.find((m) => m.value === v) ||
-                        PISCINE_MONTHS[0];
-                      saveSelection();
-                      await load();
-                    }}"
-                  >
-                    ${PISCINE_MONTHS.map(
-                      (m) =>
-                        html`<option
-                          value="${m.value}"
-                          ?selected="${m.value === selectedMonth.value}"
-                          style="color:${m.color};font-weight:600;"
-                        >
-                          ${m.label}
-                        </option>`,
-                    )}
-                  </select>
-                  <select
-                    class="select select-sm w-20"
-                    @change="${async (e: Event) => {
-                      selectedYear = Number(
-                        (e.target as HTMLSelectElement).value,
-                      );
-                      saveSelection();
-                      await load();
-                    }}"
-                  >
-                    ${years.map(
-                      (y) =>
-                        html`<option
-                          value="${y}"
-                          ?selected="${y === selectedYear}"
-                        >
-                          ${y}
-                        </option>`,
-                    )}
-                  </select>
-                `
+            ${tab === "students"
+              ? html`<span
+                  class="badge badge-sm badge-success h-8 flex-shrink-0 font-bold"
+                  style="white-space:nowrap;border-radius:var(--radius-field)"
+                  title="Active students"
+                  >${activeCount} active students</span
+                >`
               : ""}
-            <div class="join ml-auto">
-              <button
-                class="btn btn-sm join-item ${view === "grid"
-                  ? "btn-primary"
-                  : "btn-outline border-base-content/20"}"
-                title="Grid view"
-                @click="${() => setView("grid")}"
-              >
-                ${unsafeHTML(
-                  GRID_SVG.replace("<svg", '<svg width="16" height="16"'),
-                )}
-              </button>
-              <button
-                class="btn btn-sm join-item ${view === "list"
-                  ? "btn-primary"
-                  : "btn-outline border-base-content/20"}"
-                title="List view"
-                @click="${() => setView("list")}"
-              >
-                ${unsafeHTML(
-                  LIST_SVG.replace("<svg", '<svg width="16" height="16"'),
-                )}
-              </button>
-            </div>
-            <div class="join">
-              <button
-                class="btn btn-sm join-item ${sortField === "name"
-                  ? "btn-primary"
-                  : "btn-outline border-base-content/20"}"
-                title="${nameDir === "asc"
-                  ? "Name A → Z (click to invert)"
-                  : "Name Z → A (click to invert)"}"
-                @click="${() => setSort("name")}"
-              >
-                ${unsafeHTML(
-                  (nameDir === "asc" ? SORT_AZ_SVG : SORT_ZA_SVG).replace(
-                    "<svg",
-                    '<svg width="16" height="16"',
-                  ),
-                )}
-              </button>
-              ${tab !== "pisciners"
-                ? html`<button
-                    class="btn btn-sm join-item ${sortField === "date"
-                      ? "btn-primary"
-                      : "btn-outline border-base-content/20"}"
-                    title="${dateDir === "desc"
-                      ? "Date (newest first)"
-                      : "Date (oldest first)"}"
-                    @click="${() => setSort("date")}"
-                  >
-                    ${unsafeHTML(
-                      (dateDir === "desc" ? CAL_DOWN_SVG : CAL_UP_SVG).replace(
-                        "<svg",
-                        '<svg width="16" height="16"',
-                      ),
-                    )}
-                  </button>`
+            <div class="ml-auto flex items-center gap-2">
+              ${tab === "students"
+                ? html`
+                    <button
+                      class="btn btn-sm ${filter === "blackhole"
+                        ? "btn-primary"
+                        : "btn-outline border-base-content/20"}"
+                      title="Filter blackholed"
+                      @click="${() => toggleFilter("blackhole")}"
+                    >
+                      ${unsafeHTML(
+                        SKULL_SVG.replace(
+                          "<svg",
+                          '<svg width="16" height="16"',
+                        ),
+                      )}
+                    </button>
+                    <button
+                      class="btn btn-sm ${filter === "alumni"
+                        ? "btn-primary"
+                        : "btn-outline border-base-content/20"}"
+                      title="Filter alumni"
+                      @click="${() => toggleFilter("alumni")}"
+                    >
+                      ${unsafeHTML(
+                        GRADUATION_CAP_SVG.replace(
+                          "<svg",
+                          '<svg width="16" height="16"',
+                        ),
+                      )}
+                    </button>
+                    <button
+                      class="btn btn-sm ${filter === "freeze"
+                        ? "btn-primary"
+                        : "btn-outline border-base-content/20"}"
+                      title="Filter frozen"
+                      @click="${() => toggleFilter("freeze")}"
+                    >
+                      ${unsafeHTML(
+                        FREEZE_SVG.replace(
+                          "<svg",
+                          '<svg width="16" height="16"',
+                        ),
+                      )}
+                    </button>
+                    <div class="h-6 w-px bg-base-content/20 mx-0.5"></div>
+                  `
                 : ""}
+              ${tab === "pisciners"
+                ? html`
+                    <select
+                      class="select select-sm w-32"
+                      @change="${async (e: Event) => {
+                        const v = Number((e.target as HTMLSelectElement).value);
+                        selectedMonth =
+                          PISCINE_MONTHS.find((m) => m.value === v) ||
+                          PISCINE_MONTHS[0];
+                        saveSelection();
+                        await load();
+                      }}"
+                    >
+                      ${PISCINE_MONTHS.map(
+                        (m) =>
+                          html`<option
+                            value="${m.value}"
+                            ?selected="${m.value === selectedMonth.value}"
+                            style="color:${m.color};font-weight:600;"
+                          >
+                            ${m.label}
+                          </option>`,
+                      )}
+                    </select>
+                    <select
+                      class="select select-sm w-20"
+                      @change="${async (e: Event) => {
+                        selectedYear = Number(
+                          (e.target as HTMLSelectElement).value,
+                        );
+                        saveSelection();
+                        await load();
+                      }}"
+                    >
+                      ${years.map(
+                        (y) =>
+                          html`<option
+                            value="${y}"
+                            ?selected="${y === selectedYear}"
+                          >
+                            ${y}
+                          </option>`,
+                      )}
+                    </select>
+                    <div class="h-6 w-px bg-base-content/20 mx-0.5"></div>
+                  `
+                : ""}
+              <div class="join">
+                <button
+                  class="btn btn-sm join-item ${view === "grid"
+                    ? "btn-primary"
+                    : "btn-outline border-base-content/20"}"
+                  title="Grid view"
+                  @click="${() => setView("grid")}"
+                >
+                  ${unsafeHTML(
+                    GRID_SVG.replace("<svg", '<svg width="16" height="16"'),
+                  )}
+                </button>
+                <button
+                  class="btn btn-sm join-item ${view === "list"
+                    ? "btn-primary"
+                    : "btn-outline border-base-content/20"}"
+                  title="List view"
+                  @click="${() => setView("list")}"
+                >
+                  ${unsafeHTML(
+                    LIST_SVG.replace("<svg", '<svg width="16" height="16"'),
+                  )}
+                </button>
+              </div>
+              <div class="join">
+                <button
+                  class="btn btn-sm join-item ${sortField === "name"
+                    ? "btn-primary"
+                    : "btn-outline border-base-content/20"}"
+                  title="${nameDir === "asc"
+                    ? "Name A → Z (click to invert)"
+                    : "Name Z → A (click to invert)"}"
+                  @click="${() => setSort("name")}"
+                >
+                  ${unsafeHTML(
+                    (nameDir === "asc" ? SORT_AZ_SVG : SORT_ZA_SVG).replace(
+                      "<svg",
+                      '<svg width="16" height="16"',
+                    ),
+                  )}
+                </button>
+                ${tab !== "pisciners"
+                  ? html`<button
+                      class="btn btn-sm join-item ${sortField === "date"
+                        ? "btn-primary"
+                        : "btn-outline border-base-content/20"}"
+                      title="${dateDir === "desc"
+                        ? "Date (newest first)"
+                        : "Date (oldest first)"}"
+                      @click="${() => setSort("date")}"
+                    >
+                      ${unsafeHTML(
+                        (dateDir === "desc"
+                          ? CAL_DOWN_SVG
+                          : CAL_UP_SVG
+                        ).replace("<svg", '<svg width="16" height="16"'),
+                      )}
+                    </button>`
+                  : ""}
+              </div>
             </div>
           </div>
         </div>
