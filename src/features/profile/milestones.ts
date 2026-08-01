@@ -53,7 +53,7 @@ function injectMilestoneStyles() {
       position: relative;
       overflow: hidden;
       isolation: isolate;
-      border-radius: 16px;
+      border-radius: 4px;
       background:
         linear-gradient(
           135deg,
@@ -70,7 +70,7 @@ function injectMilestoneStyles() {
       position: relative;
       overflow: hidden;
       isolation: isolate;
-      border-radius: 16px;
+      border-radius: 4px;
     }
 
     .fire-animated::before {
