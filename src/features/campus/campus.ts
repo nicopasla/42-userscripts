@@ -23,6 +23,7 @@ const CAMPUS_BASE = "https://api.betterintra.com/gh/campuses";
 const CACHE_PREFIX = "CAMPUS_DATA_";
 const MANIFEST_CACHE_KEY = "CAMPUS_MANIFEST";
 const CACHE_TTL = 60 * 60 * 1000;
+const inFlightLoads = new Map<string, Promise<ClusterDataFile>>();
 
 async function resolveCampusFolder(campusId: string): Promise<string> {
   const manifest = await fetchCampusList();
@@ -83,15 +84,22 @@ export async function loadCampusData(
       return cachedData.data;
     }
   }
-  const prefix = await resolveCampusFolder(campusId);
-  let res = await fetch(`${CAMPUS_BASE}/${prefix}.json`);
-  if (!res.ok) res = await fetch(`${CAMPUS_BASE}/${prefix}_clusters.json`);
-  if (!res.ok) throw new Error(`Failed to fetch campus data for ${campusId}`);
-  const data = (await res.json()) as ClusterDataFile;
-  await chrome.storage.local.set({
-    [cacheKey]: { data, timestamp: Date.now() },
+  const existing = inFlightLoads.get(cacheKey);
+  if (existing) return existing;
+  const load = (async () => {
+    const prefix = await resolveCampusFolder(campusId);
+    const res = await fetch(`${CAMPUS_BASE}/${prefix}.json`);
+    if (!res.ok) throw new Error(`Failed to fetch campus data for ${campusId}`);
+    const data = (await res.json()) as ClusterDataFile;
+    await chrome.storage.local.set({
+      [cacheKey]: { data, timestamp: Date.now() },
+    });
+    return data;
+  })().finally(() => {
+    inFlightLoads.delete(cacheKey);
   });
-  return data;
+  inFlightLoads.set(cacheKey, load);
+  return load;
 }
 
 export async function ensureCampusData(): Promise<void> {

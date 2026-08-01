@@ -10,8 +10,6 @@
 
 Seat definitions can be added later — start with just `"definitions": {}`.
 
-> **Note:** `{name-slug}_clusters.json` files are supported as a fallback for backward compatibility. New campuses should use `{name-slug}.json`.
-
 ## File structure
 
 ```
@@ -19,7 +17,7 @@ campuses/
 ├── README.md
 ├── campuses.json          Campus list (id → name mapping)
 ├── belgium.json
-├── le-havre_clusters.json
+├── le-havre.json
 └── ...
 ```
 
@@ -35,9 +33,9 @@ campuses/
 ```
 
 - `id` — numeric campus ID from the 42 API (as a string)
-- `name` — display name, determines the cluster filename (`{lowercase-hyphenated}_clusters.json`)
+- `name` — display name, determines the cluster filename (`{lowercase-hyphenated}.json`)
 
-## {name-slug}_clusters.json format
+## {name-slug}.json format
 
 ```json
 {
