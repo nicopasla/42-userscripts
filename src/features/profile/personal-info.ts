@@ -90,7 +90,7 @@ export async function initFriendBadge() {
 
 export async function initShortcutButtons() {
   const container = document.querySelector<HTMLElement>(
-    ".border.border-ft-gray-border.bg-ft-gray\\/50.rounded-xl.flex.justify-center.items-center.w-full",
+    ".border.border-ft-gray-border.bg-ft-gray\\/50.rounded-xl.flex.justify-center.items-center.w-full:not(#ft-freeze-card)",
   );
   if (!container || container.hasAttribute("data-ft-shortcuts")) return;
 
