@@ -4,6 +4,8 @@ import { getConfig } from "../../config.ts";
 import { getCloudLogin } from "../account/account.ts";
 import { hashLogin } from "../../utils/crypto.ts";
 import { INTRA_FONT } from "../logtime/constants.ts";
+import { sharedCSS } from "../../assets/shared-styles.ts";
+import { getEffectiveTheme } from "./theme/theme-manager.ts";
 import CHECK_SVG from "../../assets/svg/check.svg?raw";
 import X_SVG from "../../assets/svg/x.svg?raw";
 import CHEVRON_DOWN_SVG from "../../assets/svg/chevron-down.svg?raw";
@@ -250,7 +252,7 @@ function findCard(title: "PROJECTS" | "MARKS"): HTMLElement | null {
   for (const card of cards) {
     const titleEl = card.querySelector("[class*='uppercase']");
     const text = titleEl?.textContent?.trim();
-    if (text?.toUpperCase() === title) {
+    if (text?.toUpperCase().startsWith(title)) {
       return card;
     }
   }
@@ -545,6 +547,61 @@ function getLoginFromPage(): string | null {
   return null;
 }
 
+async function injectStarTotalBadge(card: HTMLElement, total: number) {
+  const header = Array.from(
+    card.querySelectorAll<HTMLElement>(".font-bold.text-black.uppercase.text-sm"),
+  ).find((el) => el.textContent?.trim().startsWith("Marks"));
+  if (!header || !header.parentElement) return;
+  const titleRow = header.parentElement;
+  if (titleRow.querySelector("[data-ft-star-total]")) return;
+
+  const theme = await getEffectiveTheme();
+  const sortEnabled = await getConfig("PROFILE_PROJECTS_SORT");
+
+  const sortHost = titleRow.querySelector<HTMLElement>(
+    "#better-intra-sort-host",
+  );
+
+  const badge = document.createElement("span");
+  badge.id = "ft-star-total-host";
+  badge.dataset.ftStarTotal = "true";
+  badge.style.cssText = "display:inline-flex;vertical-align:middle;";
+  const root = badge.attachShadow({ mode: "open" });
+  const style = document.createElement("style");
+  style.textContent = sharedCSS;
+  const wrap = document.createElement("div");
+  wrap.setAttribute("data-theme", theme);
+  wrap.style.cssText = "display:flex;align-items:center;";
+  const pill = document.createElement("span");
+  pill.className = "badge";
+  pill.style.height = "1.5rem";
+  pill.style.paddingLeft = "0.75rem";
+  pill.style.paddingRight = "0.75rem";
+  pill.style.pointerEvents = "none";
+  pill.style.backgroundColor = "transparent";
+  pill.style.borderColor =
+    "color-mix(in oklab, var(--color-base-content) 20%, transparent)";
+  pill.style.color = "var(--color-base-content)";
+  pill.textContent = `${total} ⭐`;
+  wrap.appendChild(pill);
+  if (sortEnabled) {
+    const sep = document.createElement("div");
+    sep.style.cssText =
+      "width:1px;height:1.25rem;background:var(--color-base-content);opacity:0.25;margin:0 0.5rem;";
+    wrap.appendChild(sep);
+  }
+  root.appendChild(style);
+  root.appendChild(wrap);
+
+  if (sortHost) {
+    badge.style.marginLeft = "auto";
+    sortHost.insertAdjacentElement("beforebegin", badge);
+  } else {
+    badge.style.marginLeft = "0.5rem";
+    header.insertAdjacentElement("afterend", badge);
+  }
+}
+
 async function enhanceExistingMarks(
   card: HTMLElement,
   targetLogin: string,
@@ -572,9 +629,11 @@ async function enhanceExistingMarks(
           entries.length,
         );
         let starred = 0;
+        let starTotal = 0;
         for (const entry of entries) {
           const count = outstanding[entry.projectsUserId];
           if (!count) continue;
+          starTotal += count;
 
           if (entry.el.querySelector("[data-star-count]")) continue;
 
@@ -594,6 +653,8 @@ async function enhanceExistingMarks(
           link.parentElement?.appendChild(star);
           starred++;
         }
+
+        if (starTotal > 0) await injectStarTotalBadge(card, starTotal);
 
         if (marks) {
           const marksById = new Map<number, string>();
