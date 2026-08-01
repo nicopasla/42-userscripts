@@ -132,7 +132,7 @@ export async function initProjectsSort() {
     document.querySelectorAll<HTMLElement>(
       ".font-bold.text-black.uppercase.text-sm",
     ),
-  ).find((el) => el.textContent?.trim() === "Marks");
+  ).find((el) => el.textContent?.trim().startsWith("Marks"));
   if (!marksHeader) return;
 
   const panel = marksHeader.closest<HTMLElement>(".bg-white");
@@ -238,7 +238,13 @@ export async function initProjectsSort() {
   wrap.appendChild(join);
   root.appendChild(style);
   root.appendChild(wrap);
-  titleRow.appendChild(host);
+  const starBadge = titleRow.querySelector<HTMLElement>("#ft-star-total-host");
+  if (starBadge) {
+    starBadge.style.marginLeft = "auto";
+    titleRow.insertBefore(host, starBadge.nextSibling);
+  } else {
+    titleRow.appendChild(host);
+  }
 
   renderButtons();
   applySort();
