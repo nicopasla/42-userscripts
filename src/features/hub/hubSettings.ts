@@ -1,8 +1,10 @@
 import { html, render } from "lit-html";
 import { FeatureId } from "./hubSettings.data.ts";
 import GEAR_SVG from "../../assets/svg/settings_gear.svg?raw";
+import USERS_SVG from "../../assets/svg/users.svg?raw";
 import { getActiveFeatures } from "./hubSettings.storage.ts";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
+import { openStudentsDialog } from "../profile/students-dialog.ts";
 
 function findSidebarMainGroup(): HTMLDivElement | null {
   const profileLink = document.querySelector<HTMLAnchorElement>(
@@ -63,6 +65,48 @@ function renderLegacyGearButton(
   </li>`;
 }
 
+function renderStudentsButton(
+  onClick: (e: Event) => void,
+): ReturnType<typeof html> {
+  return html`<a
+    id="ft-students-btn"
+    class="py-5 w-full flex justify-center hover:opacity-100 opacity-40"
+    href="#"
+    title="Students"
+    @click="${(e: Event) => {
+      e.preventDefault();
+      onClick(e);
+    }}"
+  >
+    ${unsafeHTML(
+      USERS_SVG.replace("<svg", '<svg width="25" height="25" stroke="#fff"'),
+    )}
+  </a>`;
+}
+
+function renderLegacyStudentsButton(
+  onClick: (e: Event) => void,
+): ReturnType<typeof html> {
+  return html`<li>
+    <a
+      id="ft-students-btn"
+      href="#"
+      title="Students"
+      @click="${(e: Event) => {
+        e.preventDefault();
+        onClick(e);
+      }}"
+    >
+      ${unsafeHTML(
+        USERS_SVG.replace(
+          "<svg",
+          '<svg width="20" height="20" stroke="currentColor"',
+        ),
+      )}
+    </a>
+  </li>`;
+}
+
 export function mountGearButton(): void {
   const open = async () => {
     const { openHubModal } = await import("./hubSettings.ui.ts");
@@ -85,6 +129,34 @@ export function mountGearButton(): void {
     const container = document.createElement("div");
     render(renderLegacyGearButton(open), container);
     legacy.appendChild(container.firstElementChild!);
+  }
+
+  if (document.getElementById("ft-students-btn")) return;
+
+  const openStudents = () => {
+    try {
+      openStudentsDialog();
+    } catch (err) {}
+  };
+
+  if (sidebar) {
+    const container = document.createElement("div");
+    render(renderStudentsButton(openStudents), container);
+    const firstLink = sidebar.firstElementChild;
+    if (firstLink) {
+      firstLink.after(container.firstElementChild!);
+    } else {
+      sidebar.appendChild(container.firstElementChild!);
+    }
+  } else if (legacy) {
+    const container = document.createElement("div");
+    render(renderLegacyStudentsButton(openStudents), container);
+    const firstLink = legacy.firstElementChild;
+    if (firstLink) {
+      firstLink.after(container.firstElementChild!);
+    } else {
+      legacy.appendChild(container.firstElementChild!);
+    }
   }
 }
 
