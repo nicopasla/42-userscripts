@@ -26,6 +26,19 @@ function extractItems(statsBar: HTMLElement) {
   return items;
 }
 
+function applyBadgeLayout(container: HTMLElement) {
+  const count =
+    container.querySelectorAll<HTMLElement>("[data-ft-badge]").length;
+  const seatBadge = container.querySelector<HTMLElement>("[data-ft-seat]");
+  if (count >= 4) {
+    container.style.justifyContent = "space-between";
+    if (seatBadge) seatBadge.style.marginBottom = "";
+  } else {
+    container.style.justifyContent = "flex-end";
+    if (seatBadge) seatBadge.style.marginBottom = "auto";
+  }
+}
+
 function populateMainBadges(
   container: HTMLElement,
   items: { label: string; value: string }[],
@@ -75,6 +88,7 @@ function populateMainBadges(
 
   const seatBadge = container.querySelector<HTMLElement>("[data-ft-seat]");
   if (seatBadge) container.prepend(seatBadge);
+  applyBadgeLayout(container);
 }
 
 async function injectSeatBadge(profileCard: HTMLElement) {
@@ -114,8 +128,8 @@ async function injectSeatBadge(profileCard: HTMLElement) {
     badge.style.cursor = "default";
     badge.textContent = "unavailable";
     badge.title = "Seat unavailable";
-    badge.style.marginBottom = "auto";
     wrapper.prepend(badge);
+    applyBadgeLayout(wrapper);
     return;
   }
 
@@ -162,8 +176,8 @@ async function injectSeatBadge(profileCard: HTMLElement) {
   linkIcon.insertAdjacentHTML("beforeend", ARROW_SHARE_SVG);
   badge.appendChild(linkIcon);
 
-  badge.style.marginBottom = "auto";
   wrapper.prepend(badge);
+  applyBadgeLayout(wrapper);
 }
 
 function injectGivePointsButton(statsBar: HTMLElement, container: HTMLElement) {
