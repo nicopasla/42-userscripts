@@ -26,6 +26,8 @@ To install this extension, click the buttons below or visit the [Releases](https
 
 > ☁️ *marked features require cloud sync / 42 sign-in.*
 
+> 🇧🇪 *marked features are Belgium-only.*
+
 ### 👤 Profile
 
 * **Custom visuals** — set your own avatar, banner, and background images with mode options (fill, fit, stretch, center, tile). **Click your avatar** on your profile page to open the customisation panel with zoom slider (50–200%), click-and-drag repositioning, and mouse wheel zoom on the preview. See a live preview as you type the image URL.
@@ -37,12 +39,12 @@ To install this extension, click the buttons below or visit the [Releases](https
 * **Dashboard cards** — reorder your profile cards (Logtime, Agenda, Evaluations, Projects, Achievements) by dragging them. Hide cards you don't need.
 * **Project badges** — projects in the Projects card appear as colour-coded badges (green for normal projects, red for exams) for quick visual scanning.
 * **Event filtering** — filter your agenda by campus and event type (exam, conference, workshop, hackathon, etc.).
-* **Slots redirection** — automatically redirects slots and defense links for Belgium campus users when your campus is detected.
+* **Slots redirection** — automatically redirects slots and defense links for Belgium campus users when your campus is detected. 🇧🇪
 * **Sort pending evaluations** — pending evaluations are sorted into "To Feedback", "Evaluator", and "Evaluated" sections with counts for easier browsing.
 * **Achievement milestones** — completed achievements get a subtle animated glow.
 * **Full achievements list** — replaces the native "Last Achievements" card with a scrollable list of all achievements, sorted by newest first.
 * **Completed projects (marks)** — the Projects card lists all your graded projects with dates and scores. Multi-attempt projects expand to show each attempt. Sort by newest or oldest first. Projects flagged "Outstanding" during evaluation get a ⭐ next to their name — visible on any user's profile. ☁️
-* **Download Transcript** — a "Transcript" button appears in the Projects card letting you download your academic transcript as a PDF. Choose your cursus, language, and year range. Only available for **Belgium** campus. ☁️
+* **Download Transcript** — a "Transcript" button appears in the Projects card letting you download your academic transcript as a PDF. Choose your cursus, language, and year range. Only available for **Belgium** campus. 🇧🇪 ☁️
 * **Projects sort** — sort the projects list on any user's profile by name or date, with toggleable ascending/descending order.
 * **Freeze alerts** — a freeze card appears on profiles of frozen students.
 * **Clickable seat label** — click someone's seat on their profile to open the cluster map with their seat highlighted and pulsating.
@@ -77,7 +79,7 @@ Replaces the default logtime view with a monthly calendar showing your logged ho
 
 ### 🖥️ Clusters
 
-* **Directional markers** — small indicators on the cluster map showing which way each chair faces. Works for **Belgium** clusters (shi, fu, mi, a1, a2). Toggle on/off from the cluster tab bar.
+* **Directional markers** — small indicators on the cluster map showing which way each chair faces. Toggle on/off from the cluster tab bar. 🇧🇪
 * **Cluster picker** — a dropdown on the cluster tab bar to quickly switch clusters.
 * **Markers toggle** — a button on the cluster tab bar to show/hide chair direction indicators.
 * **Default cluster** — set your preferred cluster and it loads automatically when you open the page.
@@ -96,7 +98,24 @@ A live interactive cluster map popup accessible from profile quick-link buttons.
 * **Cluster room tabs** — switch between cluster rooms within the dialog.
 * **Click to visit profile** — click any occupied seat to open that user's profile, optionally in a new tab.
 * **In-dialog settings** — toggle directional markers and set your default cluster from within the dialog.
-* **Belgium-only** — full live map for Belgian campuses (campus ID 12). Other campuses get a direct link to the cluster map page.
+* **Belgium-only** — full live map for Belgian campuses (campus ID 12). Other campuses get a direct link to the cluster map page. 🇧🇪
+
+---
+
+### 🧑‍🎓 Students ☁️ 🇧🇪
+
+> ☁️ *marked since reading the list requires 42 sign-in via cloud sync.*
+
+A students directory for the **Belgium** campus, opened from the **users icon** in the intra sidebar.
+
+* **Students / Future students / Pisciners tabs** — browse all 42 cursus students, the upcoming April/October intakes, or a specific piscine session (by month + year).
+* **Grid & list views** — toggle between a 4-per-row card grid and a compact list.
+* **Sort** — by name or cursus start date, with click-to-invert direction.
+* **Search** — filter by name or login.
+* **Status badges** — blackholed (skull), frozen (snowflake), and alumni (graduation cap) indicators; inactive students are dimmed.
+* **Counts** — a totals badge (e.g. "1,075 students") plus an "active students" count.
+* **Pool & entry dates** — per-student badges showing piscine pool (e.g. `02/26`) and cursus entry date.
+* **Belgium-only** — the sidebar button only appears for Belgium campus (ID 12).
 
 ---
 
