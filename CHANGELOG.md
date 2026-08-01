@@ -2,6 +2,46 @@
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-01
+
+### Features 🎉
+
+- feat(profile): add star total badge to marks section ([0b0285e](https://github.com/nicopasla/better-intra/commit/0b0285e))
+- feat(logtime): enhance logtime UI with theme-based button views and new SVG icons ([fbd0376](https://github.com/nicopasla/better-intra/commit/fbd0376))
+- feat(projects-sort): refactor sorting UI to use buttons with icons and theme support ([a6e062b](https://github.com/nicopasla/better-intra/commit/a6e062b))
+- feat(students-dialog): enhance student entry display with new badges and filters ([0d1faa7](https://github.com/nicopasla/better-intra/commit/0d1faa7))
+- feat(students): add students dialog with sorting and filtering functionality ([2154a7f](https://github.com/nicopasla/better-intra/commit/2154a7f))
+
+### Bug fixes 🐛
+
+- fix(students-dialog): sort pisciners year dropdown in ascending order ([7a4136f](https://github.com/nicopasla/better-intra/commit/7a4136f))
+- fix(projects-sort): update marks header selection to use startsWith ([f3bd06e](https://github.com/nicopasla/better-intra/commit/f3bd06e))
+- fix(milestones): reduce border-radius for milestone styles from 16px to 4px ([f1db1ab](https://github.com/nicopasla/better-intra/commit/f1db1ab))
+- fix(profile): adjust info card badge layout spacing ([8ec9cfe](https://github.com/nicopasla/better-intra/commit/8ec9cfe))
+- fix(theme): refactor theme handling to use getEffectiveTheme for consistency ([4ef9188](https://github.com/nicopasla/better-intra/commit/4ef9188))
+- fix(students-dialog): add updated badge styling for student updates ([f633df4](https://github.com/nicopasla/better-intra/commit/f633df4))
+- fix(theme): center align alert dialog labels in dark and light themes ([8e0c2ba](https://github.com/nicopasla/better-intra/commit/8e0c2ba))
+- fix(hub): refactor gear button rendering and add students button conditionally ([a694d32](https://github.com/nicopasla/better-intra/commit/a694d32))
+- fix(theme): add strong, bold, and emphasized text styles for dark theme ([c079851](https://github.com/nicopasla/better-intra/commit/c079851))
+- fix: update path selector in setupDaysToggle function ([23a5a93](https://github.com/nicopasla/better-intra/commit/23a5a93))
+- fix: update movement definitions and overrides in belgium.json ([d2deaea](https://github.com/nicopasla/better-intra/commit/d2deaea))
+- fix: update MI cluster for belgium.json ([369d098](https://github.com/nicopasla/better-intra/commit/369d098))
+- fix: update MI cluster for belgium.json ([4649040](https://github.com/nicopasla/better-intra/commit/4649040))
+- fix: update MI cluster for belgium.json ([ff0dc2a](https://github.com/nicopasla/better-intra/commit/ff0dc2a))
+- fix: seats updated belgium.json ([564de49](https://github.com/nicopasla/better-intra/commit/564de49))
+- fix: valid json for Belgium.json ([b2063d1](https://github.com/nicopasla/better-intra/commit/b2063d1))
+- fix: revert ([20b3be2](https://github.com/nicopasla/better-intra/commit/20b3be2))
+- fix: revert ([7a71ef3](https://github.com/nicopasla/better-intra/commit/7a71ef3))
+- fix: Update direction and range for Belgium campus ([2561497](https://github.com/nicopasla/better-intra/commit/2561497))
+
+### Maintenance 🧹
+
+- chore(readme): update Belgium-specific features and add students section ([fb2f000](https://github.com/nicopasla/better-intra/commit/fb2f000))
+
+### Other Changes 🔄
+
+- Update belgium_clusters.json ([e499223](https://github.com/nicopasla/better-intra/commit/e499223))
+
 ## [1.6.3] - 2026-07-26
 
 ### Features 🎉
@@ -930,7 +970,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.6.3...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/nicopasla/better-intra/compare/v1.6.3...v1.7.0
 [1.6.3]: https://github.com/nicopasla/better-intra/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/nicopasla/better-intra/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/nicopasla/better-intra/compare/v1.6.0...v1.6.1
