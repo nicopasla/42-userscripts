@@ -1,7 +1,7 @@
 import { html, render } from "lit-html";
 import { getConfig } from "../../../config.ts";
 import { sharedCSS } from "../../../assets/shared-styles.ts";
-import { THEMES } from "../theme/theme-manager.ts";
+import { THEMES, getEffectiveTheme } from "../theme/theme-manager.ts";
 
 const DATA_BASE = "https://api.betterintra.com/gh/data";
 const EVENT_TYPES_CACHE_KEY = "EVENT_TYPES_DATA";
@@ -154,9 +154,7 @@ export async function injectEventsSelect() {
   shadowHost.style.setProperty("display", "inline-flex", "important");
 
   const shadowRoot = shadowHost.attachShadow({ mode: "open" });
-  const effectiveTheme = document.documentElement.classList.contains("dark")
-    ? "dark"
-    : "light";
+  const effectiveTheme = await getEffectiveTheme();
   const presetKey = await getConfig("PROFILE_THEME_PRESET");
   const preset = THEMES[presetKey] ?? THEMES["dark"];
   const isLightPreset = !preset.dark && !!preset.light;

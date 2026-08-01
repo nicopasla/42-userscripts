@@ -33,7 +33,7 @@ import LINK_SVG from "../../assets/svg/link.svg?raw";
 import { renderAboutPanel } from "./hub.about.ts";
 import { renderDiscordPanel } from "../discord/discord.ui.ts";
 import { renderCalendarPanel } from "../calendar/calendar.ui.ts";
-import { THEMES } from "../profile/theme/theme-manager.ts";
+import { THEMES, getEffectiveTheme } from "../profile/theme/theme-manager.ts";
 
 async function saveSetting(key: string, value: unknown): Promise<void> {
   await chrome.storage.local.set({ [key]: value });
@@ -731,11 +731,7 @@ function renderSetting(def: HubSettingDef, enabled: boolean, hidden?: boolean) {
 }
 
 async function getInitialTheme() {
-  const saved = await getConfig("BETTER_INTRA_THEME");
-  if (saved) return saved;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  return getEffectiveTheme();
 }
 
 const GRID_COLS_CLASSES = ["", "", "md:grid-cols-2", "md:grid-cols-3"] as const;

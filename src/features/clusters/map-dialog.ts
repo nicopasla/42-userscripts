@@ -3,6 +3,7 @@ import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 import { getConfig } from "../../config.ts";
 import { CLUSTERS } from "./clusters.data.ts";
+import { getEffectiveTheme } from "../profile/theme/theme-manager.ts";
 import RELOAD_SVG from "../../assets/svg/reload.svg?raw";
 import { cropSvgViewBox, SeatPos } from "./map-dialog/crop.ts";
 import { sanitizeAndParseSeats, applyMarkers } from "./map-dialog/seats.ts";
@@ -36,14 +37,12 @@ export async function openClusterDialog() {
     return;
   }
 
-  const [themePref, presetKeyRaw, defaultId, showMarkersVal, svgs] =
-    await Promise.all([
-      getConfig("BETTER_INTRA_THEME"),
-      getConfig("PROFILE_THEME_PRESET"),
-      getConfig("CLUSTERS_DEFAULT_ID"),
-      getConfig("CLUSTERS_SHOW_MARKERS"),
-      fetchClusterSVGs(),
-    ]);
+  const [presetKeyRaw, defaultId, showMarkersVal, svgs] = await Promise.all([
+    getConfig("PROFILE_THEME_PRESET"),
+    getConfig("CLUSTERS_DEFAULT_ID"),
+    getConfig("CLUSTERS_SHOW_MARKERS"),
+    fetchClusterSVGs(),
+  ]);
   const presetKey = (presetKeyRaw as string) || "dark";
 
   const clusters: ClusterInfo[] = [
@@ -55,16 +54,10 @@ export async function openClusterDialog() {
     { id: "wifi", name: "Wi-Fi" },
   ];
 
-  const isDark =
-    themePref === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-      : themePref !== "light";
   const currentTheme =
     presetKey !== "dark" && presetKey !== "light"
       ? presetKey
-      : isDark
-        ? "dark"
-        : "light";
+      : await getEffectiveTheme();
   let activeCluster = clusters.find((c) => c.id === defaultId) || clusters[0];
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   const seatPosCache = new Map<string, Map<string, SeatPos>>();

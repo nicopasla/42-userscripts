@@ -8,6 +8,7 @@ import {
   syncMyVisuals,
 } from "../account/account.ts";
 import { applyImgs, injectCustomStyles, VisualUrls } from "./visuals.ts";
+import { getEffectiveTheme } from "./theme/theme-manager.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 import LINK_SVG from "../../assets/svg/link.svg?raw";
 import { renderAvatarEditor } from "./avatar-editor.ts";
@@ -503,18 +504,11 @@ export const createSettingsModal = async (
   const isConnected = !!token && !authFailed;
   const needsReconnect = !!token && authFailed;
 
-  const themePref = await getConfig("BETTER_INTRA_THEME");
-  const isDark =
-    themePref === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-      : themePref !== "light";
   const presetKey = (await getConfig("PROFILE_THEME_PRESET")) || "dark";
   const currentTheme =
     presetKey !== "dark" && presetKey !== "light"
       ? presetKey
-      : isDark
-        ? "dark"
-        : "light";
+      : await getEffectiveTheme();
 
   const dialog = Object.assign(document.createElement("dialog"), {
     id: "profile-modal-host",
