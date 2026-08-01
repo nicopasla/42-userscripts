@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-08-01
+
+### Features 🎉
+
+- feat(students-dialog):  Add custom tooltips ([069b757](https://github.com/nicopasla/better-intra/commit/069b757))
+- feat(marks): add star total badge to projects label on own profile ([4cdcf32](https://github.com/nicopasla/better-intra/commit/4cdcf32))
+
+### Bug fixes 🐛
+
+- fix(campus): dedupe campus data loads and drop _clusters.json fallback ([36c3868](https://github.com/nicopasla/better-intra/commit/36c3868))
+- fix(profile): exclude freeze card from shortcut buttons container selection ([3de0efd](https://github.com/nicopasla/better-intra/commit/3de0efd))
+- fix(students-dialog): replace string includes with normalization in filter logic ([e20dccf](https://github.com/nicopasla/better-intra/commit/e20dccf))
+- fix(students-dialog): reset visible count on filter toggle and search input ([169ea4a](https://github.com/nicopasla/better-intra/commit/169ea4a))
+- fix(config): update package.json import syntax and resolve paths using import.meta.dirname ([ff7c6af](https://github.com/nicopasla/better-intra/commit/ff7c6af))
+
+### Maintenance 🧹
+
+- chore(students): split dialog module into folder ([b85adce](https://github.com/nicopasla/better-intra/commit/b85adce))
+
 ## [1.7.0] - 2026-08-01
 
 ### Features 🎉
@@ -970,7 +989,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.7.0...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/nicopasla/better-intra/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/nicopasla/better-intra/compare/v1.6.3...v1.7.0
 [1.6.3]: https://github.com/nicopasla/better-intra/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/nicopasla/better-intra/compare/v1.6.1...v1.6.2
