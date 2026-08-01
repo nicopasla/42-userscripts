@@ -510,6 +510,12 @@ function injectFinishedProjects(card: HTMLElement, marks: MarkedProject[]) {
   } else {
     inner.appendChild(container);
   }
+
+  const starTotal = sorted.reduce((sum, p) => sum + (p.is_outstanding || 0), 0);
+  if (starTotal > 0) {
+    card.querySelector("[data-ft-star-total]")?.remove();
+    void injectStarTotalBadge(card, starTotal, "Projects");
+  }
 }
 
 async function handleCursusSwitch(cursusId: string) {
@@ -547,10 +553,16 @@ function getLoginFromPage(): string | null {
   return null;
 }
 
-async function injectStarTotalBadge(card: HTMLElement, total: number) {
+async function injectStarTotalBadge(
+  card: HTMLElement,
+  total: number,
+  title = "Marks",
+) {
   const header = Array.from(
-    card.querySelectorAll<HTMLElement>(".font-bold.text-black.uppercase.text-sm"),
-  ).find((el) => el.textContent?.trim().startsWith("Marks"));
+    card.querySelectorAll<HTMLElement>(
+      ".font-bold.text-black.uppercase.text-sm",
+    ),
+  ).find((el) => el.textContent?.trim().startsWith(title));
   if (!header || !header.parentElement) return;
   const titleRow = header.parentElement;
   if (titleRow.querySelector("[data-ft-star-total]")) return;
@@ -584,7 +596,8 @@ async function injectStarTotalBadge(card: HTMLElement, total: number) {
   pill.style.color = "var(--color-base-content)";
   pill.textContent = `${total} ⭐`;
   wrap.appendChild(pill);
-  if (sortEnabled) {
+  if (title === "Projects") {
+  } else if (sortEnabled) {
     const sep = document.createElement("div");
     sep.style.cssText =
       "width:1px;height:1.25rem;background:var(--color-base-content);opacity:0.25;margin:0 0.5rem;";
@@ -596,6 +609,9 @@ async function injectStarTotalBadge(card: HTMLElement, total: number) {
   if (sortHost) {
     badge.style.marginLeft = "auto";
     sortHost.insertAdjacentElement("beforebegin", badge);
+  } else if (title === "Projects") {
+    badge.style.marginLeft = "0.5rem";
+    header.insertAdjacentElement("beforeend", badge);
   } else {
     badge.style.marginLeft = "0.5rem";
     header.insertAdjacentElement("afterend", badge);
