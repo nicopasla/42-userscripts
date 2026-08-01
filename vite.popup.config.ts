@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "path";
 import fs from "fs";
-import pkg from "./package.json";
+import pkg from "./package.json" with { type: "json" };
 import { cp } from "fs/promises";
 
 const target = (process.env.TARGET || "firefox") as "firefox" | "chrome";
@@ -33,14 +33,14 @@ export default defineConfig({
 </body>
 </html>`;
         fs.writeFileSync(
-          resolve(__dirname, outDir, "popup.html"),
+          resolve(import.meta.dirname, outDir, "popup.html"),
           popupHtml,
           "utf-8",
         );
         console.log(`popup.html written`);
         // Copy icons
-        const iconsSrc = resolve(__dirname, "public/icons");
-        const iconsDst = resolve(__dirname, `${outDir}/icons`);
+        const iconsSrc = resolve(import.meta.dirname, "public/icons");
+        const iconsDst = resolve(import.meta.dirname, `${outDir}/icons`);
         if (fs.existsSync(iconsSrc)) {
           fs.mkdirSync(iconsDst, { recursive: true });
           for (const file of fs.readdirSync(iconsSrc)) {
@@ -56,7 +56,7 @@ export default defineConfig({
     emptyOutDir: false,
     minify: false,
     rollupOptions: {
-      input: { popup: resolve(__dirname, "src/popup/popup.ts") },
+      input: { popup: resolve(import.meta.dirname, "src/popup/popup.ts") },
       output: {
         format: "iife",
         entryFileNames: "[name].js",

@@ -3,7 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "path";
 import fs from "fs";
 import { cp } from "fs/promises";
-import pkg from "./package.json";
+import pkg from "./package.json" with { type: "json" };
 
 const target = (process.env.TARGET || "firefox") as "firefox" | "chrome";
 const outDir = process.env.BUILD_OUT_DIR || "dist";
@@ -15,10 +15,10 @@ export default defineConfig({
       name: "write-manifest",
       closeBundle() {
         const manifestSrc = resolve(
-          __dirname,
+          import.meta.dirname,
           `manifests/manifest.${target}.json`,
         );
-        const manifestDst = resolve(__dirname, `${outDir}/manifest.json`);
+        const manifestDst = resolve(import.meta.dirname, `${outDir}/manifest.json`);
 
         if (!fs.existsSync(manifestSrc)) {
           console.error(`\nManifest not found: ${manifestSrc}\n`);
@@ -34,8 +34,8 @@ export default defineConfig({
         );
         console.log(`\nmanifest.json written for ${target} v${pkg.version}\n`);
         // Copy icons
-        const iconsSrc = resolve(__dirname, "public/icons");
-        const iconsDst = resolve(__dirname, `${outDir}/icons`);
+        const iconsSrc = resolve(import.meta.dirname, "public/icons");
+        const iconsDst = resolve(import.meta.dirname, `${outDir}/icons`);
         if (fs.existsSync(iconsSrc)) {
           fs.mkdirSync(iconsDst, { recursive: true });
           for (const file of fs.readdirSync(iconsSrc)) {
@@ -51,7 +51,7 @@ export default defineConfig({
     emptyOutDir: false,
     minify: false,
     rollupOptions: {
-      input: { content: resolve(__dirname, "src/main.ts") },
+      input: { content: resolve(import.meta.dirname, "src/main.ts") },
       output: {
         format: "iife",
         entryFileNames: "[name].js",
