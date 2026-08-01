@@ -423,7 +423,7 @@ export async function openStudentsDialog() {
       if (filter === "blackhole" && !isBlackholed(e)) return false;
       if (filter === "alumni" && !e.alumni) return false;
       if (filter === "freeze" && !isFrozen(e)) return false;
-      return !q || `${e.login} ${e.displayname}`.toLowerCase().includes(q);
+      return !q || normalize(`${e.login} ${e.displayname}`).includes(q);
     });
     const windowed = filtered.slice(0, visibleCount);
     const hasMore = filtered.length > windowed.length;
