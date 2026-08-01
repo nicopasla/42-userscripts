@@ -97,11 +97,17 @@ async function fetchStudents(): Promise<{
   return fetchEndpoint("students", new URLSearchParams());
 }
 
-async function fetchPisciners(year: number, month: number): Promise<{
+async function fetchPisciners(
+  year: number,
+  month: number,
+): Promise<{
   data?: StudentsResponse;
   unauthorized?: boolean;
 } | null> {
-  return fetchEndpoint("pisciners", new URLSearchParams({ year: String(year), month: String(month) }));
+  return fetchEndpoint(
+    "pisciners",
+    new URLSearchParams({ year: String(year), month: String(month) }),
+  );
 }
 
 async function fetchEndpoint(
@@ -337,8 +343,8 @@ export async function openStudentsDialog() {
         : tab === "students"
           ? entries.filter((e) => !inFutureIntake(e))
           : entries;
-    const filtered = intakeFiltered.filter((e) =>
-      !q || `${e.login} ${e.displayname}`.toLowerCase().includes(q),
+    const filtered = intakeFiltered.filter(
+      (e) => !q || `${e.login} ${e.displayname}`.toLowerCase().includes(q),
     );
     const cursusLabel =
       tab === "pisciners"
@@ -355,29 +361,30 @@ export async function openStudentsDialog() {
     const renderRows = (rows: StudentEntry[]) => html`
       <div class="${view}">
         ${rows.map(
-          (r) => html`<div
-            class="row"
-            @click="${() => {
-              window.open(
-                `https://profile.intra.42.fr/users/${r.login}`,
-                "_blank",
-              );
-            }}"
-          >
-            <img
-              class="avatar"
-              src="${r.image_url}"
-              alt="${r.login}"
-              loading="lazy"
-            />
-            <div class="info">
-              <div class="displayname">${r.displayname || r.login}</div>
-              <div class="login">${r.login}</div>
-            </div>
-            ${formatMonthYear(r.begin_at)
-              ? html`<span class="date">${formatMonthYear(r.begin_at)}</span>`
-              : ""}
-          </div>`,
+          (r) =>
+            html`<div
+              class="row"
+              @click="${() => {
+                window.open(
+                  `https://profile.intra.42.fr/users/${r.login}`,
+                  "_blank",
+                );
+              }}"
+            >
+              <img
+                class="avatar"
+                src="${r.image_url}"
+                alt="${r.login}"
+                loading="lazy"
+              />
+              <div class="info">
+                <div class="displayname">${r.displayname || r.login}</div>
+                <div class="login">${r.login}</div>
+              </div>
+              ${formatMonthYear(r.begin_at)
+                ? html`<span class="date">${formatMonthYear(r.begin_at)}</span>`
+                : ""}
+            </div>`,
         )}
       </div>
     `;
@@ -386,8 +393,7 @@ export async function openStudentsDialog() {
         :host {
           display: block;
         }
-        ${sharedCSS}
-        .row {
+        ${sharedCSS} .row {
           border-radius: 0.5rem;
           cursor: pointer;
           min-width: 0;
@@ -481,6 +487,20 @@ export async function openStudentsDialog() {
           background: var(--color-primary);
           color: var(--color-primary-content);
         }
+        .updated-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.85rem;
+          font-weight: 700;
+          padding: 0.4rem 0.75rem;
+          border-radius: var(--radius-field);
+          background: var(--color-accent);
+          color: var(--color-accent-content);
+          white-space: nowrap;
+          flex-shrink: 0;
+          cursor: default;
+        }
       </style>
       <div
         data-theme="${currentTheme}"
@@ -513,8 +533,7 @@ export async function openStudentsDialog() {
               </button>
             </div>
             ${ago
-              ? html`<span
-                  class="btn btn-accent border border-base-content/20 flex-shrink-0"
+              ? html`<span class="updated-badge"
                   >Updated ${ago === "now" ? ago : ago + " ago"}</span
                 >`
               : ""}
@@ -590,7 +609,9 @@ export async function openStudentsDialog() {
               : ""}
             <div class="join ml-auto">
               <button
-                class="btn btn-sm join-item ${view === "grid" ? "btn-primary" : "btn-outline border-base-content/20"}"
+                class="btn btn-sm join-item ${view === "grid"
+                  ? "btn-primary"
+                  : "btn-outline border-base-content/20"}"
                 title="Grid view"
                 @click="${() => setView("grid")}"
               >
@@ -599,7 +620,9 @@ export async function openStudentsDialog() {
                 )}
               </button>
               <button
-                class="btn btn-sm join-item ${view === "list" ? "btn-primary" : "btn-outline border-base-content/20"}"
+                class="btn btn-sm join-item ${view === "list"
+                  ? "btn-primary"
+                  : "btn-outline border-base-content/20"}"
                 title="List view"
                 @click="${() => setView("list")}"
               >
@@ -610,8 +633,12 @@ export async function openStudentsDialog() {
             </div>
             <div class="join">
               <button
-                class="btn btn-sm join-item ${sortField === "name" ? "btn-primary" : "btn-outline border-base-content/20"}"
-                title="${nameDir === "asc" ? "Name A → Z (click to invert)" : "Name Z → A (click to invert)"}"
+                class="btn btn-sm join-item ${sortField === "name"
+                  ? "btn-primary"
+                  : "btn-outline border-base-content/20"}"
+                title="${nameDir === "asc"
+                  ? "Name A → Z (click to invert)"
+                  : "Name Z → A (click to invert)"}"
                 @click="${() => setSort("name")}"
               >
                 ${unsafeHTML(
@@ -623,8 +650,12 @@ export async function openStudentsDialog() {
               </button>
               ${tab !== "pisciners"
                 ? html`<button
-                    class="btn btn-sm join-item ${sortField === "date" ? "btn-primary" : "btn-outline border-base-content/20"}"
-                    title="${dateDir === "desc" ? "Date (newest first)" : "Date (oldest first)"}"
+                    class="btn btn-sm join-item ${sortField === "date"
+                      ? "btn-primary"
+                      : "btn-outline border-base-content/20"}"
+                    title="${dateDir === "desc"
+                      ? "Date (newest first)"
+                      : "Date (oldest first)"}"
                     @click="${() => setSort("date")}"
                   >
                     ${unsafeHTML(
@@ -664,9 +695,7 @@ export async function openStudentsDialog() {
                         });
                         if (rows.length === 0) return html``;
                         return html`<div>
-                          <div
-                            class="flex items-center gap-2 mb-2 px-1"
-                          >
+                          <div class="flex items-center gap-2 mb-2 px-1">
                             <span
                               class="text-xs opacity-50 font-semibold uppercase tracking-wider"
                             >
