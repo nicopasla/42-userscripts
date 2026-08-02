@@ -53,13 +53,41 @@ export type PiscineMonth = (typeof PISCINE_MONTHS)[number];
 
 const MONTH_LABELS = Array.from({ length: 12 }, (_, i) => monthLabel(i + 1));
 
-export const POOL_MONTHS = MONTH_LABELS.map((label, i) => ({
-  value: i + 1,
-  label,
-}));
+const monthNumber = (name?: string | null): number | null => {
+  if (!name) return null;
+  const idx = MONTH_LABELS.findIndex(
+    (l) => l.toLowerCase() === name.toLowerCase(),
+  );
+  return idx === -1 ? null : idx + 1;
+};
 
 export function poolMonthName(value: number): string {
   return MONTH_LABELS[value - 1]?.toLowerCase() ?? "";
+}
+
+export interface PoolIntake {
+  month: number;
+  year: number;
+  label: string;
+}
+
+export function poolIntakes(
+  entries: StudentEntry[],
+  currentYear: number,
+): PoolIntake[] {
+  const seen = new Set<string>();
+  const list: PoolIntake[] = [];
+  for (const e of entries) {
+    const y = Number(e.pool_year);
+    const m = monthNumber(e.pool_month);
+    if (!Number.isInteger(y) || y <= 0 || y > currentYear || m == null)
+      continue;
+    const key = `${m}-${y}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    list.push({ month: m, year: y, label: `${MONTH_LABELS[m - 1]} ${y}` });
+  }
+  return list.sort((a, b) => b.year - a.year || b.month - a.month);
 }
 
 export function formatTimeAgo(ts: number): string {

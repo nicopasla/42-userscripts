@@ -11,6 +11,7 @@ import {
   WINDOW_STEP,
   fetchPisciners,
   fetchStudents,
+  poolIntakes,
   sortEntries,
 } from "./data.ts";
 import {
@@ -48,7 +49,7 @@ export async function openStudentsDialog() {
   let nameDir: SortDir = "asc";
   let dateDir: SortDir = "desc";
   let filter: StudentsFilter = "none";
-  let poolMonth: number | null = null;
+  let poolIntake: { month: number; year: number } | null = null;
   let poolYear: number | null = null;
   let selectedMonth: PiscineMonth = PISCINE_MONTHS[0];
   let selectedYear = currentYear;
@@ -223,7 +224,7 @@ export async function openStudentsDialog() {
     tab = t;
     query = "";
     filter = "none";
-    poolMonth = null;
+    poolIntake = null;
     poolYear = null;
     visibleCount = INITIAL_VISIBLE_COUNT;
     rerender();
@@ -255,19 +256,24 @@ export async function openStudentsDialog() {
       saveSelection();
       void load();
     },
-    onPoolMonth: (value) => {
-      poolMonth = value === 0 ? null : value;
+    onPoolIntake: (value) => {
+      poolIntake =
+        value === 0
+          ? null
+          : (poolIntakes(entries, currentYear)[value - 1] ?? null);
+      poolYear = null;
       visibleCount = INITIAL_VISIBLE_COUNT;
       rerender();
     },
     onPoolYear: (value) => {
       poolYear = value === 0 ? null : value;
+      poolIntake = null;
       visibleCount = INITIAL_VISIBLE_COUNT;
       rerender();
     },
     onClearFilters: () => {
       filter = "none";
-      poolMonth = null;
+      poolIntake = null;
       poolYear = null;
       visibleCount = INITIAL_VISIBLE_COUNT;
       rerender();
@@ -282,7 +288,7 @@ export async function openStudentsDialog() {
     nameDir,
     dateDir,
     filter,
-    poolMonth,
+    poolIntake,
     poolYear,
     selectedMonth,
     selectedYear,

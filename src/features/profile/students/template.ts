@@ -14,9 +14,9 @@ import CAL_DOWN_SVG from "../../../assets/svg/calendar-arrow-down.svg?raw";
 import CAL_UP_SVG from "../../../assets/svg/calendar-arrow-up.svg?raw";
 import FILTER_SVG from "../../../assets/svg/filter.svg?raw";
 import FILTER_CLEAR_SVG from "../../../assets/svg/filter-clear.svg?raw";
+import CHECK_SVG from "../../../assets/svg/check.svg?raw";
 import {
   PISCINE_MONTHS,
-  POOL_MONTHS,
   beginAtIntake,
   formatAlumniDate,
   formatBlackholeDate,
@@ -27,6 +27,7 @@ import {
   isBlackholed,
   isFrozen,
   nextIntakes,
+  poolIntakes,
   poolMonthName,
   poolYearOptions,
   yearOptions,
@@ -50,7 +51,7 @@ export interface StudentsTemplateState {
   nameDir: SortDir;
   dateDir: SortDir;
   filter: StudentsFilter;
-  poolMonth: number | null;
+  poolIntake: { month: number; year: number } | null;
   poolYear: number | null;
   selectedMonth: PiscineMonth;
   selectedYear: number;
@@ -72,7 +73,7 @@ export interface StudentsTemplateHandlers {
   onSearchInput: (value: string) => void;
   onPiscineMonth: (value: number) => void;
   onPiscineYear: (year: number) => void;
-  onPoolMonth: (value: number) => void;
+  onPoolIntake: (value: number) => void;
   onPoolYear: (value: number) => void;
   onClearFilters: () => void;
 }
@@ -107,30 +108,35 @@ function renderFilterMenu(
   state: StudentsTemplateState,
   handlers: StudentsTemplateHandlers,
 ): TemplateResult {
-  const { filter, poolMonth, poolYear } = state;
+  const { filter, poolIntake, poolYear } = state;
   const poolYears = poolYearOptions(state.entries, state.currentYear);
+  const intakes = poolIntakes(state.entries, state.currentYear);
 
   return html`
     <div
       class="dropdown-content students-filter-menu z-50 flex w-64 flex-col gap-1 rounded-box bg-base-100 p-2 shadow-2xl"
     >
-      <span class="students-filter-menu__label">Piscine month</span>
+      <span class="students-filter-menu__label">Piscine</span>
       <select
         class="select select-sm w-full"
         @change="${(e: Event) =>
-          handlers.onPoolMonth(Number((e.target as HTMLSelectElement).value))}"
+          handlers.onPoolIntake(Number((e.target as HTMLSelectElement).value))}"
       >
-        <option value="0" ?selected="${poolMonth === null}">All months</option>
-        ${POOL_MONTHS.map(
-          (m) =>
+        <option value="0" ?selected="${poolIntake === null}">
+          All piscines
+        </option>
+        ${intakes.map(
+          (i, idx) =>
             html`<option
-              value="${m.value}"
-              ?selected="${poolMonth === m.value}"
+              value="${idx + 1}"
+              ?selected="${poolIntake?.month === i.month &&
+              poolIntake?.year === i.year}"
             >
-              ${m.label}
+              ${i.label}
             </option>`,
         )}
       </select>
+      <span class="students-filter-menu__label">Year</span>
       <select
         class="select select-sm w-full"
         @change="${(e: Event) =>
@@ -149,13 +155,21 @@ function renderFilterMenu(
       ${STATUS_FILTERS.map(
         (f) => html`
           <button
-            class="btn btn-sm justify-start ${filter === f.key
-              ? f.color
-              : `btn-outline ${f.color}`}"
+            class="btn btn-md justify-start ${f.color} ${filter !== "none" &&
+            filter !== f.key
+              ? "opacity-40"
+              : ""}"
             @click="${() => handlers.onToggleFilter(f.key)}"
           >
             ${unsafeHTML(f.icon.replace("<svg", '<svg width="16" height="16"'))}
             ${f.label}
+            ${filter === f.key
+              ? html`<span class="ml-auto"
+                  >${unsafeHTML(
+                    CHECK_SVG.replace("<svg", '<svg width="14" height="14"'),
+                  )}</span
+                >`
+              : ""}
           </button>
         `,
       )}
@@ -172,7 +186,7 @@ export function renderStudentsDialogTemplate(
   const {
     selectedMonth,
     selectedYear,
-    poolMonth,
+    poolIntake,
     poolYear,
     entries,
     loading,
@@ -185,7 +199,7 @@ export function renderStudentsDialogTemplate(
 
   const years = yearOptions(currentYear);
   const hasActiveFilters =
-    filter !== "none" || poolMonth != null || poolYear != null;
+    filter !== "none" || poolIntake != null || poolYear != null;
   const ago = lastFetched ? formatTimeAgo(lastFetched) : "";
   const normalize = (s: string) =>
     s
@@ -213,12 +227,15 @@ export function renderStudentsDialogTemplate(
     if (filter === "alumni" && !e.alumni) return false;
     if (filter === "freeze" && !isFrozen(e)) return false;
     if (tab === "students") {
-      if (
-        poolMonth != null &&
-        e.pool_month?.toLowerCase() !== poolMonthName(poolMonth)
-      )
+      if (poolIntake != null) {
+        if (
+          e.pool_year !== String(poolIntake.year) ||
+          e.pool_month?.toLowerCase() !== poolMonthName(poolIntake.month)
+        )
+          return false;
+      } else if (poolYear != null && e.pool_year !== String(poolYear)) {
         return false;
-      if (poolYear != null && e.pool_year !== String(poolYear)) return false;
+      }
     }
     return !q || normalize(`${e.login} ${e.displayname}`).includes(q);
   });
