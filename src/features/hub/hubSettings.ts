@@ -85,29 +85,6 @@ function renderStudentsButton(
   </a>`;
 }
 
-function renderLegacyStudentsButton(
-  onClick: (e: Event) => void,
-): ReturnType<typeof html> {
-  return html`<li>
-    <a
-      id="ft-students-btn"
-      href="#"
-      title="Students"
-      @click="${(e: Event) => {
-        e.preventDefault();
-        onClick(e);
-      }}"
-    >
-      ${unsafeHTML(
-        USERS_SVG.replace(
-          "<svg",
-          '<svg width="20" height="20" stroke="currentColor"',
-        ),
-      )}
-    </a>
-  </li>`;
-}
-
 export function mountGearButton(): void {
   const open = async () => {
     const { openHubModal } = await import("./hubSettings.ui.ts");
@@ -133,20 +110,11 @@ export function mountGearButton(): void {
     if (sidebar) {
       const container = document.createElement("div");
       render(renderStudentsButton(openStudents), container);
-      const firstLink = sidebar.firstElementChild;
-      if (firstLink) {
-        firstLink.after(container.firstElementChild!);
+      const anchor = sidebar.children[1] ?? sidebar.firstElementChild;
+      if (anchor) {
+        anchor.after(container.firstElementChild!);
       } else {
         sidebar.appendChild(container.firstElementChild!);
-      }
-    } else if (legacy) {
-      const container = document.createElement("div");
-      render(renderLegacyStudentsButton(openStudents), container);
-      const firstLink = legacy.firstElementChild;
-      if (firstLink) {
-        firstLink.after(container.firstElementChild!);
-      } else {
-        legacy.appendChild(container.firstElementChild!);
       }
     }
   })();
@@ -169,6 +137,8 @@ export async function initHubSettings(): Promise<FeatureId[]> {
   mountGearButton();
   const hubInterval = setInterval(mountGearButton, 500);
   setTimeout(() => clearInterval(hubInterval), 10000);
-  addEventListener("pagehide", () => clearInterval(hubInterval), { once: true });
+  addEventListener("pagehide", () => clearInterval(hubInterval), {
+    once: true,
+  });
   return active;
 }
