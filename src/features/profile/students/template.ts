@@ -12,8 +12,11 @@ import SORT_AZ_SVG from "../../../assets/svg/sort-az.svg?raw";
 import SORT_ZA_SVG from "../../../assets/svg/sort-za.svg?raw";
 import CAL_DOWN_SVG from "../../../assets/svg/calendar-arrow-down.svg?raw";
 import CAL_UP_SVG from "../../../assets/svg/calendar-arrow-up.svg?raw";
+import FILTER_SVG from "../../../assets/svg/filter.svg?raw";
+import FILTER_CLEAR_SVG from "../../../assets/svg/filter-clear.svg?raw";
 import {
   PISCINE_MONTHS,
+  POOL_MONTHS,
   beginAtIntake,
   formatAlumniDate,
   formatBlackholeDate,
@@ -24,6 +27,8 @@ import {
   isBlackholed,
   isFrozen,
   nextIntakes,
+  poolMonthName,
+  poolYearOptions,
   yearOptions,
 } from "./data.ts";
 import type {
@@ -45,6 +50,8 @@ export interface StudentsTemplateState {
   nameDir: SortDir;
   dateDir: SortDir;
   filter: StudentsFilter;
+  poolMonth: number | null;
+  poolYear: number | null;
   selectedMonth: PiscineMonth;
   selectedYear: number;
   entries: StudentEntry[];
@@ -65,16 +72,108 @@ export interface StudentsTemplateHandlers {
   onSearchInput: (value: string) => void;
   onPiscineMonth: (value: number) => void;
   onPiscineYear: (year: number) => void;
+  onPoolMonth: (value: number) => void;
+  onPoolYear: (value: number) => void;
+  onClearFilters: () => void;
+}
+
+const STATUS_FILTERS: Array<{
+  key: FilterKey;
+  label: string;
+  icon: string;
+  color: string;
+}> = [
+  {
+    key: "blackhole",
+    label: "Blackholed",
+    icon: SKULL_SVG,
+    color: "btn-error",
+  },
+  {
+    key: "alumni",
+    label: "Alumni",
+    icon: GRADUATION_CAP_SVG,
+    color: "btn-secondary",
+  },
+  {
+    key: "freeze",
+    label: "Frozen",
+    icon: FREEZE_SVG,
+    color: "btn-info",
+  },
+];
+
+function renderFilterMenu(
+  state: StudentsTemplateState,
+  handlers: StudentsTemplateHandlers,
+): TemplateResult {
+  const { filter, poolMonth, poolYear } = state;
+  const poolYears = poolYearOptions(state.entries, state.currentYear);
+
+  return html`
+    <div
+      class="dropdown-content students-filter-menu z-50 flex w-64 flex-col gap-1 rounded-box bg-base-100 p-2 shadow-2xl"
+    >
+      <span class="students-filter-menu__label">Piscine month</span>
+      <select
+        class="select select-sm w-full"
+        @change="${(e: Event) =>
+          handlers.onPoolMonth(Number((e.target as HTMLSelectElement).value))}"
+      >
+        <option value="0" ?selected="${poolMonth === null}">All months</option>
+        ${POOL_MONTHS.map(
+          (m) =>
+            html`<option
+              value="${m.value}"
+              ?selected="${poolMonth === m.value}"
+            >
+              ${m.label}
+            </option>`,
+        )}
+      </select>
+      <select
+        class="select select-sm w-full"
+        @change="${(e: Event) =>
+          handlers.onPoolYear(Number((e.target as HTMLSelectElement).value))}"
+      >
+        <option value="0" ?selected="${poolYear === null}">All years</option>
+        ${poolYears.map(
+          (y) =>
+            html`<option value="${y}" ?selected="${poolYear === y}">
+              ${y}
+            </option>`,
+        )}
+      </select>
+      <div class="divider my-1"></div>
+      <span class="students-filter-menu__label">Status</span>
+      ${STATUS_FILTERS.map(
+        (f) => html`
+          <button
+            class="btn btn-sm justify-start ${filter === f.key
+              ? f.color
+              : `btn-outline ${f.color}`}"
+            @click="${() => handlers.onToggleFilter(f.key)}"
+          >
+            ${unsafeHTML(f.icon.replace("<svg", '<svg width="16" height="16"'))}
+            ${f.label}
+          </button>
+        `,
+      )}
+    </div>
+  `;
 }
 
 export function renderStudentsDialogTemplate(
   state: StudentsTemplateState,
   handlers: StudentsTemplateHandlers,
 ): TemplateResult {
-  const { currentTheme, tab, view, sortField, nameDir, dateDir, filter } = state;
+  const { currentTheme, tab, view, sortField, nameDir, dateDir, filter } =
+    state;
   const {
     selectedMonth,
     selectedYear,
+    poolMonth,
+    poolYear,
     entries,
     loading,
     lastFetched,
@@ -85,6 +184,8 @@ export function renderStudentsDialogTemplate(
   } = state;
 
   const years = yearOptions(currentYear);
+  const hasActiveFilters =
+    filter !== "none" || poolMonth != null || poolYear != null;
   const ago = lastFetched ? formatTimeAgo(lastFetched) : "";
   const normalize = (s: string) =>
     s
@@ -111,6 +212,14 @@ export function renderStudentsDialogTemplate(
     if (filter === "blackhole" && !isBlackholed(e)) return false;
     if (filter === "alumni" && !e.alumni) return false;
     if (filter === "freeze" && !isFrozen(e)) return false;
+    if (tab === "students") {
+      if (
+        poolMonth != null &&
+        e.pool_month?.toLowerCase() !== poolMonthName(poolMonth)
+      )
+        return false;
+      if (poolYear != null && e.pool_year !== String(poolYear)) return false;
+    }
     return !q || normalize(`${e.login} ${e.displayname}`).includes(q);
   });
   const windowed = filtered.slice(0, visibleCount);
@@ -159,7 +268,9 @@ export function renderStudentsDialogTemplate(
                 >
                 ${isBlackholed(r) && tab !== "pisciners"
                   ? html`<span
-                      class="blackhole-badge${view === "list" ? " with-text" : ""}"
+                      class="blackhole-badge${view === "list"
+                        ? " with-text"
+                        : ""}"
                       data-tip="${formatBlackholeDate(r.blackholed_at)}"
                     >
                       ${unsafeHTML(
@@ -416,6 +527,18 @@ export function renderStudentsDialogTemplate(
         flex-shrink: 0;
         cursor: default;
       }
+      .students-filter-menu {
+        border: 1px solid
+          color-mix(in oklch, var(--color-base-content) 30%, transparent);
+      }
+      .students-filter-menu__label {
+        padding: 0.25rem 0.5rem 0;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        opacity: 0.6;
+      }
     </style>
     <div
       data-theme="${currentTheme}"
@@ -459,7 +582,7 @@ export function renderStudentsDialogTemplate(
             ✕
           </button>
         </div>
-        <div class="flex items-center gap-2 px-3 pb-3">
+        <div class="flex flex-wrap items-center gap-2 px-3 pb-3">
           <input
             class="input input-sm w-64"
             type="search"
@@ -468,6 +591,45 @@ export function renderStudentsDialogTemplate(
             @input="${(e: Event) =>
               handlers.onSearchInput((e.target as HTMLInputElement).value)}"
           />
+          ${tab === "students"
+            ? html`<div class="indicator">
+                  ${hasActiveFilters
+                    ? html`<span
+                        class="indicator-item badge badge-error badge-xs"
+                      ></span>`
+                    : ""}
+                  <details class="dropdown dropdown-end">
+                    <summary
+                      class="btn btn-sm btn-circle list-none ${hasActiveFilters
+                        ? "btn-primary"
+                        : "btn-outline"}"
+                      data-tip="Filters"
+                    >
+                      ${unsafeHTML(
+                        FILTER_SVG.replace(
+                          "<svg",
+                          '<svg width="16" height="16"',
+                        ),
+                      )}
+                    </summary>
+                    ${renderFilterMenu(state, handlers)}
+                  </details>
+                </div>
+                ${hasActiveFilters
+                  ? html`<button
+                      class="btn btn-sm btn-circle btn-outline text-error"
+                      data-tip="Clear filters"
+                      @click="${handlers.onClearFilters}"
+                    >
+                      ${unsafeHTML(
+                        FILTER_CLEAR_SVG.replace(
+                          "<svg",
+                          '<svg width="16" height="16"',
+                        ),
+                      )}
+                    </button>`
+                  : ""}`
+            : ""}
           <span
             class="badge badge-sm badge-accent h-8 flex-shrink-0 font-bold"
             style="white-space:nowrap;border-radius:var(--radius-field)"
@@ -483,53 +645,6 @@ export function renderStudentsDialogTemplate(
               >`
             : ""}
           <div class="ml-auto flex items-center gap-2">
-            ${tab === "students"
-              ? html`
-                  <button
-                    class="btn btn-sm ${filter === "blackhole"
-                      ? "btn-primary"
-                      : "btn-outline border-base-content/20"}"
-                    data-tip="Filter blackholed"
-                    @click="${() => handlers.onToggleFilter("blackhole")}"
-                  >
-                    ${unsafeHTML(
-                      SKULL_SVG.replace(
-                        "<svg",
-                        '<svg width="16" height="16"',
-                      ),
-                    )}
-                  </button>
-                  <button
-                    class="btn btn-sm ${filter === "alumni"
-                      ? "btn-primary"
-                      : "btn-outline border-base-content/20"}"
-                    data-tip="Filter alumni"
-                    @click="${() => handlers.onToggleFilter("alumni")}"
-                  >
-                    ${unsafeHTML(
-                      GRADUATION_CAP_SVG.replace(
-                        "<svg",
-                        '<svg width="16" height="16"',
-                      ),
-                    )}
-                  </button>
-                  <button
-                    class="btn btn-sm ${filter === "freeze"
-                      ? "btn-primary"
-                      : "btn-outline border-base-content/20"}"
-                    data-tip="Filter frozen"
-                    @click="${() => handlers.onToggleFilter("freeze")}"
-                  >
-                    ${unsafeHTML(
-                      FREEZE_SVG.replace(
-                        "<svg",
-                        '<svg width="16" height="16"',
-                      ),
-                    )}
-                  </button>
-                  <div class="h-6 w-px bg-base-content/20 mx-0.5"></div>
-                `
-              : ""}
             ${tab === "pisciners"
               ? html`
                   <select

@@ -1,6 +1,9 @@
 import { render } from "lit-html";
 import { getConfig } from "../../../config.ts";
-import { hideFloatingTooltip, showFloatingTooltip } from "../../../utils/tooltip.ts";
+import {
+  hideFloatingTooltip,
+  showFloatingTooltip,
+} from "../../../utils/tooltip.ts";
 import { getEffectiveTheme } from "../theme/theme-manager.ts";
 import {
   INITIAL_VISIBLE_COUNT,
@@ -45,6 +48,8 @@ export async function openStudentsDialog() {
   let nameDir: SortDir = "asc";
   let dateDir: SortDir = "desc";
   let filter: StudentsFilter = "none";
+  let poolMonth: number | null = null;
+  let poolYear: number | null = null;
   let selectedMonth: PiscineMonth = PISCINE_MONTHS[0];
   let selectedYear = currentYear;
 
@@ -196,7 +201,13 @@ export async function openStudentsDialog() {
       lastFetched = 0;
       authError = true;
     } else if (res?.data) {
-      entries = sortEntries(res.data.data || [], tab, sortField, nameDir, dateDir);
+      entries = sortEntries(
+        res.data.data || [],
+        tab,
+        sortField,
+        nameDir,
+        dateDir,
+      );
       lastFetched = res.data.cached_at || 0;
       visibleCount = INITIAL_VISIBLE_COUNT;
     } else {
@@ -212,6 +223,8 @@ export async function openStudentsDialog() {
     tab = t;
     query = "";
     filter = "none";
+    poolMonth = null;
+    poolYear = null;
     visibleCount = INITIAL_VISIBLE_COUNT;
     rerender();
     await load();
@@ -242,6 +255,23 @@ export async function openStudentsDialog() {
       saveSelection();
       void load();
     },
+    onPoolMonth: (value) => {
+      poolMonth = value === 0 ? null : value;
+      visibleCount = INITIAL_VISIBLE_COUNT;
+      rerender();
+    },
+    onPoolYear: (value) => {
+      poolYear = value === 0 ? null : value;
+      visibleCount = INITIAL_VISIBLE_COUNT;
+      rerender();
+    },
+    onClearFilters: () => {
+      filter = "none";
+      poolMonth = null;
+      poolYear = null;
+      visibleCount = INITIAL_VISIBLE_COUNT;
+      rerender();
+    },
   };
 
   const buildState = (): StudentsTemplateState => ({
@@ -252,6 +282,8 @@ export async function openStudentsDialog() {
     nameDir,
     dateDir,
     filter,
+    poolMonth,
+    poolYear,
     selectedMonth,
     selectedYear,
     entries,

@@ -37,6 +37,11 @@ export interface Intake {
   label: string;
 }
 
+const monthLabel = (value: number) =>
+  new Date(Date.UTC(2000, value - 1, 1)).toLocaleDateString("en-US", {
+    month: "long",
+  });
+
 export const PISCINE_MONTHS = [
   { value: 2, label: "February", color: "#ff6b6b" },
   { value: 3, label: "March", color: "#f06595" },
@@ -45,6 +50,17 @@ export const PISCINE_MONTHS = [
 ];
 
 export type PiscineMonth = (typeof PISCINE_MONTHS)[number];
+
+const MONTH_LABELS = Array.from({ length: 12 }, (_, i) => monthLabel(i + 1));
+
+export const POOL_MONTHS = MONTH_LABELS.map((label, i) => ({
+  value: i + 1,
+  label,
+}));
+
+export function poolMonthName(value: number): string {
+  return MONTH_LABELS[value - 1]?.toLowerCase() ?? "";
+}
 
 export function formatTimeAgo(ts: number): string {
   const secs = Date.now() / 1000 - ts;
@@ -111,29 +127,17 @@ export function nextIntakes(now: Date): Intake[] {
   const april = month <= 4 ? { month: 4, year } : { month: 4, year: year + 1 };
   const october =
     month <= 10 ? { month: 10, year } : { month: 10, year: year + 1 };
-  const MONTH_NAMES = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
   return [april, october]
     .sort((a, b) => a.year - b.year || a.month - b.month)
     .map((i) => ({
       ...i,
-      label: `${MONTH_NAMES[i.month - 1]} ${i.year}`,
+      label: `${MONTH_LABELS[i.month - 1]} ${i.year}`,
     }));
 }
 
-export function beginAtIntake(beginAt: string | null | undefined): Intake | null {
+export function beginAtIntake(
+  beginAt: string | null | undefined,
+): Intake | null {
   if (!beginAt) return null;
   const d = new Date(beginAt);
   if (Number.isNaN(d.getTime())) return null;
@@ -168,6 +172,19 @@ export function yearOptions(currentYear: number): number[] {
     years.push(y);
   }
   return years;
+}
+
+export function poolYearOptions(
+  entries: StudentEntry[],
+  currentYear: number,
+): number[] {
+  const years = new Set<number>();
+  for (const e of entries) {
+    const y = Number(e.pool_year);
+    if (Number.isInteger(y) && y > 0 && y <= currentYear) years.add(y);
+  }
+  const list = [...years].sort((a, b) => a - b);
+  return list.length > 0 ? list : yearOptions(currentYear);
 }
 
 async function fetchEndpoint(
