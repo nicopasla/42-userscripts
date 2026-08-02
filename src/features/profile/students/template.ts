@@ -22,6 +22,7 @@ import {
   formatBlackholeDate,
   formatMonthYear,
   formatPool,
+  formatPoolFull,
   formatShortDate,
   formatTimeAgo,
   isBlackholed,
@@ -331,23 +332,31 @@ export function renderStudentsDialogTemplate(
               <div class="login">${r.login}</div>
             </div>
             <div class="row-meta">
-              ${formatPool(r)
-                ? html`<span class="pool-badge" data-tip="Pool">
+              ${tab !== "pisciners" && formatPool(r)
+                ? html`<span
+                    class="pool-badge"
+                    data-tip="Pool in ${formatPoolFull(r)}"
+                  >
                     ${unsafeHTML(
                       POOL_SVG.replace("<svg", '<svg width="14" height="14"'),
                     )}
-                    ${formatPool(r)}
+                    ${view === "list" ? formatPoolFull(r) : formatPool(r)}
                   </span>`
                 : ""}
-              ${formatMonthYear(r.begin_at)
-                ? html`<span class="date-badge" data-tip="Entry date">
+              ${tab !== "pisciners" && formatMonthYear(r.begin_at)
+                ? html`<span
+                    class="date-badge"
+                    data-tip="Entry on ${formatShortDate(r.begin_at)}"
+                  >
                     ${unsafeHTML(
                       ENTRY_DATE_SVG.replace(
                         "<svg",
                         '<svg width="14" height="14"',
                       ),
                     )}
-                    ${formatMonthYear(r.begin_at)}
+                    ${view === "list"
+                      ? formatShortDate(r.begin_at)
+                      : formatMonthYear(r.begin_at)}
                   </span>`
                 : ""}
             </div>
@@ -500,6 +509,13 @@ export function renderStudentsDialogTemplate(
         white-space: nowrap;
         flex-shrink: 0;
       }
+      .pool-badge {
+        color: var(--color-info-content);
+        background: color-mix(in oklch, var(--color-info) 60%, transparent);
+      }
+      .date-badge {
+        background: color-mix(in oklch, var(--color-accent) 40%, transparent);
+      }
       .pool-badge svg,
       .date-badge svg {
         fill: currentColor;
@@ -611,30 +627,38 @@ export function renderStudentsDialogTemplate(
           ${tab === "students"
             ? html`<div class="indicator">
                   ${hasActiveFilters
-                    ? html`<span
-                        class="indicator-item badge badge-error badge-xs"
-                      ></span>`
+                  ? html`<span
+                      class="indicator-item badge badge-xs ${filter ===
+                      "blackhole"
+                        ? "badge-error"
+                        : filter === "alumni"
+                          ? "badge-secondary"
+                          : filter === "freeze"
+                            ? "badge-info"
+                            : "badge-error"}"
+                      style="border-radius:var(--radius-field)"
+                    ></span>`
                     : ""}
                   <details class="dropdown dropdown-end">
                     <summary
-                      class="btn btn-sm btn-circle list-none ${hasActiveFilters
-                        ? "btn-primary"
-                        : "btn-outline"}"
+                      class="btn btn-sm btn-square list-none ${hasActiveFilters
+                        ? "btn-accent"
+                        : "btn-outline btn-accent"}"
                       data-tip="Filters"
                     >
-                      ${unsafeHTML(
-                        FILTER_SVG.replace(
-                          "<svg",
-                          '<svg width="16" height="16"',
-                        ),
-                      )}
+                    ${unsafeHTML(
+                      FILTER_SVG.replace(
+                        "<svg",
+                        '<svg width="16" height="16"',
+                      ),
+                    )}
                     </summary>
                     ${renderFilterMenu(state, handlers)}
                   </details>
                 </div>
                 ${hasActiveFilters
                   ? html`<button
-                      class="btn btn-sm btn-circle btn-outline text-error"
+                      class="btn btn-sm btn-outline"
                       data-tip="Clear filters"
                       @click="${handlers.onClearFilters}"
                     >
@@ -644,8 +668,10 @@ export function renderStudentsDialogTemplate(
                           '<svg width="16" height="16"',
                         ),
                       )}
+                      Clear filters
                     </button>`
-                  : ""}`
+                  : ""}
+                <div class="mx-0.5 h-6 w-px bg-base-content/20"></div>`
             : ""}
           <span
             class="badge badge-sm badge-accent h-8 flex-shrink-0 font-bold"

@@ -95,7 +95,9 @@ export function formatTimeAgo(ts: number): string {
   if (secs < 3) return "now";
   const mins = Math.round(secs / 60);
   if (mins < 60) return `${mins}m`;
-  return `${Math.round(mins / 60)}h`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.round(hours / 24)}d`;
 }
 
 export function formatMonthYear(iso?: string | null): string {
@@ -126,12 +128,12 @@ export function formatShortDate(iso?: string | null): string {
 
 export function formatBlackholeDate(iso?: string | null): string {
   const s = formatShortDate(iso);
-  return s ? `Blackholed ${s}` : "";
+  return s ? `Blackholed on ${s}` : "";
 }
 
 export function formatAlumniDate(iso?: string | null): string {
   const s = formatShortDate(iso);
-  return s ? `Alumnized ${s}` : "";
+  return s ? `Alumnized on ${s}` : "";
 }
 
 export function isFrozen(e: StudentEntry): boolean {
@@ -147,6 +149,13 @@ export function formatPool(e: StudentEntry): string {
   const d = new Date(Date.parse(`${e.pool_month} 1, 2000`));
   if (Number.isNaN(d.getTime())) return "";
   return `${String(d.getMonth() + 1).padStart(2, "0")}/${e.pool_year.slice(-2)}`;
+}
+
+export function formatPoolFull(e: StudentEntry): string {
+  if (!e.pool_month || !e.pool_year) return "";
+  const d = new Date(Date.parse(`${e.pool_month} 1, 2000`));
+  if (Number.isNaN(d.getTime())) return "";
+  return `${MONTH_LABELS[d.getMonth()]} ${e.pool_year}`;
 }
 
 export function nextIntakes(now: Date): Intake[] {
