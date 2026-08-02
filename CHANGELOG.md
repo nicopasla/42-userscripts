@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [1.7.2] - 2026-08-02
+
+### Features 🎉
+
+- feat(tooltip): improve tooltip behavior and styling for better UX ([3dcfb8e](https://github.com/nicopasla/better-intra/commit/3dcfb8e))
+- feat(roulette): add countdown component with shared styles ([265f9c9](https://github.com/nicopasla/better-intra/commit/265f9c9))
+- feat(students): polish filter dropdown UX and use lucide icons ([4f24507](https://github.com/nicopasla/better-intra/commit/4f24507))
+- feat(students): show full dates, labels, and colors on badges ([3c5ac54](https://github.com/nicopasla/better-intra/commit/3c5ac54))
+- feat(students): add piscine intake filter and refine status filters ([bd30a33](https://github.com/nicopasla/better-intra/commit/bd30a33))
+- feat(students): add pool month and year filters to students dialog ([5bdd847](https://github.com/nicopasla/better-intra/commit/5bdd847))
+
+### Bug fixes 🐛
+
+- fix(hub): drop legacy sidebar nav support ([10becef](https://github.com/nicopasla/better-intra/commit/10becef))
+- fix(students): position students button third in sidebar, drop legacy variant ([0e36317](https://github.com/nicopasla/better-intra/commit/0e36317))
+
+### Other Changes 🔄
+
+- refactor(freeze): share daisyUI countdown component with roulette ([023688e](https://github.com/nicopasla/better-intra/commit/023688e))
+
 ## [1.7.1] - 2026-08-01
 
 ### Features 🎉
@@ -989,7 +1009,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.7.1...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.7.2...HEAD
+[1.7.2]: https://github.com/nicopasla/better-intra/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/nicopasla/better-intra/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/nicopasla/better-intra/compare/v1.6.3...v1.7.0
 [1.6.3]: https://github.com/nicopasla/better-intra/compare/v1.6.2...v1.6.3
