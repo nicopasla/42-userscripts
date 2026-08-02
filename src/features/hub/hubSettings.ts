@@ -19,20 +19,6 @@ function findSidebarMainGroup(): HTMLDivElement | null {
   );
 }
 
-function findLegacyNavList(): HTMLDivElement | null {
-  const candidates = Array.from(
-    document.querySelectorAll<HTMLDivElement>("div._"),
-  );
-  return (
-    candidates.find(
-      (root) =>
-        (!!root.querySelector('a[href="https://profile.intra.42.fr"]') ||
-          !!root.querySelector('a[href="https://projects.intra.42.fr"]')) &&
-        root.querySelectorAll(":scope > li").length > 0,
-    ) || null
-  );
-}
-
 function renderGearButton(
   onClick: (e: Event) => void,
 ): ReturnType<typeof html> {
@@ -47,23 +33,6 @@ function renderGearButton(
   >
     ${unsafeHTML(GEAR_SVG)}
   </a>`;
-}
-
-function renderLegacyGearButton(
-  onClick: (e: Event) => void,
-): ReturnType<typeof html> {
-  return html`<li>
-    <a
-      id="hub-gear-btn"
-      href="#"
-      @click="${(e: Event) => {
-        e.preventDefault();
-        onClick(e);
-      }}"
-    >
-      ${unsafeHTML(GEAR_SVG)}
-    </a>
-  </li>`;
 }
 
 function renderStudentsButton(
@@ -95,7 +64,6 @@ export function mountGearButton(): void {
   };
 
   const sidebar = findSidebarMainGroup();
-  const legacy = findLegacyNavList();
 
   const openStudents = () => {
     try {
@@ -125,10 +93,6 @@ export function mountGearButton(): void {
     const container = document.createElement("div");
     render(renderGearButton(open), container);
     sidebar.appendChild(container.firstElementChild!);
-  } else if (legacy) {
-    const container = document.createElement("div");
-    render(renderLegacyGearButton(open), container);
-    legacy.appendChild(container.firstElementChild!);
   }
 }
 
