@@ -2,6 +2,11 @@ import { getConfig } from "../../config.ts";
 import { getCloudLogin } from "../account/account.ts";
 import { hashLogin } from "../../utils/crypto.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
+import {
+  hideFloatingTooltip,
+  showFloatingTooltip,
+} from "../../utils/tooltip.ts";
+import { getEffectiveTheme } from "./theme/theme-manager.ts";
 
 const WORKER_URL = "https://api.betterintra.com";
 const CARD_ID = "ft-roulette-card";
@@ -22,6 +27,13 @@ interface EvalStatsData {
     { total: number; failed: number; successPercentage: number | null }
   >;
   global: { total: number; failed: number; successPercentage: number | null };
+}
+
+let lightTheme: Promise<boolean> | null = null;
+
+function isLightTheme(): Promise<boolean> {
+  lightTheme ??= getEffectiveTheme().then((t) => t === "light");
+  return lightTheme;
 }
 
 function formatRouletteDate(dateStr: string): string {
@@ -262,21 +274,19 @@ function buildEvalStatsSection(data: EvalStatsData): HTMLElement {
   titleWrap.appendChild(title);
   titleRow.appendChild(titleWrap);
 
-  let tooltipEl: HTMLElement | null = null;
+  const tooltipText =
+    "Shows how many times you acted as a corrector (evaluator) per month, and how many of those evaluations you marked as failed (below 50%) — with the success percentage";
+  let hovered = false;
   title.addEventListener("mouseenter", () => {
-    if (tooltipEl) return;
-    const rect = title.getBoundingClientRect();
-    tooltipEl = document.createElement("div");
-    tooltipEl.className =
-      "bg-gray-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg z-50 pointer-events-none w-64";
-    tooltipEl.textContent =
-      "Shows how many times you acted as a corrector (evaluator) per month, and how many of those evaluations you marked as failed (below 50%) — with the success percentage";
-    tooltipEl.style.cssText = `position: fixed; left: ${rect.left}px; bottom: ${window.innerHeight - rect.top + 8}px;`;
-    document.body.appendChild(tooltipEl);
+    hovered = true;
+    void isLightTheme().then((isLight) => {
+      if (hovered)
+        showFloatingTooltip(title, tooltipText, isLight, document.body);
+    });
   });
   title.addEventListener("mouseleave", () => {
-    tooltipEl?.remove();
-    tooltipEl = null;
+    hovered = false;
+    hideFloatingTooltip();
   });
 
   const badgesWrap = document.createElement("div");

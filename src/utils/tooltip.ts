@@ -22,7 +22,7 @@ export function showFloatingTooltip(
     "font-weight: 500",
     "font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     "line-height: 1.3",
-    "white-space: nowrap",
+    "white-space: normal",
     "max-width: 260px",
     "box-shadow: 0 4px 14px rgba(0,0,0,0.25)",
     isLight
