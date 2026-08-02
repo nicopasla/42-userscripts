@@ -1,6 +1,7 @@
 import { getConfig } from "../../config.ts";
 import { getCloudLogin } from "../account/account.ts";
 import { hashLogin } from "../../utils/crypto.ts";
+import { sharedCSS } from "../../assets/shared-styles.ts";
 
 const WORKER_URL = "https://api.betterintra.com";
 const CARD_ID = "ft-roulette-card";
@@ -61,15 +62,21 @@ function getNextRoulette(): {
   return { days, hours, minutes, dateLabel };
 }
 
-function formatCountdownText(): string {
+function getCountdownParts(): {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+} {
   const now = Date.now();
   const nextMs = nextRouletteTimestamp(now);
   const diff = nextMs - now;
-  const days = Math.floor(diff / 86400000);
-  const hours = Math.floor((diff % 86400000) / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  const seconds = Math.floor((diff % 60000) / 1000);
-  return `${String(days).padStart(2, "0")}:${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return {
+    days: Math.floor(diff / 86400000),
+    hours: Math.floor((diff % 86400000) / 3600000),
+    minutes: Math.floor((diff % 3600000) / 60000),
+    seconds: Math.floor((diff % 60000) / 1000),
+  };
 }
 
 function getTargetLogin(): string | null {
@@ -170,12 +177,32 @@ function buildRouletteSection(
     "text-sm font-semibold opacity-70 uppercase tracking-wide";
   nextLabel.textContent = "Next";
   nextCol.appendChild(nextLabel);
-  const countdownText = document.createElement("span");
-  countdownText.id = "ft-roulette-countdown";
-  countdownText.style.cssText =
-    "font-size: 26px; font-weight: 700; margin-left: 6px; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';";
-  countdownText.textContent = formatCountdownText();
-  nextCol.appendChild(countdownText);
+  const countdownHost = document.createElement("span");
+  countdownHost.id = "ft-roulette-countdown";
+  countdownHost.style.cssText =
+    "font-size: 26px; font-weight: 700; margin-left: 6px;";
+  const countdownRoot = countdownHost.attachShadow({ mode: "open" });
+  const countdownStyle = document.createElement("style");
+  countdownStyle.textContent = sharedCSS;
+  countdownRoot.appendChild(countdownStyle);
+  const countdownEl = document.createElement("span");
+  countdownEl.className = "countdown font-mono";
+  const parts = getCountdownParts();
+  const partKeys = ["days", "hours", "minutes", "seconds"] as const;
+  for (const key of partKeys) {
+    const seg = document.createElement("span");
+    const value = parts[key];
+    seg.style.setProperty("--value", String(value));
+    seg.style.setProperty("--digits", "2");
+    seg.setAttribute("aria-live", "polite");
+    seg.setAttribute("aria-label", String(value));
+    seg.textContent = String(value).padStart(2, "0");
+    countdownEl.appendChild(seg);
+    if (key !== "seconds")
+      countdownEl.appendChild(document.createTextNode(":"));
+  }
+  countdownRoot.appendChild(countdownEl);
+  nextCol.appendChild(countdownHost);
   counters.appendChild(nextCol);
 
   section.appendChild(counters);
@@ -428,12 +455,25 @@ function buildCombinedCard(
   if (grid) grid.appendChild(card);
 
   const countdownInterval = setInterval(() => {
-    const el = document.getElementById("ft-roulette-countdown");
-    if (!el) {
+    const host = document.getElementById("ft-roulette-countdown");
+    if (!host?.shadowRoot) {
       clearInterval(countdownInterval);
       return;
     }
-    el.textContent = formatCountdownText();
+    const segs =
+      host.shadowRoot.querySelectorAll<HTMLSpanElement>(".countdown > span");
+    if (segs.length === 0) {
+      clearInterval(countdownInterval);
+      return;
+    }
+    const parts = getCountdownParts();
+    const values = [parts.days, parts.hours, parts.minutes, parts.seconds];
+    segs.forEach((seg, i) => {
+      const value = String(values[i] ?? 0);
+      seg.style.setProperty("--value", value);
+      seg.setAttribute("aria-label", value);
+      seg.textContent = value.padStart(2, "0");
+    });
   }, 1000);
 }
 
