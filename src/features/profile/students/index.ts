@@ -187,6 +187,13 @@ export async function openStudentsDialog() {
     if ((e.target as HTMLElement).closest("[data-tip]")) hideFloatingTooltip();
   });
 
+  shadow.addEventListener("click", (e) => {
+    if ((e.target as HTMLElement).closest("details.dropdown")) return;
+    const dd =
+      shadow.querySelector<HTMLDetailsElement>("details.dropdown[open]");
+    if (dd) dd.open = false;
+  });
+
   const load = async () => {
     loading = true;
     authError = false;
