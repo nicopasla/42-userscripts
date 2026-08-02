@@ -1,6 +1,7 @@
 import { render, html } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import FREEZE_SVG from "../../assets/svg/freeze.svg?raw";
+import { createCountdown } from "../../utils/countdown.ts";
 
 const INJECTED_ID = "ft-freeze-card";
 
@@ -65,14 +66,14 @@ function formatDate(iso: string): string {
   });
 }
 
-function formatCountdown(iso: string): string {
-  const diff = new Date(iso).getTime() - Date.now();
-  if (diff <= 0) return "0d 0h 0m 0s";
+function getCountdownParts(endIso: string): number[] {
+  const diff = new Date(endIso).getTime() - Date.now();
+  if (diff <= 0) return [0, 0, 0, 0];
   const d = Math.floor(diff / 86400000);
   const h = Math.floor((diff % 86400000) / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
   const s = Math.floor((diff % 60000) / 1000);
-  return `${d}d ${h}h ${m}m ${s}s`;
+  return [d, h, m, s];
 }
 
 function startCountdown(
@@ -80,24 +81,24 @@ function startCountdown(
   endIso: string,
   color: string,
 ): void {
-  const countEl = document.createElement("div");
-  countEl.style.cssText = `font-size: 1.5rem; font-weight: 700; color: ${color}; font-variant-numeric: tabular-nums;`;
-  countEl.textContent = formatCountdown(endIso);
-
-  container.appendChild(countEl);
+  const countdown = createCountdown(getCountdownParts(endIso), {
+    digits: 2,
+  });
+  countdown.el.style.cssText =
+    `font-size: 1.5rem; font-weight: 700; color: ${color};`;
+  container.appendChild(countdown.el);
 
   if (_intervalId !== null) clearInterval(_intervalId);
   _intervalId = setInterval(() => {
-    const diff = new Date(endIso).getTime() - Date.now();
-    if (diff <= 0) {
+    if (new Date(endIso).getTime() - Date.now() <= 0) {
       if (_intervalId !== null) {
         clearInterval(_intervalId);
         _intervalId = null;
       }
-      countEl.textContent = "0d 0h 0m 0s";
+      countdown.update([0, 0, 0, 0]);
       return;
     }
-    countEl.textContent = formatCountdown(endIso);
+    countdown.update(getCountdownParts(endIso));
   }, 1000);
 }
 

@@ -1,7 +1,7 @@
 import { getConfig } from "../../config.ts";
 import { getCloudLogin } from "../account/account.ts";
 import { hashLogin } from "../../utils/crypto.ts";
-import { sharedCSS } from "../../assets/shared-styles.ts";
+import { createCountdown } from "../../utils/countdown.ts";
 import {
   hideFloatingTooltip,
   showFloatingTooltip,
@@ -189,32 +189,15 @@ function buildRouletteSection(
     "text-sm font-semibold opacity-70 uppercase tracking-wide";
   nextLabel.textContent = "Next";
   nextCol.appendChild(nextLabel);
-  const countdownHost = document.createElement("span");
-  countdownHost.id = "ft-roulette-countdown";
-  countdownHost.style.cssText =
-    "font-size: 26px; font-weight: 700; margin-left: 6px;";
-  const countdownRoot = countdownHost.attachShadow({ mode: "open" });
-  const countdownStyle = document.createElement("style");
-  countdownStyle.textContent = sharedCSS;
-  countdownRoot.appendChild(countdownStyle);
-  const countdownEl = document.createElement("span");
-  countdownEl.className = "countdown font-mono";
   const parts = getCountdownParts();
-  const partKeys = ["days", "hours", "minutes", "seconds"] as const;
-  for (const key of partKeys) {
-    const seg = document.createElement("span");
-    const value = parts[key];
-    seg.style.setProperty("--value", String(value));
-    seg.style.setProperty("--digits", "2");
-    seg.setAttribute("aria-live", "polite");
-    seg.setAttribute("aria-label", String(value));
-    seg.textContent = String(value).padStart(2, "0");
-    countdownEl.appendChild(seg);
-    if (key !== "seconds")
-      countdownEl.appendChild(document.createTextNode(":"));
-  }
-  countdownRoot.appendChild(countdownEl);
-  nextCol.appendChild(countdownHost);
+  const countdown = createCountdown(
+    [parts.days, parts.hours, parts.minutes, parts.seconds],
+    { digits: 2 },
+  );
+  countdown.el.id = "ft-roulette-countdown";
+  countdown.el.style.cssText =
+    "font-size: 26px; font-weight: 700; margin-left: 6px;";
+  nextCol.appendChild(countdown.el);
   counters.appendChild(nextCol);
 
   section.appendChild(counters);
