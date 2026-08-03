@@ -27,6 +27,8 @@ import {
   formatTimeAgo,
   isBlackholed,
   isFrozen,
+  formatLevel,
+  isCurrentPiscineMonth,
   nextIntakes,
   poolIntakes,
   poolMonthName,
@@ -260,12 +262,17 @@ export function renderStudentsDialogTemplate(
       : tab === "new"
         ? intakes.map((i) => i.label).join(" · ")
         : "all students";
+  const hidePiscineLevel =
+    tab === "pisciners" &&
+    isCurrentPiscineMonth(selectedMonth.value, selectedYear);
   const renderRows = (rows: StudentEntry[]) => html`
     <div class="${view}">
       ${rows.map(
         (r) =>
           html`<div
-            class="row ${tab !== "new" && r.active === false ? "inactive" : ""}"
+            class="row ${tab === "students" && r.active === false
+              ? "inactive"
+              : ""}"
             @click="${() => {
               window.open(
                 `https://profile.intra.42.fr/users/${r.login}`,
@@ -332,6 +339,18 @@ export function renderStudentsDialogTemplate(
               <div class="login">${r.login}</div>
             </div>
             <div class="row-meta">
+              ${tab !== "new" &&
+              !hidePiscineLevel &&
+              typeof r.level === "number"
+                ? html`<span
+                    class="level-badge"
+                    data-tip="Level in ${tab === "pisciners"
+                      ? "piscine"
+                      : "42 cursus"}"
+                  >
+                    ${formatLevel(r.level)}
+                  </span>`
+                : ""}
               ${tab !== "pisciners" && formatPool(r)
                 ? html`<span
                     class="pool-badge"
@@ -487,15 +506,24 @@ export function renderStudentsDialogTemplate(
       }
       .grid .row-meta {
         flex-direction: row;
+        flex-wrap: wrap;
         justify-content: center;
         text-align: center;
         width: 100%;
+      }
+      .grid .row-meta .pool-badge,
+      .grid .row-meta .date-badge,
+      .grid .row-meta .level-badge {
+        font-size: 0.7rem;
+        height: 1.5rem;
+        padding: 0 0.4rem;
       }
       .list .row-meta {
         margin-left: auto;
       }
       .pool-badge,
-      .date-badge {
+      .date-badge,
+      .level-badge {
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
@@ -516,8 +544,13 @@ export function renderStudentsDialogTemplate(
       .date-badge {
         background: color-mix(in oklch, var(--color-accent) 40%, transparent);
       }
+      .level-badge {
+        color: var(--color-primary-content);
+        background: color-mix(in oklch, var(--color-primary) 45%, transparent);
+      }
       .pool-badge svg,
-      .date-badge svg {
+      .date-badge svg,
+      .level-badge svg {
         fill: currentColor;
       }
       .grid {
@@ -627,17 +660,17 @@ export function renderStudentsDialogTemplate(
           ${tab === "students"
             ? html`<div class="indicator">
                   ${hasActiveFilters
-                  ? html`<span
-                      class="indicator-item badge badge-xs ${filter ===
-                      "blackhole"
-                        ? "badge-error"
-                        : filter === "alumni"
-                          ? "badge-secondary"
-                          : filter === "freeze"
-                            ? "badge-info"
-                            : "badge-error"}"
-                      style="border-radius:var(--radius-field)"
-                    ></span>`
+                    ? html`<span
+                        class="indicator-item badge badge-xs ${filter ===
+                        "blackhole"
+                          ? "badge-error"
+                          : filter === "alumni"
+                            ? "badge-secondary"
+                            : filter === "freeze"
+                              ? "badge-info"
+                              : "badge-error"}"
+                        style="border-radius:var(--radius-field)"
+                      ></span>`
                     : ""}
                   <details class="dropdown dropdown-end">
                     <summary
@@ -646,12 +679,12 @@ export function renderStudentsDialogTemplate(
                         : "btn-outline btn-accent"}"
                       data-tip="Filters"
                     >
-                    ${unsafeHTML(
-                      FILTER_SVG.replace(
-                        "<svg",
-                        '<svg width="16" height="16"',
-                      ),
-                    )}
+                      ${unsafeHTML(
+                        FILTER_SVG.replace(
+                          "<svg",
+                          '<svg width="16" height="16"',
+                        ),
+                      )}
                     </summary>
                     ${renderFilterMenu(state, handlers)}
                   </details>

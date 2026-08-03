@@ -24,6 +24,7 @@ export interface StudentEntry {
   pool_month?: string | null;
   pool_year?: string | null;
   alumnized_at?: string;
+  level?: number;
 }
 
 export interface StudentsResponse {
@@ -156,6 +157,23 @@ export function formatPoolFull(e: StudentEntry): string {
   const d = new Date(Date.parse(`${e.pool_month} 1, 2000`));
   if (Number.isNaN(d.getTime())) return "";
   return `${MONTH_LABELS[d.getMonth()]} ${e.pool_year}`;
+}
+
+export function formatLevel(level?: number): string {
+  if (typeof level !== "number") return "";
+  return `Lvl ${level.toFixed(2)}`;
+}
+
+export function isCurrentPiscineMonth(
+  month: number,
+  year: number,
+  now: Date = new Date(),
+): boolean {
+  return (
+    PISCINE_MONTHS.some((m) => m.value === month) &&
+    month === now.getMonth() + 1 &&
+    year === now.getFullYear()
+  );
 }
 
 export function nextIntakes(now: Date): Intake[] {
