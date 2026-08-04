@@ -1,13 +1,64 @@
 ﻿import { hashLogin } from "./utils/crypto";
+import { getConfig } from "./config";
 
 const WORKER_URL = "https://api.betterintra.com";
+
+const ACTIVATION_HOSTS = [/(^|\.)intra\.42\.fr$/, /^api\.betterintra\.com$/];
+
+function isActivationAllowedUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const { protocol, hostname } = new URL(url);
+    if (protocol !== "https:") return false;
+    return ACTIVATION_HOSTS.some((re) => re.test(hostname));
+  } catch {
+    return false;
+  }
+}
+
+async function syncActionStateForTab(tabId: number, url: string | undefined) {
+  const restrict = await getConfig("RESTRICT_ACTIVATION");
+  if (!restrict || isActivationAllowedUrl(url)) {
+    await chrome.action.enable(tabId);
+  } else {
+    await chrome.action.disable(tabId);
+  }
+}
+
+async function syncActionStateForAllTabs() {
+  const tabs = await chrome.tabs.query({});
+  for (const tab of tabs) {
+    if (tab.id !== undefined) await syncActionStateForTab(tab.id, tab.url);
+  }
+}
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url !== undefined || changeInfo.status === "complete") {
+    void syncActionStateForTab(tabId, tab.url);
+  }
+});
+
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  chrome.tabs.get(tabId, (tab) => {
+    if (chrome.runtime.lastError) return;
+    void syncActionStateForTab(tabId, tab.url);
+  });
+});
 
 chrome.runtime.onInstalled.addListener(() => {
   syncDiscord();
   syncDiscordQuiet();
+  void syncActionStateForAllTabs();
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  void syncActionStateForAllTabs();
 });
 
 chrome.storage.onChanged.addListener((changes) => {
+  if ("RESTRICT_ACTIVATION" in changes) {
+    void syncActionStateForAllTabs();
+  }
   if ("DISCORD_ENABLED" in changes || "DISCORD_ID" in changes) {
     syncDiscord();
   }

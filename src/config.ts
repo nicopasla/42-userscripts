@@ -14,6 +14,7 @@ export interface BetterIntraConfig {
   ACTIVE_SCRIPTS: string[];
   BETTER_INTRA_THEME: "dark" | "light" | "system";
   DISABLE_ANIMATIONS: boolean;
+  RESTRICT_ACTIVATION: boolean;
 
   // Cloud Sync Settings
   CLOUD_SYNC_ENABLED: boolean;
@@ -115,6 +116,7 @@ export interface BetterIntraConfig {
  */
 export const CONFIG_DEFAULT: BetterIntraConfig = {
   ACTIVE_SCRIPTS: ["logtime", "clusters", "profile", "shortcuts"],
+  RESTRICT_ACTIVATION: true,
   CLOUD_SYNC_ENABLED: false,
   LAST_CLOUD_SYNC: null,
   CLOUD_TOKEN: "",

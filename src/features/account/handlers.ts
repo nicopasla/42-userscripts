@@ -99,6 +99,13 @@ export function createHandlers(state: AccountState, updateUI: () => void) {
     window.open("https://intra.42.fr", "_blank");
   };
 
+  const handleToggleRestrictActivation = async (e: Event) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    state.restrictActivation = checked;
+    await chrome.storage.local.set({ RESTRICT_ACTIVATION: checked });
+    updateUI();
+  };
+
   const handlePull = async () => {
     if (state.buttons.pull.loading) return;
     if (!confirm("Overwrite current local settings with cloud backup?")) return;
@@ -153,5 +160,6 @@ export function createHandlers(state: AccountState, updateUI: () => void) {
     handleWipe,
     handlePush,
     handlePull,
+    handleToggleRestrictActivation,
   };
 }
