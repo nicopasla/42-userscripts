@@ -270,7 +270,8 @@ export function renderStudentsDialogTemplate(
       ${rows.map(
         (r) =>
           html`<div
-            class="row ${tab === "students" && r.active === false
+            class="row ${(tab === "students" || tab === "pisciners") &&
+            r.active === false
               ? "inactive"
               : ""}"
             @click="${() => {
