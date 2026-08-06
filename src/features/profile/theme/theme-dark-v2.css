@@ -2125,6 +2125,31 @@ html.dark {
 	--event-dark-meet: var(--theme-color-dark);
 }
 
+/* evaluation (scale team) page */
+.scale-team-container,
+.scale-section-answers,
+.scale-section-item,
+.scale-div,
+.scale-section-infos {
+	background-color: var(--container-background-color) !important;
+	color: var(--text-color) !important;
+	border-color: var(--general-border-color) !important;
+}
+
+.scale-section-guidelines,
+.scale-section-guidelines p,
+.scale-section-guidelines ul li,
+.scale-section-guidelines ul li p,
+.section-header p,
+.scale-section-infos small,
+.scale-section-infos .text-muted {
+	color: var(--secondary-text-color) !important;
+}
+
+.scale-question-name {
+	color: var(--text-color) !important;
+}
+
 /* fill empty clusters posts */
 
 .posts rect,
