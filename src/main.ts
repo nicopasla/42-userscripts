@@ -8,9 +8,11 @@ import { initGlobalTooltips } from "./utils/tooltip.ts";
 import { ensureCampusData } from "./features/campus/campus.ts";
 import { updateNavAvatar } from "./features/profile/visuals.ts";
 import { AVATAR_SELECTOR } from "./features/profile/selectors.ts";
+import { initAnnouncementBanner } from "./features/announcement/announcement.ts";
 import { html, render } from "lit-html";
 
 initThemeManager();
+void initAnnouncementBanner();
 initGlobalTooltips(getIsLight);
 
 {
