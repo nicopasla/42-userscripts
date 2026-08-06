@@ -242,8 +242,26 @@ export function renderStudentsDialogTemplate(
     }
     return !q || normalize(`${e.login} ${e.displayname}`).includes(q);
   });
-  const windowed = filtered.slice(0, visibleCount);
-  const hasMore = filtered.length > windowed.length;
+  const display =
+    filter === "blackhole"
+      ? [...filtered].sort(
+          (a, b) =>
+            new Date(b.blackholed_at!).getTime() -
+            new Date(a.blackholed_at!).getTime(),
+        )
+      : filter === "alumni"
+        ? [...filtered].sort((a, b) => {
+            const ta = a.alumnized_at
+              ? new Date(a.alumnized_at).getTime()
+              : 0;
+            const tb = b.alumnized_at
+              ? new Date(b.alumnized_at).getTime()
+              : 0;
+            return tb - ta;
+          })
+        : filtered;
+  const windowed = display.slice(0, visibleCount);
+  const hasMore = display.length > windowed.length;
   const cursusLabel =
     tab === "pisciners"
       ? "Piscine Brussels"
