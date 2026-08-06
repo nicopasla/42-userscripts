@@ -5,10 +5,22 @@ const CACHE_TTL = 5 * 60 * 1000;
 const CACHE_KEY = "ft-announcement-cache";
 const DISMISS_PREFIX = "ft-announcement-dismissed:";
 
+type AnnouncementLevel = "info" | "warning" | "critical";
+
 interface Announcement {
   message: string | null;
   updatedAt: number | null;
+  level: AnnouncementLevel;
 }
+
+const LEVEL_STYLES: Record<
+  AnnouncementLevel,
+  { bg: string; fg: string; label: string }
+> = {
+  info: { bg: "#2563eb", fg: "#fff", label: "Notice" },
+  warning: { bg: "#f59e0b", fg: "#1f2937", label: "Warning" },
+  critical: { bg: "#ef4444", fg: "#fff", label: "Critical" },
+};
 
 const isProfileHost = () =>
   window.location.hostname === "profile.intra.42.fr" ||
@@ -31,21 +43,24 @@ function setCached(data: Announcement): void {
   }
 }
 
-function getDismissedKey(message: string): string {
+function getDismissedKey(message: string, level: string): string {
   let hash = 0;
-  for (let i = 0; i < message.length; i++) {
-    hash = (hash << 5) - hash + message.charCodeAt(i);
+  const input = `${message}::${level}`;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
     hash |= 0;
   }
   return `${DISMISS_PREFIX}${hash}`;
 }
 
-function renderBanner(message: string): void {
+function renderBanner(message: string, level: AnnouncementLevel): void {
+  const style = LEVEL_STYLES[level] ?? LEVEL_STYLES.critical;
+
   const dismiss = () => {
     const el = document.getElementById("ft-announcement-banner");
     if (el) el.remove();
     try {
-      sessionStorage.setItem(getDismissedKey(message), "1");
+      sessionStorage.setItem(getDismissedKey(message, level), "1");
     } catch {
       /* ignore */
     }
@@ -62,8 +77,8 @@ function renderBanner(message: string): void {
           z-index: 999999;
         }
         .ft-announcement-bnr {
-          background: #ef4444;
-          color: #fff;
+          background: ${style.bg};
+          color: ${style.fg};
           padding: 10px 20px;
           text-align: center;
           font-family:
@@ -74,6 +89,11 @@ function renderBanner(message: string): void {
           font-weight: 500;
           line-height: 1.4;
           position: relative;
+        }
+        .ft-announcement-level {
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-right: 6px;
         }
         .ft-announcement-dismiss {
           background: none;
@@ -94,7 +114,8 @@ function renderBanner(message: string): void {
         }
       </style>
       <div class="ft-announcement-bnr">
-        <strong>Better Intra notice:</strong> ${message}
+        <strong class="ft-announcement-level">[${style.label}]</strong>
+        ${message}
         <button
           class="ft-announcement-dismiss"
           @click="${dismiss}"
@@ -126,8 +147,8 @@ export async function initAnnouncementBanner(): Promise<void> {
     const cached = getCached();
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       if (cached.data.message) {
-        if (sessionStorage.getItem(getDismissedKey(cached.data.message)) !== "1") {
-          renderBanner(cached.data.message);
+        if (sessionStorage.getItem(getDismissedKey(cached.data.message, cached.data.level)) !== "1") {
+          renderBanner(cached.data.message, cached.data.level);
         }
       }
       return;
@@ -138,8 +159,8 @@ export async function initAnnouncementBanner(): Promise<void> {
     const data = (await res.json()) as Announcement;
     setCached(data);
 
-    if (data.message && sessionStorage.getItem(getDismissedKey(data.message)) !== "1") {
-      renderBanner(data.message);
+    if (data.message && sessionStorage.getItem(getDismissedKey(data.message, data.level)) !== "1") {
+      renderBanner(data.message, data.level);
     }
   } catch {
     /* never break intra */
