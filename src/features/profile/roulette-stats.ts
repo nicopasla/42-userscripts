@@ -3,10 +3,11 @@ import { getCloudLogin } from "../account/account.ts";
 import { hashLogin } from "../../utils/crypto.ts";
 import { createCountdown } from "../../utils/countdown.ts";
 import {
+  TOOLTIP_SHOW_DELAY,
   hideFloatingTooltip,
   showFloatingTooltip,
 } from "../../utils/tooltip.ts";
-import { getEffectiveTheme } from "./theme/theme-manager.ts";
+import { getIsLight } from "./theme/theme-manager.ts";
 
 const WORKER_URL = "https://api.betterintra.com";
 const CARD_ID = "ft-roulette-card";
@@ -27,13 +28,6 @@ interface EvalStatsData {
     { total: number; failed: number; successPercentage: number | null }
   >;
   global: { total: number; failed: number; successPercentage: number | null };
-}
-
-let lightTheme: Promise<boolean> | null = null;
-
-function isLightTheme(): Promise<boolean> {
-  lightTheme ??= getEffectiveTheme().then((t) => t === "light");
-  return lightTheme;
 }
 
 function formatRouletteDate(dateStr: string): string {
@@ -260,15 +254,24 @@ function buildEvalStatsSection(data: EvalStatsData): HTMLElement {
   const tooltipText =
     "Shows how many times you acted as a corrector (evaluator) per month, and how many of those evaluations you marked as failed (below 50%) — with the success percentage";
   let hovered = false;
+  let tooltipTimer: number | null = null;
   title.addEventListener("mouseenter", () => {
     hovered = true;
-    void isLightTheme().then((isLight) => {
-      if (hovered)
-        showFloatingTooltip(title, tooltipText, isLight, document.body);
-    });
+    if (tooltipTimer !== null) window.clearTimeout(tooltipTimer);
+    tooltipTimer = window.setTimeout(() => {
+      tooltipTimer = null;
+      void getIsLight().then((isLight) => {
+        if (hovered)
+          showFloatingTooltip(title, tooltipText, isLight, document.body);
+      });
+    }, TOOLTIP_SHOW_DELAY);
   });
   title.addEventListener("mouseleave", () => {
     hovered = false;
+    if (tooltipTimer !== null) {
+      window.clearTimeout(tooltipTimer);
+      tooltipTimer = null;
+    }
     hideFloatingTooltip();
   });
 

@@ -42,7 +42,8 @@ function renderStudentsButton(
     id="ft-students-btn"
     class="py-5 w-full flex justify-center hover:opacity-100 opacity-40"
     href="#"
-    title="Students"
+    data-tip="Students"
+    data-tip-pos="right"
     @click="${(e: Event) => {
       e.preventDefault();
       onClick(e);

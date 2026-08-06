@@ -16,7 +16,8 @@ import {
 import { renderCompactMonthGroup, MonthEntry, chunkMonths } from "./compact.ts";
 import { renderHeatmapCard } from "./heatmap.ts";
 import { getLastSeenFormatted, limit } from "./utils.ts";
-import { getEffectiveTheme, THEMES } from "../profile/theme/theme-manager.ts";
+import { getEffectiveTheme, getIsLight, THEMES } from "../profile/theme/theme-manager.ts";
+import { bindTooltips } from "../../utils/tooltip.ts";
 import { syncCalendarIcs } from "../calendar/calendar-sync.ts";
 
 export interface CalendarEvent {
@@ -378,6 +379,7 @@ function renderLogtime(
     if (mount) mount.prepend(shadowHost);
     shadowHost.attachShadow({ mode: "open" });
   }
+  if (shadowHost.shadowRoot) bindTooltips(shadowHost.shadowRoot, getIsLight);
   hideOldLogtime();
 
   render(

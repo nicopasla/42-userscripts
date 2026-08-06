@@ -1,6 +1,7 @@
 import { render } from "lit-html";
 import { getConfig } from "../../../config.ts";
 import {
+  TOOLTIP_SHOW_DELAY,
   hideFloatingTooltip,
   showFloatingTooltip,
 } from "../../../utils/tooltip.ts";
@@ -162,6 +163,7 @@ export async function openStudentsDialog() {
 
   const close = () => {
     hideFloatingTooltip();
+    if (tooltipShowTimer !== null) window.clearTimeout(tooltipShowTimer);
     if (sentinelObserver) {
       sentinelObserver.disconnect();
       sentinelObserver = null;
@@ -175,16 +177,28 @@ export async function openStudentsDialog() {
     if (e.target === dialog) close();
   });
 
+  let tooltipShowTimer: number | null = null;
+
   shadow.addEventListener("mouseover", (e) => {
     const tipTarget = (e.target as HTMLElement).closest<HTMLElement>(
       "[data-tip]",
     );
-    if (tipTarget?.dataset.tip) {
-      showFloatingTooltip(tipTarget, tipTarget.dataset.tip, isLight, dialog);
-    }
+    if (!tipTarget?.dataset.tip) return;
+    const tipText = tipTarget.dataset.tip;
+    if (tooltipShowTimer !== null) window.clearTimeout(tooltipShowTimer);
+    tooltipShowTimer = window.setTimeout(() => {
+      tooltipShowTimer = null;
+      showFloatingTooltip(tipTarget, tipText, isLight, dialog);
+    }, TOOLTIP_SHOW_DELAY);
   });
   shadow.addEventListener("mouseout", (e) => {
-    if ((e.target as HTMLElement).closest("[data-tip]")) hideFloatingTooltip();
+    if ((e.target as HTMLElement).closest("[data-tip]")) {
+      if (tooltipShowTimer !== null) {
+        window.clearTimeout(tooltipShowTimer);
+        tooltipShowTimer = null;
+      }
+      hideFloatingTooltip();
+    }
   });
 
   shadow.addEventListener("click", (e) => {

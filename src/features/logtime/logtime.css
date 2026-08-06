@@ -64,26 +64,6 @@
   z-index: 10;
 }
 
-.day-tooltip {
-  display: none;
-  position: absolute;
-  bottom: 110%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: hsl(var(--card));
-  color: hsl(var(--foreground));
-  font-size: 15px;
-  font-weight: 700;
-  padding: 8px 16px;
-  border-radius: 8px;
-  z-index: 100;
-  white-space: nowrap;
-}
-
-.day-cell:hover .day-tooltip {
-  display: block;
-}
-
 @keyframes rainbow-shift {
   from {
     background-position: 200% 0;
@@ -154,52 +134,6 @@
   border: 1px solid color-mix(in srgb, var(--color-base-content) 15%, transparent);
 }
 
-.heatmap-tooltip {
-  display: none;
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: hsl(var(--card));
-  color: hsl(var(--foreground));
-  font-size: 13px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
-  z-index: 100;
-  white-space: nowrap;
-}
-
-.heatmap-cell:hover .heatmap-tooltip {
-  display: block;
-}
-
-.heatmap-months-row .month-tooltip {
-  display: none;
-  position: absolute;
-  bottom: auto;
-  top: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: hsl(var(--card));
-  color: hsl(var(--foreground));
-  font-size: 13px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
-  z-index: 100;
-  white-space: nowrap;
-}
-
-.heatmap-months-row .day-cell:hover .month-tooltip {
-  display: block;
-}
-
 .compact-month .day-cell {
   font-size: inherit;
-}
-
-.compact-month .day-tooltip {
-  font-size: 12px;
-  padding: 4px 10px;
 }

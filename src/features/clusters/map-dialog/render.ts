@@ -112,6 +112,7 @@ export function renderSeatOverlays(
   }
 
   interface OverlayEntry {
+    host: string;
     seat: OccupancyEntry;
     left: number;
     top: number;
@@ -153,7 +154,7 @@ export function renderSeatOverlays(
       width = pos.w * scaleX;
       height = pos.h * scaleY;
     }
-    entries.push({ seat, left, top, width, height, rotationDeg });
+    entries.push({ host, seat, left, top, width, height, rotationDeg });
   }
 
   const overlay = document.createElement("div");
@@ -162,7 +163,7 @@ export function renderSeatOverlays(
     "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
 
   const frag = document.createDocumentFragment();
-  for (const { seat, left, top, width, height, rotationDeg } of entries) {
+  for (const { host, seat, left, top, width, height, rotationDeg } of entries) {
     const since = new Date(seat.begin_at);
     const timeStr = since.toLocaleTimeString([], {
       hour: "2-digit",
@@ -175,17 +176,15 @@ export function renderSeatOverlays(
       rel: "noopener noreferrer",
       className: "seat-link",
     });
+    a.dataset.host = host;
     a.style.cssText = [
       "pointer-events:auto;",
       `left:${left}px;top:${top}px;`,
       `width:${width}px;height:${height}px;`,
       rotationDeg !== 0 ? `transform:rotate(${rotationDeg}deg);` : "",
     ].join("");
-
-    const tip = document.createElement("span");
-    tip.className = "seat-tip";
-    tip.textContent = `${seat.login} - since ${timeStr}`;
-    a.appendChild(tip);
+    a.setAttribute("data-tip", `${seat.login} - since ${timeStr}`);
+    a.setAttribute("data-tip-size", "15px");
 
     const avatar = Object.assign(document.createElement("img"), {
       src: seat.cdn_uri,

@@ -685,7 +685,7 @@ async function enhanceExistingMarks(
             const ts = marksById.get(entry.projectsUserId);
             if (ts) {
               entry.el.setAttribute("data-last-event-date", ts);
-              entry.el.title = formatTooltipDate(ts);
+              entry.el.setAttribute("data-tip", formatTooltipDate(ts));
               annotated++;
             }
             if (project && project.teams && project.teams.length > 1) {

@@ -1,6 +1,9 @@
 import { getConfig } from "../../config.ts";
 import { CLUSTERS, getClusterData } from "../clusters/clusters.data.ts";
+import { openClusterDialog } from "../clusters/map-dialog.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
+import { bindTooltips } from "../../utils/tooltip.ts";
+import { getIsLight } from "./theme/theme-manager.ts";
 import ARROW_SHARE_SVG from "../../assets/svg/arrow_share.svg?raw";
 import { initShortcutButtons, initFriendBadge } from "./personal-info.ts";
 import { injectCampusFlag } from "./campus-flags.ts";
@@ -71,7 +74,6 @@ function populateMainBadges(
     const value = document.createElement("span");
     value.className = "value text-lg font-semibold";
     value.textContent = item.value;
-    badge.title = `${item.label}: ${item.value}`;
 
     if (item.label.includes("₳")) {
       badge.style.cursor = "pointer";
@@ -127,7 +129,6 @@ async function injectSeatBadge(profileCard: HTMLElement) {
     badge.style.border = "3px solid transparent";
     badge.style.cursor = "default";
     badge.textContent = "unavailable";
-    badge.title = "Seat unavailable";
     wrapper.prepend(badge);
     applyBadgeLayout(wrapper);
     return;
@@ -144,7 +145,7 @@ async function injectSeatBadge(profileCard: HTMLElement) {
   badge.style.color = "inherit";
   badge.style.fontWeight = "600";
   badge.style.cursor = "pointer";
-  badge.title = "View on cluster map";
+  badge.setAttribute("data-tip", "View on cluster map");
 
   let clusters = CLUSTERS;
   if (clusters.length === 0) {
@@ -159,10 +160,7 @@ async function injectSeatBadge(profileCard: HTMLElement) {
   if (cluster) {
     badge.addEventListener("click", (e) => {
       e.stopPropagation();
-      window.open(
-        `https://meta.intra.42.fr/clusters?seat=${seatText}#cluster-${cluster.id}`,
-        "_blank",
-      );
+      openClusterDialog({ seatId: seatText });
     });
   }
 
@@ -257,6 +255,7 @@ function createInfoCard(
   if (cardText) shadowHost.style.setProperty("--ft-card-text", cardText);
 
   const shadowRoot = shadowHost.attachShadow({ mode: "open" });
+  bindTooltips(shadowRoot, getIsLight);
 
   const seatStyles = `
     [data-ft-seat]:not([data-ft-unavailable]) {
