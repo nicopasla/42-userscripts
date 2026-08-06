@@ -122,17 +122,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     dbg("fetchCampusList FAILED:", e);
   }
   let activeCampusId = detectedCampus;
-  if (activeCampusId) {
-    const idx = campusOptions.findIndex((c) => c.id === activeCampusId);
-    if (idx === -1) {
-      campusOptions.unshift({
-        id: activeCampusId,
-        name: `Campus ${activeCampusId}`,
-      });
-    } else if (idx > 0) {
-      const [own] = campusOptions.splice(idx, 1);
-      campusOptions.unshift(own);
-    }
+  if (activeCampusId && !campusOptions.some((c) => c.id === activeCampusId)) {
+    activeCampusId = "";
   }
   if (!activeCampusId && campusOptions.length > 0) {
     activeCampusId = campusOptions[0].id;
@@ -1171,30 +1162,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     });
   };
 
-  const rebuildCampusMenu = () => {
-    const menu = shadow.getElementById("campus-menu");
-    if (!menu) return;
-    menu.replaceChildren(
-      ...campusOptions.map((o) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.dataset.campusId = o.id;
-        btn.className = `campus-option ${
-          o.id === activeCampusId ? "active" : ""
-        }`;
-        const flag = document.createElement("span");
-        flag.className = "campus-option-flag";
-        flag.textContent = getCampusFlag(o.name);
-        const name = document.createElement("span");
-        name.className = "campus-option-name";
-        name.textContent = o.name.toUpperCase();
-        btn.appendChild(flag);
-        btn.appendChild(name);
-        return btn;
-      }),
-    );
-  };
-
   const loadCampus = async (campusId: string) => {
     dbg("loadCampus:", campusId);
     activeCampusId = campusId;
@@ -1202,14 +1169,14 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     loadId++;
     clusters = await buildClusters(campusId);
     if (!clusters.some((c) => c.svg)) {
-      dbg("loadCampus: no cluster data for", campusId, "- removing");
-      campusOptions = campusOptions.filter((o) => o.id !== campusId);
-      rebuildCampusMenu();
-      const fallback =
-        campusOptions.find((o) => o.id === detectedCampus) ||
-        campusOptions[0];
-      if (fallback) {
-        loadCampus(fallback.id);
+      dbg("loadCampus: no cluster data for", campusId);
+      const mapArea = shadow.getElementById("map-area");
+      if (mapArea) {
+        const div = document.createElement("div");
+        div.className =
+          "flex items-center justify-center p-12 text-base-content/50";
+        div.textContent = "No cluster data for this campus";
+        mapArea.replaceChildren(div);
       }
       return;
     }
