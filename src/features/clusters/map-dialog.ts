@@ -2,15 +2,24 @@ import { html, render, TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 import { getConfig } from "../../config.ts";
-import { CLUSTERS } from "./clusters.data.ts";
-import { getEffectiveTheme } from "../profile/theme/theme-manager.ts";
+import {
+  getClusterData,
+  fetchCampusList,
+  clearClusterData,
+  SCREENS,
+} from "./clusters.data.ts";
+import { getEffectiveTheme, getIsLight } from "../profile/theme/theme-manager.ts";
+import { getCampusFlag } from "../profile/campus-flags.ts";
+import { bindTooltips } from "../../utils/tooltip.ts";
 import RELOAD_SVG from "../../assets/svg/reload.svg?raw";
-import { cropSvgViewBox, SeatPos } from "./map-dialog/crop.ts";
-import { sanitizeAndParseSeats, applyMarkers } from "./map-dialog/seats.ts";
+import CLOCK_SVG from "../../assets/svg/clock.svg?raw";
+import { SeatPos } from "./map-dialog/crop.ts";
+import { sanitizeAndParseSeats, applyMarkers, getSvgTitle } from "./map-dialog/seats.ts";
 import {
   getCachedCluster,
   setCachedCluster,
-  fetchClusterSVGs,
+  scrapeCampusSVGUrls,
+  getSvgSlug,
 } from "./map-dialog/cache.ts";
 import {
   renderSeatOverlays,
@@ -24,42 +33,163 @@ interface ClusterInfo {
   svg?: string;
 }
 
+export interface WifiPresenceChange {
+  clusters: ClusterInfo[];
+  wifiAdded: boolean;
+  wifiRemoved: boolean;
+}
+
+export function applyWifiPresence(
+  clusters: ClusterInfo[],
+  hasWifi: boolean,
+): WifiPresenceChange {
+  const hasWifiCluster = clusters.some((c) => c.id === "wifi");
+  if (hasWifi && !hasWifiCluster) {
+    return {
+      clusters: [...clusters, { id: "wifi", name: "Wi-Fi" }],
+      wifiAdded: true,
+      wifiRemoved: false,
+    };
+  }
+  if (!hasWifi && hasWifiCluster) {
+    return {
+      clusters: clusters.filter((c) => c.id !== "wifi"),
+      wifiAdded: false,
+      wifiRemoved: true,
+    };
+  }
+  return { clusters, wifiAdded: false, wifiRemoved: false };
+}
+
 const WORKER_URL = "https://api.betterintra.com";
 const CLUSTERS_JSON_URL = "https://meta.intra.42.fr/clusters.json";
 const POLL_INTERVAL = 60_000;
 
-export async function openClusterDialog() {
+const dbg = (...args: unknown[]) => {
+  console.log("%c[CLUSTER-MAP]", "color:#22d3ee;font-weight:bold", ...args);
+};
+
+export function formatCampusClock(timezone?: string): string {
+  if (!timezone) return "";
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: timezone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date());
+  } catch {
+    return "";
+  }
+}
+
+export function findClusterForSeat(
+  clusters: { id: string; name: string }[],
+  seatId: string,
+): { id: string; name: string } | undefined {
+  const seat = seatId.toLowerCase();
+  return clusters.find(
+    (c) => c.name.trim() && seat.startsWith(c.name.trim().toLowerCase()),
+  );
+}
+
+export async function openClusterDialog(opts?: { seatId?: string }) {
   if (document.getElementById("cluster-map-dialog")) return;
 
-  const campusId = await getConfig("CLUSTERS_CAMPUS");
-  if (campusId !== "12") {
-    window.open("https://meta.intra.42.fr/clusters", "_blank");
-    return;
-  }
+  const detectedCampus = (await getConfig("CLUSTERS_CAMPUS")) || "";
+  dbg("page origin =", window.location.origin, "path =", window.location.pathname);
+  dbg("detectedCampus =", detectedCampus);
 
-  const [presetKeyRaw, defaultId, showMarkersVal, svgs] = await Promise.all([
+  const [presetKeyRaw, defaultId, showMarkersVal] = await Promise.all([
     getConfig("PROFILE_THEME_PRESET"),
     getConfig("CLUSTERS_DEFAULT_ID"),
     getConfig("CLUSTERS_SHOW_MARKERS"),
-    fetchClusterSVGs(),
   ]);
   const presetKey = (presetKeyRaw as string) || "dark";
 
-  const clusters: ClusterInfo[] = [
-    ...CLUSTERS.map((c) => ({
-      id: c.id,
-      name: c.name,
-      svg: svgs[c.id],
-    })).filter((c) => c.svg),
-    { id: "wifi", name: "Wi-Fi" },
-  ];
+  let campusOptions: { id: string; name: string; timezone?: string }[] = [];
+  try {
+    const manifest = await fetchCampusList();
+    for (const c of manifest.campuses) {
+      campusOptions.push({ id: c.id, name: c.name, timezone: c.timezone });
+    }
+    campusOptions.sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+    );
+    dbg("campus manifest OK,", campusOptions.length, "campuses");
+    dbg("campusOptions =", campusOptions.map((c) => c.name));
+  } catch (e) {
+    dbg("fetchCampusList FAILED:", e);
+  }
+  let activeCampusId = detectedCampus;
+  if (activeCampusId) {
+    const idx = campusOptions.findIndex((c) => c.id === activeCampusId);
+    if (idx === -1) {
+      campusOptions.unshift({
+        id: activeCampusId,
+        name: `Campus ${activeCampusId}`,
+      });
+    } else if (idx > 0) {
+      const [own] = campusOptions.splice(idx, 1);
+      campusOptions.unshift(own);
+    }
+  }
+  if (!activeCampusId && campusOptions.length > 0) {
+    activeCampusId = campusOptions[0].id;
+  }
+
+  const buildClusters = async (campusId: string): Promise<ClusterInfo[]> => {
+    dbg("buildClusters(campusId=", campusId, ")");
+    let repoClusters: { id: string; name: string }[] = [];
+    try {
+      const data = await getClusterData(campusId);
+      repoClusters = data.clusters;
+      dbg("getClusterData OK,", repoClusters.length, "repo clusters");
+    } catch (e) {
+      dbg("getClusterData FAILED:", e);
+      clearClusterData();
+    }
+    const svgs = await scrapeCampusSVGUrls(campusId);
+    dbg("scraped svg urls:", svgs);
+    const list: ClusterInfo[] = [];
+    for (const c of repoClusters) {
+      const svg = svgs[c.id];
+      if (svg) list.push({ id: c.id, name: c.name || "", svg });
+      else dbg("cluster", c.id, c.name, "has no scraped svg url");
+    }
+    for (const [id, svg] of Object.entries(svgs)) {
+      if (!list.some((c) => c.id === id)) list.push({ id, name: "", svg });
+    }
+    dbg("buildClusters ->", list.map((c) => ({ id: c.id, name: c.name, svg: c.svg })));
+    return list;
+  };
+
+  let clusters = await buildClusters(activeCampusId);
+  dbg("openClusterDialog clusters =", clusters.map((c) => c.id));
+
+  const keyOf = (campusId: string, clusterId: string) =>
+    `${campusId}:${clusterId}`;
+  const clusterLabel = (c: ClusterInfo) =>
+    (
+      c.name.trim() ||
+      (c.svg ? getSvgSlug(c.svg) : "") ||
+      `Cluster ${c.id}`
+    ).toUpperCase();
 
   const currentTheme =
     presetKey !== "dark" && presetKey !== "light"
       ? presetKey
       : await getEffectiveTheme();
-  let activeCluster = clusters.find((c) => c.id === defaultId) || clusters[0];
+  const targetSeat = opts?.seatId?.toLowerCase();
+  const targetCluster = targetSeat
+    ? findClusterForSeat(clusters, targetSeat)
+    : undefined;
+  let activeCluster =
+    targetCluster ||
+    clusters.find((c) => c.id === defaultId) ||
+    clusters[0] || { id: "wifi", name: "Wi-Fi" };
   let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let clockTimer: ReturnType<typeof setInterval> | null = null;
   const seatPosCache = new Map<string, Map<string, SeatPos>>();
   const svgViewBoxes = new Map<string, { w: number; h: number }>();
   const parsedDocs = new Map<string, Document>();
@@ -70,12 +200,47 @@ export async function openClusterDialog() {
   let zoomLevel = 1.0;
   const clusterCounts = new Map<string, { taken: number; total: number }>();
 
+  const trimSvgToContent = () => {
+    const mapArea = shadow.getElementById("map-area");
+    const svg = mapArea?.querySelector("svg") as SVGSVGElement | null;
+    if (!svg) return;
+    try {
+      const bbox = svg.getBBox();
+      if (bbox.width > 0 && bbox.height > 0) {
+        const pad = 10;
+        const minX = bbox.x - pad;
+        const minY = bbox.y - pad;
+        const maxX = bbox.x + bbox.width + pad;
+        const maxY = bbox.y + bbox.height + pad;
+        svg.setAttribute(
+          "viewBox",
+          `${minX} ${minY} ${maxX - minX} ${maxY - minY}`,
+        );
+      }
+    } catch {}
+  };
+
+  const fitSvgToArea = () => {
+    const mapArea = shadow.getElementById("map-area");
+    const svg = mapArea?.querySelector("svg") as SVGSVGElement | null;
+    const wrap = mapArea?.firstElementChild as HTMLElement | null;
+    if (!svg || !mapArea) return;
+    svg.style.width = "100%";
+    svg.style.height = "auto";
+    svg.style.maxWidth = "none";
+    svg.style.maxHeight = "none";
+    if (wrap) {
+      const fits = svg.getBoundingClientRect().height <= mapArea.clientHeight;
+      wrap.style.alignItems = fits ? "center" : "flex-start";
+    }
+  };
+
   const updateZoom = () => {
     const wrap = shadow.getElementById("map-area")
       ?.firstElementChild as HTMLElement | null;
     if (wrap) {
       wrap.style.transform = `scale(${zoomLevel})`;
-      wrap.style.transformOrigin = "center center";
+      wrap.style.transformOrigin = "top left";
     }
     const pct = shadow.querySelector(".zoom-pct") as HTMLElement | null;
     if (pct) pct.textContent = `${Math.round(zoomLevel * 100)}%`;
@@ -84,42 +249,56 @@ export async function openClusterDialog() {
 
   const ensureClusterData = async (
     c: ClusterInfo,
+    campusId: string,
     signal?: AbortSignal,
   ): Promise<string | null> => {
-    if (!c.svg) return null;
+    if (!c.svg) {
+      dbg("ensureClusterData: no svg url for", c.id);
+      return null;
+    }
+    const key = keyOf(campusId, c.id);
     try {
-      if (seatPosCache.has(c.id) && svgViewBoxes.has(c.id)) {
+      if (seatPosCache.has(key) && svgViewBoxes.has(key)) {
+        dbg("ensureClusterData:", key, "in-memory cached");
         return "cached";
       }
-      let cached = await getCachedCluster(c.id);
+      let cached = await getCachedCluster(campusId, c.id);
+      dbg("ensureClusterData:", key, "storage cache =", cached ? "hit" : "miss");
       let svgText = cached?.svg;
       if (!svgText) {
         const url = `${WORKER_URL}/api/v1/cluster/svg?url=${encodeURIComponent(c.svg)}`;
+        dbg("ensureClusterData: fetching svg via worker:", url);
         const res = await fetch(url, { signal });
+        dbg("ensureClusterData: worker svg fetch status =", res.status);
         if (!res.ok) return null;
         svgText = await res.text();
+        dbg("ensureClusterData: svgText length =", svgText.length);
       }
-      if (!svgViewBoxes.has(c.id)) {
+      if (!svgViewBoxes.has(key)) {
         const svgDoc = new DOMParser().parseFromString(
           svgText,
           "image/svg+xml",
         );
         const seatMap = sanitizeAndParseSeats(svgDoc);
-        parsedDocs.set(c.id, svgDoc);
+        parsedDocs.set(key, svgDoc);
+        const title = getSvgTitle(svgDoc);
+        if (title && !c.name.trim()) c.name = title;
         const vb = (svgDoc.querySelector("svg")?.getAttribute("viewBox") ?? "")
           .split(/\s+/)
           .map(Number);
-        svgViewBoxes.set(c.id, { w: vb[2] || 1200, h: vb[3] || 800 });
-        seatPosCache.set(c.id, seatMap);
-        setCachedCluster(c.id, {
+        svgViewBoxes.set(key, { w: vb[2] || 1200, h: vb[3] || 800 });
+        seatPosCache.set(key, seatMap);
+        dbg("ensureClusterData:", key, "parsed; seats =", seatMap.size, "viewBox =", { w: vb[2], h: vb[3] }, "title =", title || "(none)");
+        setCachedCluster(campusId, c.id, {
           svg: svgText,
           seats: [...seatMap],
-          viewBox: svgViewBoxes.get(c.id)!,
+          viewBox: svgViewBoxes.get(key)!,
           cachedAt: 0,
         }).catch(() => {});
       }
       return svgText;
-    } catch {
+    } catch (e) {
+      dbg("ensureClusterData ERROR for", key, ":", e);
       return null;
     }
   };
@@ -129,9 +308,9 @@ export async function openClusterDialog() {
     className: "bg-transparent backdrop:bg-black/60",
   });
   Object.assign(dialog.style, {
-    margin: "2rem auto auto auto",
-    width: "min(960px, calc(100dvw - 2rem))",
-    height: "min(88dvh, 1100px)",
+    margin: "1.5rem auto auto auto",
+    width: "min(1200px, calc(100dvw - 2rem))",
+    height: "min(94dvh, 1400px)",
     borderRadius: "1rem",
     padding: "0",
     border: "none",
@@ -145,11 +324,14 @@ export async function openClusterDialog() {
 
   const shadow = wrapper.attachShadow({ mode: "closed" });
 
+  bindTooltips(shadow, getIsLight);
+
   const abortController = new AbortController();
 
   const cleanup = () => {
     if (pollTimer) clearInterval(pollTimer);
     if (countdownTimer) clearInterval(countdownTimer);
+    if (clockTimer) clearInterval(clockTimer);
     abortController.abort();
   };
 
@@ -209,25 +391,6 @@ export async function openClusterDialog() {
           object-fit: cover;
           display: block;
         }
-        .seat-tip {
-          display: none;
-          position: absolute;
-          bottom: calc(100% + 6px);
-          left: 50%;
-          transform: translateX(-50%);
-          padding: 6px 12px;
-          border-radius: 8px;
-          background: rgba(0, 0, 0, 0.88);
-          color: #fff;
-          font-size: 15px;
-          font-weight: 700;
-          white-space: nowrap;
-          z-index: 99999;
-          pointer-events: none;
-        }
-        .seat-link:hover .seat-tip {
-          display: block;
-        }
         .posts rect:not(.custom-screen),
         .posts polygon:not(.custom-screen),
         rect:not(.custom-screen) {
@@ -245,40 +408,179 @@ export async function openClusterDialog() {
             transform: rotate(360deg);
           }
         }
+        .campus-option {
+          display: flex;
+          width: 100%;
+          align-items: center;
+          gap: 8px;
+          padding: 6px 12px;
+          text-align: left;
+          font-size: 14px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          color: inherit;
+          white-space: nowrap;
+        }
+        .campus-option:hover {
+          background: color-mix(in oklch, var(--color-base-200) 80%, transparent);
+        }
+        .campus-option.active {
+          color: var(--color-accent);
+        }
+        .campus-option-flag {
+          font-size: 16px;
+          line-height: 1;
+        }
+        .campus-option-name {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        #campus-time svg {
+          width: 12px;
+          height: 12px;
+          display: block;
+          flex-shrink: 0;
+          fill: currentColor;
+        }
+        @keyframes ft-dialog-pulsate {
+          0%,
+          100% {
+            filter: drop-shadow(0 0 2px #ff0055) drop-shadow(0 0 5px #ff0055);
+          }
+          50% {
+            filter: drop-shadow(0 0 8px #ff0055) drop-shadow(0 0 14px #ff0055);
+          }
+        }
+        .ft-dialog-seat-glow {
+          animation: ft-dialog-pulsate 1.6s ease-in-out infinite !important;
+        }
+        .tabs-scroll {
+          flex: 1 1 auto;
+          min-width: 0;
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          scrollbar-width: none;
+        }
+        .tabs-scroll::-webkit-scrollbar {
+          display: none;
+        }
+        .tabs-scroll .tab {
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
       </style>
       <div
         data-theme="${currentTheme}"
-        class="flex flex-col bg-base-100 h-full overflow-hidden"
+        class="bg-base-100 h-full"
+        style="display:flex;flex-direction:column;height:100%;overflow:hidden;"
       >
         <div
-          class="flex items-center justify-between shrink-0 p-3 pb-0 sticky top-0 z-10 bg-base-100 rounded-t-xl"
+          class="flex items-center justify-between shrink-0 p-3 pb-0 sticky top-0 z-30 bg-base-100 rounded-t-xl"
         >
-          <div class="tabs tabs-border border-accent">
-            ${clusters.map(
-              (c) =>
-                html`<button
-                  class="tab font-bold text-xs px-4 ${c.id === cluster.id
-                    ? "tab-active"
-                    : ""}"
-                  data-cluster-id="${c.id}"
-                  data-cluster-name="${c.name.toUpperCase()}"
-                >
-                  ${c.name.toUpperCase()}
-                </button>`,
-            )}
+          <div class="flex items-center gap-2" style="flex:1 1 auto;min-width:0;">
+            <div style="position:relative;">
+              <button
+                type="button"
+                id="campus-trigger"
+                class="btn btn-sm btn-ghost"
+                style="padding:0 6px;font-size:16px;line-height:1;"
+                data-tip="Campus"
+  data-tip-size="14px"
+              >
+                ${getCampusFlag(
+                  campusOptions.find((o) => o.id === activeCampusId)?.name ||
+                    activeCampusId,
+                )}
+              </button>
+              <div
+                id="campus-menu"
+                style="display:none;position:absolute;left:0;top:calc(100% + 4px);z-index:50;width:13rem;max-height:min(18rem,60vh);overflow:auto;border-radius:8px;background:var(--color-base-100);border:1px solid var(--color-base-300);box-shadow:0 6px 16px rgba(0,0,0,.28);padding:4px;"
+              >
+                ${campusOptions.map(
+                  (o) =>
+                    html`<button
+                      type="button"
+                      data-campus-id="${o.id}"
+                      class="campus-option ${o.id === activeCampusId ? "active" : ""}"
+                    >
+                      <span class="campus-option-flag"
+                        >${getCampusFlag(o.name)}</span
+                      >
+                      <span class="campus-option-name"
+                        >${o.name.toUpperCase()}</span
+                      >
+                    </button>`,
+                )}
+              </div>
+            </div>
+            <div style="position:relative;flex:1 1 auto;min-width:0;display:flex;align-items:center;">
+              <div class="tabs tabs-border border-accent tabs-scroll" style="flex:1 1 auto;min-width:0;">
+                ${clusters.map(
+                  (c) =>
+                    html`<button
+                      class="tab font-bold text-xs px-4 whitespace-nowrap ${c.id === cluster.id
+                        ? "tab-active"
+                        : ""}"
+                      data-cluster-id="${c.id}"
+                      data-cluster-name="${clusterLabel(c)}"
+                    >
+                      ${clusterLabel(c)}
+                    </button>`,
+                )}
+              </div>
+              <div
+                id="tabs-fade"
+                style="display:none;position:absolute;top:0;right:0;bottom:0;width:2rem;pointer-events:none;background:linear-gradient(to left, var(--color-base-100), transparent);"
+              ></div>
+            </div>
+            <details
+              class="dropdown dropdown-end"
+              id="more-tabs-dropdown"
+              style="display:none;flex-shrink:0;"
+            >
+              <summary
+                class="btn btn-sm btn-ghost"
+                id="more-tabs-btn"
+                data-tip="More clusters"
+                data-tip-size="14px"
+              >⋯</summary>
+              <ul
+                id="more-tabs-menu"
+                class="menu dropdown-content bg-base-100 rounded-box z-50 max-h-72 w-96 overflow-y-auto p-2 shadow"
+                style="display:grid;grid-template-columns:repeat(2,1fr);gap:2px;"
+              >
+                ${clusters.map(
+                  (c) =>
+                    html`<li>
+                      <a
+                        class="flex justify-between gap-2 whitespace-nowrap ${c.id === cluster.id
+                          ? "menu-active"
+                          : ""}"
+                        data-cluster-id="${c.id}"
+                        data-cluster-name="${clusterLabel(c)}"
+                      >
+                        ${clusterLabel(c)}
+                      </a>
+                    </li>`,
+                )}
+              </ul>
+            </details>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 shrink-0">
             <span
               id="totals-badge"
               class="badge badge-sm h-8"
               style="white-space:nowrap;border-radius:var(--radius-field)"
-              title="Total taken / Total seats"
+                data-tip="Total taken / Total seats"
+  data-tip-size="14px"
               >- / -</span
             >
             <select
-              class="select select-accent select-sm"
+              class="select select-accent select-sm max-w-32"
               id="default-cluster-select"
-              title="Default cluster"
+                data-tip="Default cluster"
+  data-tip-size="14px"
             >
               ${clusters.map(
                 (c) =>
@@ -294,7 +596,8 @@ export async function openClusterDialog() {
               class="btn btn-sm ${showMarkers ? "btn-accent" : "btn-ghost"}"
               style="${showMarkers ? "border-color: var(--color-accent)" : ""}"
               id="markers-btn"
-              title="Toggle screen markers"
+                data-tip="Toggle screen markers"
+  data-tip-size="14px"
             >
               Show Markers
             </button>
@@ -302,7 +605,8 @@ export async function openClusterDialog() {
               id="updated-badge"
               class="btn btn-accent btn-sm border border-base-content/20"
               style="display:none;width:80px;justify-content:flex-start"
-              title="Reload occupancy"
+                data-tip="Reload occupancy"
+  data-tip-size="14px"
             >
               <span
                 id="reload-icon"
@@ -328,13 +632,26 @@ export async function openClusterDialog() {
             - / -
           </div>
           <div
+            id="campus-time"
+            class="absolute bottom-2 left-2 z-20 flex items-center gap-1 whitespace-nowrap text-xs tabular-nums font-medium bg-base-100/80 backdrop-blur rounded-lg px-2 py-1 border border-base-300 text-base-content/70"
+            style="display:none"
+          >
+            <span
+              id="campus-time-icon"
+              class="size-3 flex items-center justify-center"
+              >${unsafeHTML(CLOCK_SVG)}</span
+            >
+            <span id="campus-time-text"></span>
+          </div>
+          <div
             id="zoom-controls"
             class="absolute top-2 right-2 z-20 flex items-center gap-1 bg-base-100/80 backdrop-blur rounded-lg px-1 py-0.5 border border-base-300"
           >
             <button
               class="btn btn-ghost btn-xs text-xs"
               id="zoom-out"
-              title="Zoom out"
+                data-tip="Zoom out"
+  data-tip-size="14px"
             >
               −
             </button>
@@ -344,7 +661,8 @@ export async function openClusterDialog() {
             <button
               class="btn btn-ghost btn-xs text-xs"
               id="zoom-in"
-              title="Zoom in"
+                data-tip="Zoom in"
+  data-tip-size="14px"
             >
               +
             </button>
@@ -354,11 +672,71 @@ export async function openClusterDialog() {
     `;
   }
 
+  const wiredTabs = new WeakSet<Element>();
+
+  const wireTabs = () => {
+    const el = shadow.querySelector<HTMLElement>(".tabs-scroll");
+    if (!el || wiredTabs.has(el)) return;
+    wiredTabs.add(el);
+    el.addEventListener("scroll", () => {
+      const fade = shadow.getElementById("tabs-fade");
+      if (!fade) return;
+      const hasMore = el.scrollWidth - el.clientWidth - el.scrollLeft > 8;
+      fade.style.display = hasMore ? "" : "none";
+    });
+  };
+
+  const updateTabsOverflow = () => {
+    requestAnimationFrame(() => {
+      const el = shadow.querySelector<HTMLElement>(".tabs-scroll");
+      const fade = shadow.getElementById("tabs-fade");
+      const more = shadow.getElementById(
+        "more-tabs-dropdown",
+      ) as HTMLElement | null;
+      if (!el) return;
+      const hasOverflow = el.scrollWidth > el.clientWidth + 1;
+      const hasMore = el.scrollWidth - el.clientWidth - el.scrollLeft > 8;
+      if (fade) fade.style.display = hasMore ? "" : "none";
+      if (more) more.style.display = hasOverflow ? "" : "none";
+    });
+  };
+
   const rerender = () => {
     render(renderTemplate(activeCluster), shadow);
+    wireTabs();
+    updateTabsOverflow();
   };
   shadow.addEventListener("click", (e) => {
     const path = e.composedPath();
+    const campusMenu = shadow.getElementById(
+      "campus-menu",
+    ) as HTMLElement | null;
+    const campusTrigger = shadow.getElementById(
+      "campus-trigger",
+    ) as HTMLElement | null;
+
+    const campusOption = path.find(
+      (el) => el instanceof HTMLElement && el.hasAttribute("data-campus-id"),
+    ) as HTMLElement | undefined;
+    if (campusOption && campusOption.dataset.campusId) {
+      if (campusMenu) campusMenu.style.display = "none";
+      loadCampus(campusOption.dataset.campusId);
+      return;
+    }
+    if (campusTrigger && path.includes(campusTrigger)) {
+      if (campusMenu) {
+        campusMenu.style.display =
+          campusMenu.style.display === "none" ? "block" : "none";
+      }
+      return;
+    }
+    if (
+      campusMenu &&
+      campusMenu.style.display !== "none" &&
+      !path.includes(campusMenu)
+    ) {
+      campusMenu.style.display = "none";
+    }
     const btn = path.find(
       (el) => el instanceof HTMLElement && el.hasAttribute("data-cluster-id"),
     ) as HTMLElement | undefined;
@@ -366,6 +744,10 @@ export async function openClusterDialog() {
       const id = btn.dataset.clusterId;
       const cluster = clusters.find((c) => c.id === id);
       if (cluster) loadCluster(cluster);
+      const moreDetails = shadow.getElementById(
+        "more-tabs-dropdown",
+      ) as HTMLDetailsElement | null;
+      if (moreDetails) moreDetails.removeAttribute("open");
       return;
     }
     const reloadBtn = path.find(
@@ -438,8 +820,21 @@ export async function openClusterDialog() {
         workCopy.delete(host);
       }
     }
-    const positions = seatPosCache.get(activeCluster.id);
-    const viewBox = svgViewBoxes.get(activeCluster.id);
+    const wifiVisible = wifiUsers.length > 0;
+    const wifiChange = applyWifiPresence(clusters, wifiVisible);
+    if (wifiChange.wifiAdded || wifiChange.wifiRemoved) {
+      clusters = wifiChange.clusters;
+      rebuildHeader();
+      if (wifiChange.wifiRemoved && activeCluster.id === "wifi") {
+        activeCluster = clusters[0];
+        if (activeCluster) loadCluster(activeCluster);
+      }
+    }
+    const positions = seatPosCache.get(
+      keyOf(activeCampusId, activeCluster.id),
+    );
+    const viewBox = svgViewBoxes.get(keyOf(activeCampusId, activeCluster.id));
+    dbg("applyOccupancy: positions =", positions?.size ?? null, "viewBox =", viewBox, "for", activeCampusId, activeCluster.id);
     if (positions && viewBox) {
       renderSeatOverlays(shadow, workCopy, positions, viewBox);
     }
@@ -458,7 +853,10 @@ export async function openClusterDialog() {
       }
     }
     clusterCounts.clear();
-    for (const [clusterId, seats] of seatPosCache) {
+    const campusPrefix = `${activeCampusId}:`;
+    for (const [key, seats] of seatPosCache) {
+      if (!key.startsWith(campusPrefix)) continue;
+      const clusterId = key.slice(campusPrefix.length);
       const taken = [...workCopy.keys()].filter((h) => seats.has(h)).length;
       clusterCounts.set(clusterId, { taken, total: seats.size });
     }
@@ -466,8 +864,11 @@ export async function openClusterDialog() {
       "[data-cluster-id]",
     )) {
       const id = tab.dataset.clusterId;
-      const name = tab.dataset.clusterName || id?.toUpperCase() || "";
       if (!id) continue;
+      const cluster = clusters.find((c) => c.id === id);
+      const name = cluster
+        ? clusterLabel(cluster)
+        : tab.dataset.clusterName || id.toUpperCase();
       tab.textContent = name;
       if (id === "wifi") {
         if (wifiUsers.length > 0) {
@@ -480,7 +881,6 @@ export async function openClusterDialog() {
         continue;
       }
       const count = clusterCounts.get(id);
-      tab.textContent = name;
       if (count && count.total > 0) {
         const num = document.createElement("span");
         num.textContent = `${count.taken}/${count.total}`;
@@ -489,19 +889,33 @@ export async function openClusterDialog() {
         tab.appendChild(num);
       }
     }
+    const clusterSelect = shadow.getElementById(
+      "default-cluster-select",
+    ) as HTMLSelectElement | null;
+    if (clusterSelect) {
+      for (const opt of clusterSelect.querySelectorAll("option")) {
+        const cluster = clusters.find((c) => c.id === opt.value);
+        if (cluster) opt.textContent = clusterLabel(cluster);
+      }
+    }
     const allCounts = [...clusterCounts.values()];
     const sumTaken = allCounts.reduce((s, c) => s + c.taken, 0);
     const sumTotal = allCounts.reduce((s, c) => s + c.total, 0);
     const totalsBadge = shadow.getElementById("totals-badge");
     if (totalsBadge) totalsBadge.textContent = `${sumTaken} / ${sumTotal}`;
     startCountdown();
+    updateTabsOverflow();
   };
 
   const loadOccupancy = async () => {
     const reloadIcon = shadow.getElementById("reload-icon");
     if (reloadIcon) reloadIcon.classList.add("spinning");
     try {
-      const occupancy = await fetchOccupancy(abortController.signal);
+      const occupancy = await fetchOccupancy(
+        activeCampusId,
+        abortController.signal,
+      );
+      dbg("loadOccupancy: got", occupancy.size, "entries for campus", activeCampusId);
       occupancyCache = occupancy;
       lastUpdated = Date.now();
       applyOccupancy(occupancy);
@@ -549,11 +963,16 @@ export async function openClusterDialog() {
     retryCount = 0;
 
     shadow.querySelectorAll("[data-cluster-id]").forEach((el) => {
-      (el as HTMLElement).classList.toggle(
-        "tab-active",
-        (el as HTMLElement).dataset.clusterId === cluster.id,
-      );
+      const active = (el as HTMLElement).dataset.clusterId === cluster.id;
+      (el as HTMLElement).classList.toggle("tab-active", active);
+      (el as HTMLElement).classList.toggle("menu-active", active);
     });
+
+    const tabsRow = shadow.querySelector<HTMLElement>(".tabs-scroll");
+    const activeTab = tabsRow?.querySelector<HTMLElement>(
+      `[data-cluster-id="${CSS.escape(cluster.id)}"]`,
+    );
+    activeTab?.scrollIntoView({ block: "nearest", inline: "nearest" });
 
     const mapArea = shadow.getElementById("map-area");
     if (!mapArea) return;
@@ -573,45 +992,69 @@ export async function openClusterDialog() {
     }
 
     try {
-      const svgText = await ensureClusterData(cluster, abortController.signal);
+      dbg("loadCluster: loading", cluster.id, "campus", activeCampusId);
+      const svgText = await ensureClusterData(
+        cluster,
+        activeCampusId,
+        abortController.signal,
+      );
+      dbg("loadCluster: ensureClusterData returned", typeof svgText === "string" ? svgText.length + " chars" : svgText);
       if (!svgText) {
         if (id !== loadId) return;
         mapArea.replaceChildren();
+        dbg("loadCluster: no svgText, map cleared for", cluster.id);
         return;
       }
       if (id !== loadId) return;
 
       const svgDoc =
-        parsedDocs.get(cluster.id) ||
+        parsedDocs.get(keyOf(activeCampusId, cluster.id)) ||
         new DOMParser().parseFromString(svgText, "image/svg+xml");
 
       mapArea.style.position = "relative";
       const imported = document.importNode(svgDoc.documentElement, true);
+      dbg("loadCluster: imported svg element =", imported.tagName, "children =", imported.children.length);
       const centeringWrap = document.createElement("div");
       centeringWrap.style.cssText =
-        "display:flex;align-items:center;justify-content:center;min-height:100%;transform:scale(1);transform-origin:center center;";
-      centeringWrap.appendChild(imported);
+        "display:flex;justify-content:center;align-items:flex-start;min-height:100%;";      centeringWrap.appendChild(imported);
       mapArea.replaceChildren(centeringWrap);
+      const svgEl = mapArea.querySelector("svg") as SVGSVGElement | null;
+      dbg("loadCluster: svg injected into #map-area, svg children =", svgEl?.children.length);
+      if (svgEl) {
+        const r = svgEl.getBoundingClientRect();
+        const cs = getComputedStyle(svgEl);
+        const mr = mapArea.getBoundingClientRect();
+        const root = shadow.querySelector("[data-theme]") as HTMLElement | null;
+        const wrap = centeringWrap.getBoundingClientRect();
+        dbg("loadCluster: svg rect =", { w: r.width, h: r.height, x: r.x, y: r.y },
+          "mapArea rect =", { w: mr.width, h: mr.height, x: mr.x, y: mr.y },
+          "wrap rect =", { w: wrap.width, h: wrap.height, x: wrap.x, y: wrap.y },
+          "root flexDirection =", root ? getComputedStyle(root).flexDirection : "?",
+          "computed =", { display: cs.display, width: cs.width, height: cs.height },
+          "viewBox =", svgEl.getAttribute("viewBox"));
+      }
       const zp = shadow.querySelector(".zoom-pct") as HTMLElement | null;
       if (zp) zp.textContent = "100%";
       mapArea.scrollTop = 0;
       mapArea.scrollLeft = 0;
       applyMarkers(mapArea, showMarkers);
+      dbg("loadCluster: markers applied, SCREENS keys =", Object.keys(SCREENS).length);
 
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
       });
 
-      const newVB = cropSvgViewBox(mapArea, seatPosCache.get(cluster.id));
-      if (newVB) {
-        svgViewBoxes.set(cluster.id, newVB);
-        void (mapArea.querySelector("svg") as SVGSVGElement)?.getBBox();
-      }
+      trimSvgToContent();
+      fitSvgToArea();
+      mapArea.scrollTop = 0;
+      mapArea.scrollLeft = 0;
 
       if (id !== loadId) return;
 
       reapplyOccupancy();
+      dbg("loadCluster: done for", cluster.id);
     } catch (e) {
+      dbg("loadCluster ERROR for", cluster.id, ":", e);
       if (id !== loadId) return;
       retryCount++;
       if (retryCount <= 1) {
@@ -626,7 +1069,177 @@ export async function openClusterDialog() {
       }
     }
   };
+
+  const rebuildHeader = () => {
+    const tabsHost = shadow.querySelector(".tabs");
+    if (tabsHost) {
+      tabsHost.replaceChildren(
+        ...clusters.map((c) => {
+          const btn = document.createElement("button");
+          btn.className = `tab font-bold text-xs px-4 whitespace-nowrap ${
+            c.id === activeCluster.id ? "tab-active" : ""
+          }`;
+          btn.dataset.clusterId = c.id;
+          btn.dataset.clusterName = clusterLabel(c);
+          btn.textContent = clusterLabel(c);
+          return btn;
+        }),
+      );
+    }
+    const defSel = shadow.getElementById(
+      "default-cluster-select",
+    ) as HTMLSelectElement | null;
+    if (defSel) {
+      defSel.replaceChildren(
+        ...clusters.map((c) => {
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = clusterLabel(c);
+          opt.selected = c.id === activeCluster.id;
+          return opt;
+        }),
+      );
+    }
+    const menu = shadow.getElementById("more-tabs-menu");
+    if (menu) {
+      menu.replaceChildren(
+        ...clusters.map((c) => {
+          const li = document.createElement("li");
+          const a = document.createElement("a");
+          a.className = `flex justify-between gap-2 whitespace-nowrap ${
+            c.id === activeCluster.id ? "menu-active" : ""
+          }`;
+          a.dataset.clusterId = c.id;
+          a.dataset.clusterName = clusterLabel(c);
+          a.textContent = clusterLabel(c);
+          li.appendChild(a);
+          return li;
+        }),
+      );
+    }
+    wireTabs();
+    updateTabsOverflow();
+  };
+
+  const updateDefaultSelect = () => {
+    const sel = shadow.getElementById(
+      "default-cluster-select",
+    ) as HTMLElement | null;
+    if (!sel) return;
+    const ownCampus = !detectedCampus || activeCampusId === detectedCampus;
+    sel.style.display = ownCampus ? "" : "none";
+  };
+
+  const updateCampusTime = () => {
+    const el = shadow.getElementById("campus-time");
+    if (!el) return;
+    const tz = campusOptions.find((o) => o.id === activeCampusId)?.timezone;
+    if (!tz) {
+      el.style.display = "none";
+      return;
+    }
+    const text = shadow.getElementById("campus-time-text");
+    if (text) text.textContent = formatCampusClock(tz);
+    el.style.display = "flex";
+  };
+
+  const flashSeat = (seatId: string) => {
+    const mapArea = shadow.getElementById("map-area");
+    const svg = mapArea?.querySelector("svg");
+    if (!svg) return;
+    const matches = svg.querySelectorAll(
+      `[id="${CSS.escape(seatId)}"], [id="shi-${CSS.escape(seatId)}"]`,
+    );
+    const overlayLink = shadow.querySelector<HTMLElement>(
+      `#seat-overlay .seat-link[data-host="${CSS.escape(seatId)}"]`,
+    );
+    const targets =
+      matches.length > 0 ? Array.from(matches) : [];
+    if (overlayLink) targets.push(overlayLink);
+    if (targets.length === 0) {
+      dbg("flashSeat: no element for", seatId);
+      return;
+    }
+    svg
+      .querySelectorAll(".ft-dialog-seat-glow")
+      .forEach((n) => n.classList.remove("ft-dialog-seat-glow"));
+    targets.forEach((el) => el.classList.add("ft-dialog-seat-glow"));
+    (matches[0] || overlayLink).scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "center",
+    });
+  };
+
+  const rebuildCampusMenu = () => {
+    const menu = shadow.getElementById("campus-menu");
+    if (!menu) return;
+    menu.replaceChildren(
+      ...campusOptions.map((o) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.dataset.campusId = o.id;
+        btn.className = `campus-option ${
+          o.id === activeCampusId ? "active" : ""
+        }`;
+        const flag = document.createElement("span");
+        flag.className = "campus-option-flag";
+        flag.textContent = getCampusFlag(o.name);
+        const name = document.createElement("span");
+        name.className = "campus-option-name";
+        name.textContent = o.name.toUpperCase();
+        btn.appendChild(flag);
+        btn.appendChild(name);
+        return btn;
+      }),
+    );
+  };
+
+  const loadCampus = async (campusId: string) => {
+    dbg("loadCampus:", campusId);
+    activeCampusId = campusId;
+    zoomLevel = 1.0;
+    loadId++;
+    clusters = await buildClusters(campusId);
+    if (!clusters.some((c) => c.svg)) {
+      dbg("loadCampus: no cluster data for", campusId, "- removing");
+      campusOptions = campusOptions.filter((o) => o.id !== campusId);
+      rebuildCampusMenu();
+      const fallback =
+        campusOptions.find((o) => o.id === detectedCampus) ||
+        campusOptions[0];
+      if (fallback) {
+        loadCampus(fallback.id);
+      }
+      return;
+    }
+    activeCluster =
+      clusters.find((c) => c.id === defaultId) ||
+      clusters[0] || { id: "wifi", name: "Wi-Fi" };
+    dbg("loadCampus: activeCluster =", activeCluster.id);
+    const trigger = shadow.getElementById("campus-trigger");
+    if (trigger) {
+      const name =
+        campusOptions.find((o) => o.id === campusId)?.name || campusId;
+      trigger.textContent = getCampusFlag(name);
+    }
+    rebuildHeader();
+    updateDefaultSelect();
+    updateCampusTime();
+    await loadCluster(activeCluster);
+    await loadOccupancy();
+    (async () => {
+      const rest = clusters.filter((c) => c.id !== activeCluster.id && c.svg);
+      for (const c of rest) {
+        await ensureClusterData(c, campusId, abortController.signal);
+      }
+      reapplyOccupancy();
+    })();
+  };
+
   rerender();
+  updateDefaultSelect();
+  updateCampusTime();
   {
     const mapArea = shadow.getElementById("map-area");
     if (mapArea) {
@@ -641,16 +1254,23 @@ export async function openClusterDialog() {
   document.body.appendChild(dialog);
   dialog.showModal();
   await Promise.all([
-    ensureClusterData(activeCluster, abortController.signal),
+    ensureClusterData(activeCluster, activeCampusId, abortController.signal),
     loadOccupancy(),
   ]);
-  loadCluster(activeCluster);
+  if (targetSeat) {
+    await loadCluster(activeCluster);
+    flashSeat(targetSeat);
+  } else {
+    loadCluster(activeCluster);
+  }
   pollTimer = setInterval(loadOccupancy, POLL_INTERVAL);
+  clockTimer = setInterval(updateCampusTime, 30_000);
   (async () => {
     const rest = clusters.filter((c) => c.id !== activeCluster.id && c.svg);
     for (const c of rest) {
-      await ensureClusterData(c, abortController.signal);
+      await ensureClusterData(c, activeCampusId, abortController.signal);
     }
+    reapplyOccupancy();
   })();
   const mapAreaEl = shadow.getElementById("map-area");
   if (mapAreaEl) {
@@ -668,13 +1288,19 @@ export async function openClusterDialog() {
 }
 
 async function fetchOccupancy(
+  campusId: string,
   signal?: AbortSignal,
 ): Promise<Map<string, OccupancyEntry>> {
+  const url = campusId
+    ? `https://meta.intra.42.fr/campus/${campusId}/clusters.json`
+    : CLUSTERS_JSON_URL;
+  dbg("fetchOccupancy url =", url);
   try {
-    const res = await fetch(CLUSTERS_JSON_URL, {
+    const res = await fetch(url, {
       credentials: "include",
       signal,
     });
+    dbg("fetchOccupancy status =", res.status);
     if (!res.ok) return new Map();
     const data = (await res.json()) as Record<string, OccupancyEntry>;
     const map = new Map<string, OccupancyEntry>();

@@ -77,6 +77,10 @@ const CAMPUS_FLAGS: Record<string, string> = {
   Yerevan: "🇦🇲",
 };
 
+export function getCampusFlag(name: string): string {
+  return CAMPUS_FLAGS[name] || "";
+}
+
 export function injectCampusFlag() {
   const buttons = document.querySelectorAll<HTMLElement>(
     ".flex.flex-col.justify-center.gap-4 .text-white",
