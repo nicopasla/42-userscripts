@@ -301,9 +301,9 @@ function buildEvalStatsSection(data: EvalStatsData): HTMLElement {
 
   if (data.global.successPercentage !== null) {
     const color =
-      data.global.successPercentage >= 70 ? "rgb(34,197,94)" : "rgb(239,68,68)";
+      data.global.successPercentage >= 67 ? "rgb(34,197,94)" : "rgb(239,68,68)";
     const badge = document.createElement("span");
-    badge.style.cssText = `font-size: 20px; font-weight: 700; padding: 10px 20px; border-radius: 10px; color: ${color}; background: rgba(${data.global.successPercentage >= 70 ? "34,197,94" : "239,68,68"},0.1);`;
+    badge.style.cssText = `font-size: 20px; font-weight: 700; padding: 10px 20px; border-radius: 10px; color: ${color}; background: rgba(${data.global.successPercentage >= 67 ? "34,197,94" : "239,68,68"},0.1);`;
     badge.textContent = `${data.global.successPercentage}%`;
     badgesWrap.appendChild(badge);
   }
