@@ -7,10 +7,16 @@ const DISMISS_PREFIX = "ft-announcement-dismissed:";
 
 type AnnouncementLevel = "info" | "warning" | "critical";
 
+interface AnnouncementLink {
+  text: string;
+  url: string;
+}
+
 interface Announcement {
   message: string | null;
   updatedAt: number | null;
   level: AnnouncementLevel;
+  links?: AnnouncementLink[];
 }
 
 const LEVEL_STYLES: Record<
@@ -29,7 +35,9 @@ const isProfileHost = () =>
 function getCached(): { data: Announcement; timestamp: number } | null {
   try {
     const raw = sessionStorage.getItem(CACHE_KEY);
-    return raw ? (JSON.parse(raw) as { data: Announcement; timestamp: number }) : null;
+    return raw
+      ? (JSON.parse(raw) as { data: Announcement; timestamp: number })
+      : null;
   } catch {
     return null;
   }
@@ -37,15 +45,22 @@ function getCached(): { data: Announcement; timestamp: number } | null {
 
 function setCached(data: Announcement): void {
   try {
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+    sessionStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ data, timestamp: Date.now() }),
+    );
   } catch {
     /* ignore */
   }
 }
 
-function getDismissedKey(message: string, level: string): string {
+function getDismissedKey(
+  message: string,
+  level: string,
+  links: AnnouncementLink[],
+): string {
   let hash = 0;
-  const input = `${message}::${level}`;
+  const input = `${message}::${level}::${links.map((l) => `${l.text}|${l.url}`).join(",")}`;
   for (let i = 0; i < input.length; i++) {
     hash = (hash << 5) - hash + input.charCodeAt(i);
     hash |= 0;
@@ -53,14 +68,18 @@ function getDismissedKey(message: string, level: string): string {
   return `${DISMISS_PREFIX}${hash}`;
 }
 
-function renderBanner(message: string, level: AnnouncementLevel): void {
+function renderBanner(
+  message: string,
+  level: AnnouncementLevel,
+  links: AnnouncementLink[],
+): void {
   const style = LEVEL_STYLES[level] ?? LEVEL_STYLES.critical;
 
   const dismiss = () => {
     const el = document.getElementById("ft-announcement-banner");
     if (el) el.remove();
     try {
-      sessionStorage.setItem(getDismissedKey(message, level), "1");
+      sessionStorage.setItem(getDismissedKey(message, level, links), "1");
     } catch {
       /* ignore */
     }
@@ -112,10 +131,35 @@ function renderBanner(message: string, level: AnnouncementLevel): void {
         .ft-announcement-dismiss:hover {
           opacity: 1;
         }
+        .ft-announcement-links {
+          display: inline-flex;
+          gap: 8px;
+          margin-left: 8px;
+          vertical-align: middle;
+        }
+        .ft-announcement-link {
+          color: inherit;
+          font-weight: 700;
+          text-decoration: underline;
+        }
       </style>
       <div class="ft-announcement-bnr">
         <strong class="ft-announcement-level">[${style.label}]</strong>
         ${message}
+        ${links.length > 0
+          ? html`<span class="ft-announcement-links">
+              ${links.map(
+                (l) =>
+                  html`<a
+                    class="ft-announcement-link"
+                    href="${l.url}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >${l.text}</a
+                  >`,
+              )}
+            </span>`
+          : ""}
         <button
           class="ft-announcement-dismiss"
           @click="${dismiss}"
@@ -147,8 +191,20 @@ export async function initAnnouncementBanner(): Promise<void> {
     const cached = getCached();
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       if (cached.data.message) {
-        if (sessionStorage.getItem(getDismissedKey(cached.data.message, cached.data.level)) !== "1") {
-          renderBanner(cached.data.message, cached.data.level);
+        if (
+          sessionStorage.getItem(
+            getDismissedKey(
+              cached.data.message,
+              cached.data.level,
+              cached.data.links ?? [],
+            ),
+          ) !== "1"
+        ) {
+          renderBanner(
+            cached.data.message,
+            cached.data.level,
+            cached.data.links ?? [],
+          );
         }
       }
       return;
@@ -159,8 +215,13 @@ export async function initAnnouncementBanner(): Promise<void> {
     const data = (await res.json()) as Announcement;
     setCached(data);
 
-    if (data.message && sessionStorage.getItem(getDismissedKey(data.message, data.level)) !== "1") {
-      renderBanner(data.message, data.level);
+    if (
+      data.message &&
+      sessionStorage.getItem(
+        getDismissedKey(data.message, data.level, data.links ?? []),
+      ) !== "1"
+    ) {
+      renderBanner(data.message, data.level, data.links ?? []);
     }
   } catch {
     /* never break intra */
