@@ -162,6 +162,10 @@ export async function getEffectiveTheme(): Promise<"dark" | "light"> {
   return (savedTheme as "dark" | "light") || "light";
 }
 
+export async function getIsLight(): Promise<boolean> {
+  return (await getEffectiveTheme()) === "light";
+}
+
 let themeManagerInitialized = false;
 
 export async function initThemeManager() {
