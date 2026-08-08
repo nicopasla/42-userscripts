@@ -8,8 +8,8 @@ import {
 import { getEffectiveTheme } from "../theme/theme-manager.ts";
 import {
   INITIAL_VISIBLE_COUNT,
-  PISCINE_MONTHS,
   WINDOW_STEP,
+  fetchPiscines,
   fetchPisciners,
   fetchStudents,
   poolIntakes,
@@ -22,7 +22,7 @@ import {
 } from "./template.ts";
 import type {
   FilterKey,
-  PiscineMonth,
+  PiscineEntry,
   SortField,
   SortDir,
   StudentEntry,
@@ -52,8 +52,7 @@ export async function openStudentsDialog() {
   let filter: StudentsFilter = "none";
   let poolIntake: { month: number; year: number } | null = null;
   let poolYear: number | null = null;
-  let selectedMonth: PiscineMonth = PISCINE_MONTHS[0];
-  let selectedYear = currentYear;
+  let selectedPiscine: { year: number; month: number } | null = null;
 
   const toggleFilter = (key: FilterKey) => {
     filter = filter === key ? "none" : key;
@@ -109,28 +108,10 @@ export async function openStudentsDialog() {
     rerender();
   };
 
-  const saved = (await chrome.storage.local.get("STUDENTS_SELECTION")) as {
-    STUDENTS_SELECTION?: { month: number; year: number };
-  };
-  if (saved.STUDENTS_SELECTION) {
-    const m = PISCINE_MONTHS.find(
-      (x) => x.value === saved.STUDENTS_SELECTION!.month,
-    );
-    if (m) selectedMonth = m;
-    const y = saved.STUDENTS_SELECTION.year;
-    if (y >= 2023 && y <= currentYear) selectedYear = y;
-  }
-
-  const saveSelection = () => {
-    chrome.storage.local.set({
-      STUDENTS_SELECTION: {
-        month: selectedMonth.value,
-        year: selectedYear,
-      },
-    });
-  };
-
   let entries: StudentEntry[] = [];
+  let piscineList: PiscineEntry[] = [];
+  let piscineListLoading = false;
+  let piscineListLoaded = false;
   let loading = true;
   let lastFetched = 0;
   let query = "";
@@ -213,8 +194,13 @@ export async function openStudentsDialog() {
     authError = false;
     rerender();
     let res: Awaited<ReturnType<typeof fetchStudents>>;
-    if (tab === "pisciners") {
-      res = await fetchPisciners(selectedYear, selectedMonth.value);
+    if (tab === "pisciners" && selectedPiscine) {
+      res = await fetchPisciners(
+        selectedPiscine.year,
+        selectedPiscine.month,
+      );
+    } else if (tab === "pisciners") {
+      res = null;
     } else {
       res = await fetchStudents();
     }
@@ -240,6 +226,27 @@ export async function openStudentsDialog() {
     rerender();
   };
 
+  const loadPiscineList = async () => {
+    if (piscineListLoaded) {
+      rerender();
+      return;
+    }
+    piscineListLoading = true;
+    rerender();
+    const res = await fetchPiscines();
+    if (res?.unauthorized) {
+      piscineList = [];
+      authError = true;
+    } else if (res?.data) {
+      piscineList = res.data.data || [];
+    } else {
+      piscineList = [];
+    }
+    piscineListLoading = false;
+    piscineListLoaded = true;
+    rerender();
+  };
+
   const switchTab = async (t: StudentsTab) => {
     if (tab === t) return;
     tab = t;
@@ -248,6 +255,12 @@ export async function openStudentsDialog() {
     poolIntake = null;
     poolYear = null;
     visibleCount = INITIAL_VISIBLE_COUNT;
+    if (tab === "pisciners") {
+      selectedPiscine = null;
+      rerender();
+      await loadPiscineList();
+      return;
+    }
     rerender();
     await load();
   };
@@ -266,16 +279,15 @@ export async function openStudentsDialog() {
       if (searchTimeout !== null) window.clearTimeout(searchTimeout);
       searchTimeout = window.setTimeout(() => rerender(), 150);
     },
-    onPiscineMonth: (value) => {
-      selectedMonth =
-        PISCINE_MONTHS.find((m) => m.value === value) || PISCINE_MONTHS[0];
-      saveSelection();
+    onSelectPiscine: (year, month) => {
+      selectedPiscine = { year, month };
+      visibleCount = INITIAL_VISIBLE_COUNT;
       void load();
     },
-    onPiscineYear: (year) => {
-      selectedYear = year;
-      saveSelection();
-      void load();
+    onBackToPiscines: () => {
+      selectedPiscine = null;
+      visibleCount = INITIAL_VISIBLE_COUNT;
+      rerender();
     },
     onPoolIntake: (value) => {
       poolIntake =
@@ -311,8 +323,9 @@ export async function openStudentsDialog() {
     filter,
     poolIntake,
     poolYear,
-    selectedMonth,
-    selectedYear,
+    piscineList,
+    piscineListLoading,
+    selectedPiscine,
     entries,
     loading,
     lastFetched,
