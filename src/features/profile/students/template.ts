@@ -56,7 +56,7 @@ export interface StudentsTemplateState {
   poolYear: number | null;
   piscineList: PiscineEntry[];
   piscineListLoading: boolean;
-  selectedPiscine: { year: number; month: number } | null;
+  selectedPiscine: { year: number; month: number; cursus: number } | null;
   entries: StudentEntry[];
   loading: boolean;
   lastFetched: number;
@@ -73,7 +73,7 @@ export interface StudentsTemplateHandlers {
   onToggleFilter: (key: FilterKey) => void;
   onClose: () => void;
   onSearchInput: (value: string) => void;
-  onSelectPiscine: (year: number, month: number) => void;
+  onSelectPiscine: (year: number, month: number, cursus: number) => void;
   onBackToPiscines: () => void;
   onPoolIntake: (value: number) => void;
   onPoolYear: (value: number) => void;
@@ -304,8 +304,7 @@ export function renderStudentsDialogTemplate(
       ${rows.map(
         (r) =>
           html`<div
-            class="row ${(tab === "students" || tab === "pisciners") &&
-            r.active === false
+            class="row ${tab === "students" && r.active === false
               ? "inactive"
               : ""}"
             @click="${() => {
@@ -880,7 +879,7 @@ export function renderStudentsDialogTemplate(
                     ${piscineListFiltered.map((p) => html`<div
                       class="row piscine-card"
                       @click="${() =>
-                        handlers.onSelectPiscine(p.year, p.month)}"
+                        handlers.onSelectPiscine(p.year, p.month, p.cursus)}"
                     >
                       <span class="piscine-card__month"
                         >${piscineMonthName(p.month)}</span

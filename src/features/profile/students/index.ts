@@ -52,7 +52,8 @@ export async function openStudentsDialog() {
   let filter: StudentsFilter = "none";
   let poolIntake: { month: number; year: number } | null = null;
   let poolYear: number | null = null;
-  let selectedPiscine: { year: number; month: number } | null = null;
+  let selectedPiscine: { year: number; month: number; cursus: number } | null =
+    null;
 
   const toggleFilter = (key: FilterKey) => {
     filter = filter === key ? "none" : key;
@@ -198,6 +199,7 @@ export async function openStudentsDialog() {
       res = await fetchPisciners(
         selectedPiscine.year,
         selectedPiscine.month,
+        selectedPiscine.cursus,
       );
     } else if (tab === "pisciners") {
       res = null;
@@ -279,8 +281,8 @@ export async function openStudentsDialog() {
       if (searchTimeout !== null) window.clearTimeout(searchTimeout);
       searchTimeout = window.setTimeout(() => rerender(), 150);
     },
-    onSelectPiscine: (year, month) => {
-      selectedPiscine = { year, month };
+    onSelectPiscine: (year, month, cursus) => {
+      selectedPiscine = { year, month, cursus };
       visibleCount = INITIAL_VISIBLE_COUNT;
       void load();
     },
