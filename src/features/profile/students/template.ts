@@ -110,10 +110,11 @@ const STATUS_FILTERS: Array<{
 function renderFilterMenu(
   state: StudentsTemplateState,
   handlers: StudentsTemplateHandlers,
+  poolEntries: StudentEntry[],
 ): TemplateResult {
-  const { filter, poolIntake, poolYear } = state;
-  const poolYears = poolYearOptions(state.entries, state.currentYear);
-  const intakes = poolIntakes(state.entries, state.currentYear);
+  const { filter, poolIntake, poolYear, tab } = state;
+  const poolYears = poolYearOptions(poolEntries, state.currentYear);
+  const intakes = poolIntakes(poolEntries, state.currentYear);
 
   return html`
     <div
@@ -154,28 +155,35 @@ function renderFilterMenu(
         )}
       </select>
       <div class="divider my-1"></div>
-      <span class="students-filter-menu__label">Status</span>
-      ${STATUS_FILTERS.map(
-        (f) => html`
-          <button
-            class="btn btn-md justify-start ${f.color} ${filter !== "none" &&
-            filter !== f.key
-              ? "opacity-40"
-              : ""}"
-            @click="${() => handlers.onToggleFilter(f.key)}"
-          >
-            ${unsafeHTML(f.icon.replace("<svg", '<svg width="16" height="16"'))}
-            ${f.label}
-            ${filter === f.key
-              ? html`<span class="ml-auto"
-                  >${unsafeHTML(
-                    CHECK_SVG.replace("<svg", '<svg width="14" height="14"'),
-                  )}</span
-                >`
-              : ""}
-          </button>
-        `,
-      )}
+      ${tab === "students"
+        ? html`<span class="students-filter-menu__label">Status</span>
+            ${STATUS_FILTERS.map(
+              (f) => html`
+                <button
+                  class="btn btn-md justify-start ${f.color} ${filter !==
+                    "none" && filter !== f.key
+                    ? "opacity-40"
+                    : ""}"
+                  @click="${() => handlers.onToggleFilter(f.key)}"
+                >
+                  ${unsafeHTML(
+                    f.icon.replace("<svg", '<svg width="16" height="16"'),
+                  )}
+                  ${f.label}
+                  ${filter === f.key
+                    ? html`<span class="ml-auto"
+                        >${unsafeHTML(
+                          CHECK_SVG.replace(
+                            "<svg",
+                            '<svg width="14" height="14"',
+                          ),
+                        )}</span
+                      >`
+                    : ""}
+                </button>
+              `,
+            )}`
+        : ""}
     </div>
   `;
 }
@@ -203,6 +211,7 @@ export function renderStudentsDialogTemplate(
   const years = yearOptions(currentYear);
   const hasActiveFilters =
     filter !== "none" || poolIntake != null || poolYear != null;
+  const showPoolFilter = tab === "students" || tab === "new";
   const ago = lastFetched ? formatTimeAgo(lastFetched) : "";
   const normalize = (s: string) =>
     s
@@ -229,16 +238,14 @@ export function renderStudentsDialogTemplate(
     if (filter === "blackhole" && !isBlackholed(e)) return false;
     if (filter === "alumni" && !e.alumni) return false;
     if (filter === "freeze" && !isFrozen(e)) return false;
-    if (tab === "students") {
-      if (poolIntake != null) {
-        if (
-          e.pool_year !== String(poolIntake.year) ||
-          e.pool_month?.toLowerCase() !== poolMonthName(poolIntake.month)
-        )
-          return false;
-      } else if (poolYear != null && e.pool_year !== String(poolYear)) {
+    if (poolIntake != null) {
+      if (
+        e.pool_year !== String(poolIntake.year) ||
+        e.pool_month?.toLowerCase() !== poolMonthName(poolIntake.month)
+      )
         return false;
-      }
+    } else if (poolYear != null && e.pool_year !== String(poolYear)) {
+      return false;
     }
     return !q || normalize(`${e.login} ${e.displayname}`).includes(q);
   });
@@ -251,12 +258,8 @@ export function renderStudentsDialogTemplate(
         )
       : filter === "alumni"
         ? [...filtered].sort((a, b) => {
-            const ta = a.alumnized_at
-              ? new Date(a.alumnized_at).getTime()
-              : 0;
-            const tb = b.alumnized_at
-              ? new Date(b.alumnized_at).getTime()
-              : 0;
+            const ta = a.alumnized_at ? new Date(a.alumnized_at).getTime() : 0;
+            const tb = b.alumnized_at ? new Date(b.alumnized_at).getTime() : 0;
             return tb - ta;
           })
         : filtered;
@@ -676,7 +679,7 @@ export function renderStudentsDialogTemplate(
             @input="${(e: Event) =>
               handlers.onSearchInput((e.target as HTMLInputElement).value)}"
           />
-          ${tab === "students"
+          ${showPoolFilter
             ? html`<div class="indicator">
                   ${hasActiveFilters
                     ? html`<span
@@ -705,7 +708,11 @@ export function renderStudentsDialogTemplate(
                         ),
                       )}
                     </summary>
-                    ${renderFilterMenu(state, handlers)}
+                    ${renderFilterMenu(
+                      state,
+                      handlers,
+                      tab === "new" ? intakeFiltered : entries,
+                    )}
                   </details>
                 </div>
                 ${hasActiveFilters
@@ -720,7 +727,7 @@ export function renderStudentsDialogTemplate(
                           '<svg width="16" height="16"',
                         ),
                       )}
-                      Clear filters
+                      Clear
                     </button>`
                   : ""}
                 <div class="mx-0.5 h-6 w-px bg-base-content/20"></div>`
