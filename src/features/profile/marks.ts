@@ -12,6 +12,8 @@ import CHEVRON_DOWN_SVG from "../../assets/svg/chevron-down.svg?raw";
 
 const WORKER_URL = "https://api.betterintra.com";
 
+const OUTSTANDING_CACHE_TTL_MS = 60 * 1000;
+
 const DATE_COLUMN_WIDTH = "150px";
 const SCORE_COLUMN_WIDTH = "24px";
 
@@ -161,7 +163,7 @@ async function fetchOutstandingProjects(
   if (raw && typeof raw === "string") {
     const parsed = JSON.parse(raw);
     const age = Date.now() - parsed.fetchedAt;
-    if (age < 12 * 60 * 60 * 1000 && count === parsed.count) {
+    if (age < OUTSTANDING_CACHE_TTL_MS && count === parsed.count) {
       if (!targetLogin) outstandingCache = parsed.ids;
       return parsed.ids;
     }
@@ -214,11 +216,6 @@ async function fetchMarks(
 ): Promise<MarkedProject[]> {
   const url = `https://intrapy.intra.42.fr/api/v1/users/${login}/projects/marked?cursus_id=${cursusId}`;
   try {
-    let outstandingPromise: Promise<Record<number, number>> | undefined;
-    if (!targetLogin) {
-      outstandingPromise = fetchOutstandingProjects();
-    }
-
     const res = await fetch(url, {
       headers: { Authorization: token },
     });
@@ -229,8 +226,8 @@ async function fetchMarks(
     const filtered = data.filter((p) => p.final_mark !== null);
 
     const outstanding = targetLogin
-      ? await fetchOutstandingProjects(targetLogin, filtered.length)
-      : await outstandingPromise!;
+      ? {}
+      : await fetchOutstandingProjects(undefined, filtered.length);
 
     const outstandingCount = Object.keys(outstanding).length;
     let starredCount = 0;
@@ -618,33 +615,41 @@ async function injectStarTotalBadge(
   }
 }
 
+function collectEntries(
+  card: HTMLElement,
+): { el: HTMLElement; projectsUserId: number }[] {
+  const container = card.querySelector<HTMLElement>(".flex.flex-col.gap-2");
+  if (!container) return [];
+  const items = container.querySelectorAll<HTMLElement>(":scope > div");
+  const entries: { el: HTMLElement; projectsUserId: number }[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const link = items[i].querySelector<HTMLAnchorElement>(
+      "a[href*='projects_users']",
+    );
+    if (!link) continue;
+    const match = link.href.match(/projects_users\/(\d+)/);
+    if (!match) continue;
+    entries.push({ el: items[i], projectsUserId: Number(match[1]) });
+  }
+  return entries;
+}
+
 async function enhanceExistingMarks(
   card: HTMLElement,
   targetLogin: string,
   marks?: MarkedProject[],
 ): Promise<boolean> {
-  if (card.dataset.ftEnhanced === "true") return true;
   let attempts = 0;
   while (attempts < 30) {
     const container = card.querySelector<HTMLElement>(".flex.flex-col.gap-2");
     if (container) {
       const items = container.querySelectorAll<HTMLElement>(":scope > div");
       if (items.length > 0) {
-        const entries: { el: HTMLElement; projectsUserId: number }[] = [];
-        for (let i = 0; i < items.length; i++) {
-          const link = items[i].querySelector<HTMLAnchorElement>(
-            "a[href*='projects_users']",
-          );
-          if (!link) continue;
-          const match = link.href.match(/projects_users\/(\d+)/);
-          if (!match) continue;
-          entries.push({ el: items[i], projectsUserId: Number(match[1]) });
-        }
+        const entries = collectEntries(card);
         const outstanding = await fetchOutstandingProjects(
           targetLogin,
-          entries.length,
+          marks?.length ?? entries.length,
         );
-        let starred = 0;
         let starTotal = 0;
         for (const entry of entries) {
           const count = outstanding[entry.projectsUserId];
@@ -667,7 +672,6 @@ async function enhanceExistingMarks(
           star.dataset.starCount = String(count);
           star.textContent = "⭐".repeat(count);
           link.parentElement?.appendChild(star);
-          starred++;
         }
 
         if (starTotal > 0) await injectStarTotalBadge(card, starTotal);
@@ -896,6 +900,7 @@ async function enhanceExistingMarks(
         });
         for (const entry of sortedEntries) container.appendChild(entry);
 
+        card.dataset.ftEntries = String(entries.length);
         card.dataset.ftEnhanced = "true";
         return true;
       }
@@ -969,7 +974,12 @@ export async function initMarks() {
     if (token && cursusId) {
       const key = `OTHER_${targetLogin}_${cursusId}`;
       if (!marksCache[key]) {
-        marksCache[key] = await fetchMarks(targetLogin, token, cursusId);
+        marksCache[key] = await fetchMarks(
+          targetLogin,
+          token,
+          cursusId,
+          targetLogin,
+        );
       }
       marksData = marksCache[key];
     }
@@ -991,7 +1001,9 @@ export async function initMarks() {
         if (enhancing) return;
         const marksCard = findCard("MARKS");
         if (!marksCard || !wrapper.contains(marksCard)) return;
-        if (marksCard.dataset.ftEnhanced === "true") return;
+        const lastCount = Number(marksCard.dataset.ftEntries || 0);
+        const currentCount = collectEntries(marksCard).length;
+        if (currentCount <= lastCount) return;
         enhancing = true;
         void enhanceExistingMarks(marksCard, targetLogin, marksData).finally(
           () => {
