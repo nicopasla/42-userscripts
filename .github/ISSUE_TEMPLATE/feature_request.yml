@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest an idea or improvement for Better Intra
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature for Better Intra. Please describe what you'd like to see.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature area
+      description: Which part of Better Intra is this about?
+      multiple: false
+      options:
+        - Profile
+        - Logtime
+        - Clusters
+        - Evaluations
+        - Hub / Settings
+        - Popup
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the feature and the problem it solves.
+      placeholder: Tell us what you'd like and why...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How do you imagine it working?
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds or alternative approaches you've thought of?
+    validations:
+      required: false
