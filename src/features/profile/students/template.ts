@@ -64,6 +64,7 @@ export interface StudentsTemplateState {
   authError: boolean;
   visibleCount: number;
   currentYear: number;
+  copiedLogin: string | null;
 }
 
 export interface StudentsTemplateHandlers {
@@ -78,6 +79,7 @@ export interface StudentsTemplateHandlers {
   onPoolIntake: (value: number) => void;
   onPoolYear: (value: number) => void;
   onClearFilters: () => void;
+  onCopyLogin: (login: string) => void;
 }
 
 const STATUS_FILTERS: Array<{
@@ -206,6 +208,7 @@ export function renderStudentsDialogTemplate(
     authError,
     visibleCount,
     currentYear,
+    copiedLogin,
   } = state;
 
   const hasActiveFilters =
@@ -370,7 +373,16 @@ export function renderStudentsDialogTemplate(
                     </span>`
                   : ""}
               </div>
-              <div class="login">${r.login}</div>
+              <div
+                class="login ${r.login === copiedLogin ? "copied" : ""}"
+                data-tip="Copy login"
+                @click="${(e: Event) => {
+                  e.stopPropagation();
+                  handlers.onCopyLogin(r.login);
+                }}"
+              >
+                ${r.login === copiedLogin ? "Copied ✓" : r.login}
+              </div>
             </div>
             <div class="row-meta">
               ${tab !== "new" && typeof r.level === "number"
@@ -529,6 +541,21 @@ export function renderStudentsDialogTemplate(
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        cursor: copy;
+        border-radius: 0.25rem;
+        display: inline-block;
+        max-width: 100%;
+        vertical-align: bottom;
+      }
+      .login:hover {
+        opacity: 1;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .login.copied {
+        color: var(--color-success);
+        font-weight: 700;
+        opacity: 1;
       }
       .row-meta {
         display: flex;

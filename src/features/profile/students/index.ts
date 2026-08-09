@@ -119,6 +119,8 @@ export async function openStudentsDialog() {
   let authError = false;
   let visibleCount = INITIAL_VISIBLE_COUNT;
   let searchTimeout: number | null = null;
+  let copiedLogin: string | null = null;
+  let copiedLoginTimeout: number | null = null;
   let sentinelObserver: IntersectionObserver | null = null;
 
   const dialog = Object.assign(document.createElement("dialog"), {
@@ -151,6 +153,7 @@ export async function openStudentsDialog() {
       sentinelObserver = null;
     }
     if (searchTimeout !== null) window.clearTimeout(searchTimeout);
+    if (copiedLoginTimeout !== null) window.clearTimeout(copiedLoginTimeout);
     dialog.close();
     dialog.remove();
   };
@@ -313,6 +316,17 @@ export async function openStudentsDialog() {
       visibleCount = INITIAL_VISIBLE_COUNT;
       rerender();
     },
+    onCopyLogin: (login) => {
+      void navigator.clipboard.writeText(login);
+      copiedLogin = login;
+      if (copiedLoginTimeout !== null) window.clearTimeout(copiedLoginTimeout);
+      copiedLoginTimeout = window.setTimeout(() => {
+        copiedLoginTimeout = null;
+        copiedLogin = null;
+        rerender();
+      }, 1500);
+      rerender();
+    },
   };
 
   const buildState = (): StudentsTemplateState => ({
@@ -335,6 +349,7 @@ export async function openStudentsDialog() {
     authError,
     visibleCount,
     currentYear,
+    copiedLogin,
   });
 
   const rerender = () => {
