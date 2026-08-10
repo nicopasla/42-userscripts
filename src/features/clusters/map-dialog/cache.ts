@@ -5,10 +5,6 @@ const SVG_URLS_CACHE_PREFIX = "CLUSTER_SVG_URLS_V1_";
 const META_BASE = "https://meta.intra.42.fr/";
 const CACHE_TTL = 7 * 24 * 60 * 60_000;
 
-const dbg = (...args: unknown[]) => {
-  console.log("%c[CLUSTER-MAP]", "color:#22d3ee;font-weight:bold", ...args);
-};
-
 export interface CachedCluster {
   svg: string;
   seats: [string, SeatPos][];
@@ -86,24 +82,19 @@ export async function scrapeCampusSVGUrls(
   };
   const entry = cached[cacheKey];
   if (entry && Date.now() - entry.cachedAt <= CACHE_TTL) {
-    dbg("scrapeCampusSVGUrls: cache hit for", campusId, Object.keys(entry.data).length, "clusters");
     return entry.data;
   }
   try {
     const url = campusId
       ? `https://meta.intra.42.fr/campus/${campusId}/clusters`
       : "https://meta.intra.42.fr/clusters";
-    dbg("scrapeCampusSVGUrls: fetching", url);
     const res = await fetch(url, {
       headers: { Accept: "text/html" },
       credentials: "include",
     });
-    dbg("scrapeCampusSVGUrls: status =", res.status);
     if (res.ok) {
       const html = await res.text();
-      dbg("scrapeCampusSVGUrls: html length =", html.length);
       const data = parseClusterPanes(html);
-      dbg("scrapeCampusSVGUrls: parsed", Object.keys(data).length, "svg urls:", data);
       if (Object.keys(data).length > 0) {
         chrome.storage.local.set({
           [cacheKey]: { data, cachedAt: Date.now() },
@@ -111,8 +102,7 @@ export async function scrapeCampusSVGUrls(
       }
       return data;
     }
-  } catch (e) {
-    dbg("scrapeCampusSVGUrls ERROR:", e);
+  } catch {
   }
   return {};
 }

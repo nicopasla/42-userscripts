@@ -6,7 +6,6 @@ import {
   getClusterData,
   fetchCampusList,
   clearClusterData,
-  SCREENS,
 } from "./clusters.data.ts";
 import {
   getEffectiveTheme,
@@ -73,10 +72,6 @@ const WORKER_URL = "https://api.betterintra.com";
 const CLUSTERS_JSON_URL = "https://meta.intra.42.fr/clusters.json";
 const POLL_INTERVAL = 60_000;
 
-const dbg = (...args: unknown[]) => {
-  console.log("%c[CLUSTER-MAP]", "color:#22d3ee;font-weight:bold", ...args);
-};
-
 export function formatCampusClock(timezone?: string): string {
   if (!timezone) return "";
   try {
@@ -105,13 +100,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   if (document.getElementById("cluster-map-dialog")) return;
 
   const detectedCampus = (await getConfig("CLUSTERS_CAMPUS")) || "";
-  dbg(
-    "page origin =",
-    window.location.origin,
-    "path =",
-    window.location.pathname,
-  );
-  dbg("detectedCampus =", detectedCampus);
 
   const [presetKeyRaw, defaultId, showMarkersVal] = await Promise.all([
     getConfig("PROFILE_THEME_PRESET"),
@@ -129,13 +117,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     campusOptions.sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
     );
-    dbg("campus manifest OK,", campusOptions.length, "campuses");
-    dbg(
-      "campusOptions =",
-      campusOptions.map((c) => c.name),
-    );
-  } catch (e) {
-    dbg("fetchCampusList FAILED:", e);
+  } catch {
   }
   let activeCampusId = detectedCampus;
   if (activeCampusId && !campusOptions.some((c) => c.id === activeCampusId)) {
@@ -146,39 +128,26 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   }
 
   const buildClusters = async (campusId: string): Promise<ClusterInfo[]> => {
-    dbg("buildClusters(campusId=", campusId, ")");
     let repoClusters: { id: string; name: string }[] = [];
     try {
       const data = await getClusterData(campusId);
       repoClusters = data.clusters;
-      dbg("getClusterData OK,", repoClusters.length, "repo clusters");
-    } catch (e) {
-      dbg("getClusterData FAILED:", e);
+    } catch {
       clearClusterData();
     }
     const svgs = await scrapeCampusSVGUrls(campusId);
-    dbg("scraped svg urls:", svgs);
     const list: ClusterInfo[] = [];
     for (const c of repoClusters) {
       const svg = svgs[c.id];
       if (svg) list.push({ id: c.id, name: c.name || "", svg });
-      else dbg("cluster", c.id, c.name, "has no scraped svg url");
     }
     for (const [id, svg] of Object.entries(svgs)) {
       if (!list.some((c) => c.id === id)) list.push({ id, name: "", svg });
     }
-    dbg(
-      "buildClusters ->",
-      list.map((c) => ({ id: c.id, name: c.name, svg: c.svg })),
-    );
     return list;
   };
 
   let clusters = await buildClusters(activeCampusId);
-  dbg(
-    "openClusterDialog clusters =",
-    clusters.map((c) => c.id),
-  );
 
   const keyOf = (campusId: string, clusterId: string) =>
     `${campusId}:${clusterId}`;
@@ -268,31 +237,20 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     signal?: AbortSignal,
   ): Promise<string | null> => {
     if (!c.svg) {
-      dbg("ensureClusterData: no svg url for", c.id);
       return null;
     }
     const key = keyOf(campusId, c.id);
     try {
       if (seatPosCache.has(key) && svgViewBoxes.has(key)) {
-        dbg("ensureClusterData:", key, "in-memory cached");
         return "cached";
       }
       let cached = await getCachedCluster(campusId, c.id);
-      dbg(
-        "ensureClusterData:",
-        key,
-        "storage cache =",
-        cached ? "hit" : "miss",
-      );
       let svgText = cached?.svg;
       if (!svgText) {
         const url = `${WORKER_URL}/api/v1/cluster/svg?url=${encodeURIComponent(c.svg)}`;
-        dbg("ensureClusterData: fetching svg via worker:", url);
         const res = await fetch(url, { signal });
-        dbg("ensureClusterData: worker svg fetch status =", res.status);
         if (!res.ok) return null;
         svgText = await res.text();
-        dbg("ensureClusterData: svgText length =", svgText.length);
       }
       if (!svgViewBoxes.has(key)) {
         const svgDoc = new DOMParser().parseFromString(
@@ -308,16 +266,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
           .map(Number);
         svgViewBoxes.set(key, { w: vb[2] || 1200, h: vb[3] || 800 });
         seatPosCache.set(key, seatMap);
-        dbg(
-          "ensureClusterData:",
-          key,
-          "parsed; seats =",
-          seatMap.size,
-          "viewBox =",
-          { w: vb[2], h: vb[3] },
-          "title =",
-          title || "(none)",
-        );
         setCachedCluster(campusId, c.id, {
           svg: svgText,
           seats: [...seatMap],
@@ -326,8 +274,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         }).catch(() => {});
       }
       return svgText;
-    } catch (e) {
-      dbg("ensureClusterData ERROR for", key, ":", e);
+    } catch {
       return null;
     }
   };
@@ -897,15 +844,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     }
     const positions = seatPosCache.get(keyOf(activeCampusId, activeCluster.id));
     const viewBox = svgViewBoxes.get(keyOf(activeCampusId, activeCluster.id));
-    dbg(
-      "applyOccupancy: positions =",
-      positions?.size ?? null,
-      "viewBox =",
-      viewBox,
-      "for",
-      activeCampusId,
-      activeCluster.id,
-    );
     if (positions && viewBox) {
       renderSeatOverlays(shadow, workCopy, positions, viewBox);
     }
@@ -986,12 +924,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         activeCampusId,
         abortController.signal,
       );
-      dbg(
-        "loadOccupancy: got",
-        occupancy.size,
-        "entries for campus",
-        activeCampusId,
-      );
       occupancyCache = occupancy;
       lastUpdated = Date.now();
       applyOccupancy(occupancy);
@@ -1068,20 +1000,14 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     }
 
     try {
-      dbg("loadCluster: loading", cluster.id, "campus", activeCampusId);
       const svgText = await ensureClusterData(
         cluster,
         activeCampusId,
         abortController.signal,
       );
-      dbg(
-        "loadCluster: ensureClusterData returned",
-        typeof svgText === "string" ? svgText.length + " chars" : svgText,
-      );
       if (!svgText) {
         if (id !== loadId) return;
         mapArea.replaceChildren();
-        dbg("loadCluster: no svgText, map cleared for", cluster.id);
         return;
       }
       if (id !== loadId) return;
@@ -1092,52 +1018,17 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
 
       mapArea.style.position = "relative";
       const imported = document.importNode(svgDoc.documentElement, true);
-      dbg(
-        "loadCluster: imported svg element =",
-        imported.tagName,
-        "children =",
-        imported.children.length,
-      );
       const centeringWrap = document.createElement("div");
       centeringWrap.style.cssText =
         "display:flex;justify-content:center;align-items:flex-start;min-height:100%;";
       centeringWrap.appendChild(imported);
       mapArea.replaceChildren(centeringWrap);
       const svgEl = mapArea.querySelector("svg") as SVGSVGElement | null;
-      dbg(
-        "loadCluster: svg injected into #map-area, svg children =",
-        svgEl?.children.length,
-      );
-      if (svgEl) {
-        const r = svgEl.getBoundingClientRect();
-        const cs = getComputedStyle(svgEl);
-        const mr = mapArea.getBoundingClientRect();
-        const root = shadow.querySelector("[data-theme]") as HTMLElement | null;
-        const wrap = centeringWrap.getBoundingClientRect();
-        dbg(
-          "loadCluster: svg rect =",
-          { w: r.width, h: r.height, x: r.x, y: r.y },
-          "mapArea rect =",
-          { w: mr.width, h: mr.height, x: mr.x, y: mr.y },
-          "wrap rect =",
-          { w: wrap.width, h: wrap.height, x: wrap.x, y: wrap.y },
-          "root flexDirection =",
-          root ? getComputedStyle(root).flexDirection : "?",
-          "computed =",
-          { display: cs.display, width: cs.width, height: cs.height },
-          "viewBox =",
-          svgEl.getAttribute("viewBox"),
-        );
-      }
       const zp = shadow.querySelector(".zoom-pct") as HTMLElement | null;
       if (zp) zp.textContent = "100%";
       mapArea.scrollTop = 0;
       mapArea.scrollLeft = 0;
       applyMarkers(mapArea, showMarkers);
-      dbg(
-        "loadCluster: markers applied, SCREENS keys =",
-        Object.keys(SCREENS).length,
-      );
 
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
@@ -1189,9 +1080,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       if (id !== loadId) return;
 
       reapplyOccupancy();
-      dbg("loadCluster: done for", cluster.id);
-    } catch (e) {
-      dbg("loadCluster ERROR for", cluster.id, ":", e);
+    } catch {
       if (id !== loadId) return;
       retryCount++;
       if (retryCount <= 1) {
@@ -1293,7 +1182,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     const targets = matches.length > 0 ? Array.from(matches) : [];
     if (overlayLink) targets.push(overlayLink);
     if (targets.length === 0) {
-      dbg("flashSeat: no element for", seatId);
       return;
     }
     svg
@@ -1308,13 +1196,11 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   };
 
   const loadCampus = async (campusId: string) => {
-    dbg("loadCampus:", campusId);
     activeCampusId = campusId;
     zoomLevel = 1.0;
     loadId++;
     clusters = await buildClusters(campusId);
     if (!clusters.some((c) => c.svg)) {
-      dbg("loadCampus: no cluster data for", campusId);
       const mapArea = shadow.getElementById("map-area");
       if (mapArea) {
         const div = document.createElement("div");
@@ -1327,7 +1213,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     }
     activeCluster = clusters.find((c) => c.id === defaultId) ||
       clusters[0] || { id: "wifi", name: "Wi-Fi" };
-    dbg("loadCampus: activeCluster =", activeCluster.id);
     const trigger = shadow.getElementById("campus-trigger");
     if (trigger) {
       const name =
@@ -1405,13 +1290,11 @@ async function fetchOccupancy(
   const url = campusId
     ? `https://meta.intra.42.fr/campus/${campusId}/clusters.json`
     : CLUSTERS_JSON_URL;
-  dbg("fetchOccupancy url =", url);
   try {
     const res = await fetch(url, {
       credentials: "include",
       signal,
     });
-    dbg("fetchOccupancy status =", res.status);
     if (!res.ok) return new Map();
     const data = (await res.json()) as Record<string, OccupancyEntry>;
     const map = new Map<string, OccupancyEntry>();
