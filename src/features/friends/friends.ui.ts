@@ -442,9 +442,22 @@ function renderWidget(state: WidgetState) {
         min-width: unset !important;
       }
 
+      .friends-fab .swap {
+        width: 30px;
+        height: 30px;
+      }
+
+      .friends-fab .swap > * {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
       .friends-fab .swap-off svg {
-        width: clamp(22px, 3vw, 34px);
-        height: clamp(22px, 3vw, 34px);
+        width: 100%;
+        height: 100%;
       }
 
       .friends-dropdown {
@@ -507,9 +520,9 @@ function renderWidget(state: WidgetState) {
                   </div>`
                 : html`
                     <div class="swap ${state.open ? "swap-active" : ""}">
-                      <span class="swap-on text-lg">✕</span>
+                      <span class="swap-on text-3xl">✕</span>
                       <span
-                        class="swap-off flex items-center justify-center w-6 h-6 [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current"
+                        class="swap-off flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current"
                         >${unsafeHTML(FRIENDS_SVG)}</span
                       >
                     </div>
@@ -840,6 +853,14 @@ export async function injectFriendsWidget() {
   }
 
   renderWidgetUI();
+
+  const closeOnOutsideClick = (e: Event) => {
+    if (!_state || !_state.open) return;
+    if (e.composedPath().includes(_host!)) return;
+    _state.open = false;
+    renderWidgetUI();
+  };
+  document.addEventListener("click", closeOnOutsideClick);
 
   const pendingPull = (await chrome.storage.local.get("PENDING_SETTINGS_PULL"))
     .PENDING_SETTINGS_PULL;
