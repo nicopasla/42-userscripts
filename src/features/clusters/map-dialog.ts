@@ -8,13 +8,21 @@ import {
   clearClusterData,
   SCREENS,
 } from "./clusters.data.ts";
-import { getEffectiveTheme, getIsLight } from "../profile/theme/theme-manager.ts";
+import {
+  getEffectiveTheme,
+  getIsLight,
+} from "../profile/theme/theme-manager.ts";
 import { getCampusFlag } from "../profile/campus-flags.ts";
 import { bindTooltips } from "../../utils/tooltip.ts";
 import RELOAD_SVG from "../../assets/svg/reload.svg?raw";
 import CLOCK_SVG from "../../assets/svg/clock.svg?raw";
+import RESET_SVG from "../../assets/svg/reset.svg?raw";
 import { SeatPos } from "./map-dialog/crop.ts";
-import { sanitizeAndParseSeats, applyMarkers, getSvgTitle } from "./map-dialog/seats.ts";
+import {
+  sanitizeAndParseSeats,
+  applyMarkers,
+  getSvgTitle,
+} from "./map-dialog/seats.ts";
 import {
   getCachedCluster,
   setCachedCluster,
@@ -97,7 +105,12 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   if (document.getElementById("cluster-map-dialog")) return;
 
   const detectedCampus = (await getConfig("CLUSTERS_CAMPUS")) || "";
-  dbg("page origin =", window.location.origin, "path =", window.location.pathname);
+  dbg(
+    "page origin =",
+    window.location.origin,
+    "path =",
+    window.location.pathname,
+  );
   dbg("detectedCampus =", detectedCampus);
 
   const [presetKeyRaw, defaultId, showMarkersVal] = await Promise.all([
@@ -117,7 +130,10 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
     );
     dbg("campus manifest OK,", campusOptions.length, "campuses");
-    dbg("campusOptions =", campusOptions.map((c) => c.name));
+    dbg(
+      "campusOptions =",
+      campusOptions.map((c) => c.name),
+    );
   } catch (e) {
     dbg("fetchCampusList FAILED:", e);
   }
@@ -151,12 +167,18 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     for (const [id, svg] of Object.entries(svgs)) {
       if (!list.some((c) => c.id === id)) list.push({ id, name: "", svg });
     }
-    dbg("buildClusters ->", list.map((c) => ({ id: c.id, name: c.name, svg: c.svg })));
+    dbg(
+      "buildClusters ->",
+      list.map((c) => ({ id: c.id, name: c.name, svg: c.svg })),
+    );
     return list;
   };
 
   let clusters = await buildClusters(activeCampusId);
-  dbg("openClusterDialog clusters =", clusters.map((c) => c.id));
+  dbg(
+    "openClusterDialog clusters =",
+    clusters.map((c) => c.id),
+  );
 
   const keyOf = (campusId: string, clusterId: string) =>
     `${campusId}:${clusterId}`;
@@ -175,8 +197,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   const targetCluster = targetSeat
     ? findClusterForSeat(clusters, targetSeat)
     : undefined;
-  let activeCluster =
-    targetCluster ||
+  let activeCluster = targetCluster ||
     clusters.find((c) => c.id === defaultId) ||
     clusters[0] || { id: "wifi", name: "Wi-Fi" };
   let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -189,6 +210,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   let showMarkers = showMarkersVal;
   let wifiUsers: OccupancyEntry[] = [];
   let zoomLevel = 1.0;
+  let defaultZoomLevel = 1.0;
+  const SEAT_TARGET_PX = 60;
   const clusterCounts = new Map<string, { taken: number; total: number }>();
 
   const trimSvgToContent = () => {
@@ -231,7 +254,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       ?.firstElementChild as HTMLElement | null;
     if (wrap) {
       wrap.style.transform = `scale(${zoomLevel})`;
-      wrap.style.transformOrigin = "top left";
+      wrap.style.transformOrigin =
+        zoomLevel <= 1 ? "center center" : "top left";
     }
     const pct = shadow.querySelector(".zoom-pct") as HTMLElement | null;
     if (pct) pct.textContent = `${Math.round(zoomLevel * 100)}%`;
@@ -254,7 +278,12 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         return "cached";
       }
       let cached = await getCachedCluster(campusId, c.id);
-      dbg("ensureClusterData:", key, "storage cache =", cached ? "hit" : "miss");
+      dbg(
+        "ensureClusterData:",
+        key,
+        "storage cache =",
+        cached ? "hit" : "miss",
+      );
       let svgText = cached?.svg;
       if (!svgText) {
         const url = `${WORKER_URL}/api/v1/cluster/svg?url=${encodeURIComponent(c.svg)}`;
@@ -279,7 +308,16 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
           .map(Number);
         svgViewBoxes.set(key, { w: vb[2] || 1200, h: vb[3] || 800 });
         seatPosCache.set(key, seatMap);
-        dbg("ensureClusterData:", key, "parsed; seats =", seatMap.size, "viewBox =", { w: vb[2], h: vb[3] }, "title =", title || "(none)");
+        dbg(
+          "ensureClusterData:",
+          key,
+          "parsed; seats =",
+          seatMap.size,
+          "viewBox =",
+          { w: vb[2], h: vb[3] },
+          "title =",
+          title || "(none)",
+        );
         setCachedCluster(campusId, c.id, {
           svg: svgText,
           seats: [...seatMap],
@@ -414,7 +452,11 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
           white-space: nowrap;
         }
         .campus-option:hover {
-          background: color-mix(in oklch, var(--color-base-200) 80%, transparent);
+          background: color-mix(
+            in oklch,
+            var(--color-base-200) 80%,
+            transparent
+          );
         }
         .campus-option.active {
           color: var(--color-accent);
@@ -469,7 +511,10 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         <div
           class="flex items-center justify-between shrink-0 p-3 pb-0 sticky top-0 z-30 bg-base-100 rounded-t-xl"
         >
-          <div class="flex items-center gap-2" style="flex:1 1 auto;min-width:0;">
+          <div
+            class="flex items-center gap-2"
+            style="flex:1 1 auto;min-width:0;"
+          >
             <div style="position:relative;">
               <button
                 type="button"
@@ -477,7 +522,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
                 class="btn btn-sm btn-ghost"
                 style="padding:0 6px;font-size:16px;line-height:1;"
                 data-tip="Campus"
-  data-tip-size="14px"
+                data-tip-size="14px"
               >
                 ${getCampusFlag(
                   campusOptions.find((o) => o.id === activeCampusId)?.name ||
@@ -493,7 +538,9 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
                     html`<button
                       type="button"
                       data-campus-id="${o.id}"
-                      class="campus-option ${o.id === activeCampusId ? "active" : ""}"
+                      class="campus-option ${o.id === activeCampusId
+                        ? "active"
+                        : ""}"
                     >
                       <span class="campus-option-flag"
                         >${getCampusFlag(o.name)}</span
@@ -505,12 +552,18 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
                 )}
               </div>
             </div>
-            <div style="position:relative;flex:1 1 auto;min-width:0;display:flex;align-items:center;">
-              <div class="tabs tabs-border border-accent tabs-scroll" style="flex:1 1 auto;min-width:0;">
+            <div
+              style="position:relative;flex:1 1 auto;min-width:0;display:flex;align-items:center;"
+            >
+              <div
+                class="tabs tabs-border border-accent tabs-scroll"
+                style="flex:1 1 auto;min-width:0;"
+              >
                 ${clusters.map(
                   (c) =>
                     html`<button
-                      class="tab font-bold text-xs px-4 whitespace-nowrap ${c.id === cluster.id
+                      class="tab font-bold text-xs px-4 whitespace-nowrap ${c.id ===
+                      cluster.id
                         ? "tab-active"
                         : ""}"
                       data-cluster-id="${c.id}"
@@ -535,7 +588,9 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
                 id="more-tabs-btn"
                 data-tip="More clusters"
                 data-tip-size="14px"
-              >⋯</summary>
+              >
+                ⋯
+              </summary>
               <ul
                 id="more-tabs-menu"
                 class="menu dropdown-content bg-base-100 rounded-box z-50 max-h-72 w-96 overflow-y-auto p-2 shadow"
@@ -545,7 +600,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
                   (c) =>
                     html`<li>
                       <a
-                        class="flex justify-between gap-2 whitespace-nowrap ${c.id === cluster.id
+                        class="flex justify-between gap-2 whitespace-nowrap ${c.id ===
+                        cluster.id
                           ? "menu-active"
                           : ""}"
                         data-cluster-id="${c.id}"
@@ -563,15 +619,15 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
               id="totals-badge"
               class="badge badge-sm h-8"
               style="white-space:nowrap;border-radius:var(--radius-field)"
-                data-tip="Total taken / Total seats"
-  data-tip-size="14px"
+              data-tip="Total taken / Total seats"
+              data-tip-size="14px"
               >- / -</span
             >
             <select
               class="select select-accent select-sm max-w-32"
               id="default-cluster-select"
-                data-tip="Default cluster"
-  data-tip-size="14px"
+              data-tip="Default cluster"
+              data-tip-size="14px"
             >
               ${clusters.map(
                 (c) =>
@@ -587,8 +643,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
               class="btn btn-sm ${showMarkers ? "btn-accent" : "btn-ghost"}"
               style="${showMarkers ? "border-color: var(--color-accent)" : ""}"
               id="markers-btn"
-                data-tip="Toggle screen markers"
-  data-tip-size="14px"
+              data-tip="Toggle screen markers"
+              data-tip-size="14px"
             >
               Show Markers
             </button>
@@ -596,8 +652,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
               id="updated-badge"
               class="btn btn-accent btn-sm border border-base-content/20"
               style="display:none;width:80px;justify-content:flex-start"
-                data-tip="Reload occupancy"
-  data-tip-size="14px"
+              data-tip="Reload occupancy"
+              data-tip-size="14px"
             >
               <span
                 id="reload-icon"
@@ -636,13 +692,23 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
           </div>
           <div
             id="zoom-controls"
-            class="absolute top-2 right-2 z-20 flex items-center gap-1 bg-base-100/80 backdrop-blur rounded-lg px-1 py-0.5 border border-base-300"
+            class="absolute top-2 right-6 z-20 flex items-center gap-1 bg-base-100/80 backdrop-blur rounded-lg px-1 py-0.5 border border-base-300"
           >
             <button
               class="btn btn-ghost btn-xs text-xs"
+              id="zoom-reset"
+              data-tip="Reset zoom"
+              data-tip-size="14px"
+            >
+              <span class="size-3 flex items-center justify-center"
+                >${unsafeHTML(RESET_SVG)}</span
+              >
+            </button>
+            <button
+              class="btn btn-ghost btn-xs text-xs"
               id="zoom-out"
-                data-tip="Zoom out"
-  data-tip-size="14px"
+              data-tip="Zoom out"
+              data-tip-size="14px"
             >
               −
             </button>
@@ -652,8 +718,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
             <button
               class="btn btn-ghost btn-xs text-xs"
               id="zoom-in"
-                data-tip="Zoom in"
-  data-tip-size="14px"
+              data-tip="Zoom in"
+              data-tip-size="14px"
             >
               +
             </button>
@@ -784,6 +850,14 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       updateZoom();
       return;
     }
+    const zoomReset = path.find(
+      (el) => el instanceof HTMLElement && el.id === "zoom-reset",
+    );
+    if (zoomReset) {
+      zoomLevel = defaultZoomLevel;
+      updateZoom();
+      return;
+    }
     const closeBtn = path.find(
       (el) => el instanceof HTMLElement && el.id === "close-btn",
     );
@@ -821,11 +895,17 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         if (activeCluster) loadCluster(activeCluster);
       }
     }
-    const positions = seatPosCache.get(
-      keyOf(activeCampusId, activeCluster.id),
-    );
+    const positions = seatPosCache.get(keyOf(activeCampusId, activeCluster.id));
     const viewBox = svgViewBoxes.get(keyOf(activeCampusId, activeCluster.id));
-    dbg("applyOccupancy: positions =", positions?.size ?? null, "viewBox =", viewBox, "for", activeCampusId, activeCluster.id);
+    dbg(
+      "applyOccupancy: positions =",
+      positions?.size ?? null,
+      "viewBox =",
+      viewBox,
+      "for",
+      activeCampusId,
+      activeCluster.id,
+    );
     if (positions && viewBox) {
       renderSeatOverlays(shadow, workCopy, positions, viewBox);
     }
@@ -906,7 +986,12 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         activeCampusId,
         abortController.signal,
       );
-      dbg("loadOccupancy: got", occupancy.size, "entries for campus", activeCampusId);
+      dbg(
+        "loadOccupancy: got",
+        occupancy.size,
+        "entries for campus",
+        activeCampusId,
+      );
       occupancyCache = occupancy;
       lastUpdated = Date.now();
       applyOccupancy(occupancy);
@@ -989,7 +1074,10 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         activeCampusId,
         abortController.signal,
       );
-      dbg("loadCluster: ensureClusterData returned", typeof svgText === "string" ? svgText.length + " chars" : svgText);
+      dbg(
+        "loadCluster: ensureClusterData returned",
+        typeof svgText === "string" ? svgText.length + " chars" : svgText,
+      );
       if (!svgText) {
         if (id !== loadId) return;
         mapArea.replaceChildren();
@@ -1004,32 +1092,52 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
 
       mapArea.style.position = "relative";
       const imported = document.importNode(svgDoc.documentElement, true);
-      dbg("loadCluster: imported svg element =", imported.tagName, "children =", imported.children.length);
+      dbg(
+        "loadCluster: imported svg element =",
+        imported.tagName,
+        "children =",
+        imported.children.length,
+      );
       const centeringWrap = document.createElement("div");
       centeringWrap.style.cssText =
-        "display:flex;justify-content:center;align-items:flex-start;min-height:100%;";      centeringWrap.appendChild(imported);
+        "display:flex;justify-content:center;align-items:flex-start;min-height:100%;";
+      centeringWrap.appendChild(imported);
       mapArea.replaceChildren(centeringWrap);
       const svgEl = mapArea.querySelector("svg") as SVGSVGElement | null;
-      dbg("loadCluster: svg injected into #map-area, svg children =", svgEl?.children.length);
+      dbg(
+        "loadCluster: svg injected into #map-area, svg children =",
+        svgEl?.children.length,
+      );
       if (svgEl) {
         const r = svgEl.getBoundingClientRect();
         const cs = getComputedStyle(svgEl);
         const mr = mapArea.getBoundingClientRect();
         const root = shadow.querySelector("[data-theme]") as HTMLElement | null;
         const wrap = centeringWrap.getBoundingClientRect();
-        dbg("loadCluster: svg rect =", { w: r.width, h: r.height, x: r.x, y: r.y },
-          "mapArea rect =", { w: mr.width, h: mr.height, x: mr.x, y: mr.y },
-          "wrap rect =", { w: wrap.width, h: wrap.height, x: wrap.x, y: wrap.y },
-          "root flexDirection =", root ? getComputedStyle(root).flexDirection : "?",
-          "computed =", { display: cs.display, width: cs.width, height: cs.height },
-          "viewBox =", svgEl.getAttribute("viewBox"));
+        dbg(
+          "loadCluster: svg rect =",
+          { w: r.width, h: r.height, x: r.x, y: r.y },
+          "mapArea rect =",
+          { w: mr.width, h: mr.height, x: mr.x, y: mr.y },
+          "wrap rect =",
+          { w: wrap.width, h: wrap.height, x: wrap.x, y: wrap.y },
+          "root flexDirection =",
+          root ? getComputedStyle(root).flexDirection : "?",
+          "computed =",
+          { display: cs.display, width: cs.width, height: cs.height },
+          "viewBox =",
+          svgEl.getAttribute("viewBox"),
+        );
       }
       const zp = shadow.querySelector(".zoom-pct") as HTMLElement | null;
       if (zp) zp.textContent = "100%";
       mapArea.scrollTop = 0;
       mapArea.scrollLeft = 0;
       applyMarkers(mapArea, showMarkers);
-      dbg("loadCluster: markers applied, SCREENS keys =", Object.keys(SCREENS).length);
+      dbg(
+        "loadCluster: markers applied, SCREENS keys =",
+        Object.keys(SCREENS).length,
+      );
 
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
@@ -1039,6 +1147,44 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       fitSvgToArea();
       mapArea.scrollTop = 0;
       mapArea.scrollLeft = 0;
+
+      const seats = seatPosCache.get(keyOf(activeCampusId, cluster.id));
+      if (seats && seats.size > 0 && svgEl) {
+        const vb = (svgEl.getAttribute("viewBox") || "")
+          .split(/\s+/)
+          .map(Number);
+        const rect = svgEl.getBoundingClientRect();
+        if (rect.width > 0) {
+          const scaleX = rect.width / (vb[2] || 1200);
+          const ws = [...seats.values()].map((s) => s.w).sort((a, b) => a - b);
+          const hs = [...seats.values()].map((s) => s.h).sort((a, b) => a - b);
+          const unit = Math.max(
+            ws[Math.floor(ws.length / 2)],
+            hs[Math.floor(hs.length / 2)],
+          );
+          zoomLevel = Math.min(
+            3,
+            Math.max(0.4, SEAT_TARGET_PX / (unit * scaleX)),
+          );
+          defaultZoomLevel = zoomLevel;
+        }
+      }
+      updateZoom();
+      fitSvgToArea();
+
+      if (svgEl) {
+        const mapTop = mapArea.getBoundingClientRect().top;
+        const svgTop = svgEl.getBoundingClientRect().top;
+        const gap = svgTop - mapTop;
+        if (gap > 0) {
+          if (mapArea.scrollHeight > mapArea.clientHeight) {
+            mapArea.scrollTop += Math.round(gap);
+          } else {
+            const wrap = mapArea.firstElementChild as HTMLElement | null;
+            if (wrap) wrap.style.alignItems = "flex-start";
+          }
+        }
+      }
 
       if (id !== loadId) return;
 
@@ -1144,8 +1290,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     const overlayLink = shadow.querySelector<HTMLElement>(
       `#seat-overlay .seat-link[data-host="${CSS.escape(seatId)}"]`,
     );
-    const targets =
-      matches.length > 0 ? Array.from(matches) : [];
+    const targets = matches.length > 0 ? Array.from(matches) : [];
     if (overlayLink) targets.push(overlayLink);
     if (targets.length === 0) {
       dbg("flashSeat: no element for", seatId);
@@ -1180,8 +1325,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       }
       return;
     }
-    activeCluster =
-      clusters.find((c) => c.id === defaultId) ||
+    activeCluster = clusters.find((c) => c.id === defaultId) ||
       clusters[0] || { id: "wifi", name: "Wi-Fi" };
     dbg("loadCampus: activeCluster =", activeCluster.id);
     const trigger = shadow.getElementById("campus-trigger");
