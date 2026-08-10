@@ -1,6 +1,6 @@
 import CLOCK from "../../assets/svg/clock.svg?raw";
 import CALENDAR from "../../assets/svg/calendar.svg?raw";
-import CLUSTERS from "../../assets/svg/grip-vertical.svg?raw";
+import CLUSTERS from "../../assets/svg/clusters.svg?raw";
 import USER from "../../assets/svg/user.svg?raw";
 import SHORTCUT from "../../assets/svg/shortcut.svg?raw";
 import ABOUT from "../../assets/svg/about.svg?raw";
