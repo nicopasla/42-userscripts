@@ -119,6 +119,7 @@ export function renderSeatOverlays(
     width: number;
     height: number;
     rotationDeg: number;
+    round: boolean;
   }
   const entries: OverlayEntry[] = [];
 
@@ -128,8 +129,12 @@ export function renderSeatOverlays(
 
     let left: number, top: number, width: number, height: number;
     let rotationDeg = 0;
+    let round = false;
     const svgSeat = svgById.get(host);
     if (svgSeat) {
+      round =
+        svgSeat.tagName.toLowerCase() === "circle" ||
+        (svgSeat.getAttribute("clip-path") || "").includes("circle");
       const rect = svgSeat.getBoundingClientRect();
       const w = pos.w * scaleX;
       const h = pos.h * scaleY;
@@ -154,7 +159,7 @@ export function renderSeatOverlays(
       width = pos.w * scaleX;
       height = pos.h * scaleY;
     }
-    entries.push({ host, seat, left, top, width, height, rotationDeg });
+    entries.push({ host, seat, left, top, width, height, rotationDeg, round });
   }
 
   const overlay = document.createElement("div");
@@ -163,7 +168,7 @@ export function renderSeatOverlays(
     "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
 
   const frag = document.createDocumentFragment();
-  for (const { host, seat, left, top, width, height, rotationDeg } of entries) {
+  for (const { host, seat, left, top, width, height, rotationDeg, round } of entries) {
     const since = new Date(seat.begin_at);
     const timeStr = since.toLocaleTimeString([], {
       hour: "2-digit",
@@ -176,13 +181,15 @@ export function renderSeatOverlays(
       rel: "noopener noreferrer",
       className: "seat-link",
     });
-    a.dataset.host = host;
     a.style.cssText = [
       "pointer-events:auto;",
       `left:${left}px;top:${top}px;`,
       `width:${width}px;height:${height}px;`,
       rotationDeg !== 0 ? `transform:rotate(${rotationDeg}deg);` : "",
+      round ? "border-radius:50%;" : "",
     ].join("");
+    if (round) a.dataset.round = "true";
+    a.dataset.host = host;
     a.setAttribute("data-tip", `${seat.login} - since ${timeStr}`);
     a.setAttribute("data-tip-size", "15px");
 
@@ -190,6 +197,7 @@ export function renderSeatOverlays(
       src: seat.cdn_uri,
       alt: seat.login,
     });
+    if (round) avatar.style.borderRadius = "50%";
     a.appendChild(avatar);
     frag.appendChild(a);
   }
