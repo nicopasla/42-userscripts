@@ -203,28 +203,15 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     } catch {}
   };
 
-  const fitSvgToArea = () => {
+  const updateZoom = () => {
     const mapArea = shadow.getElementById("map-area");
     const svg = mapArea?.querySelector("svg") as SVGSVGElement | null;
-    const wrap = mapArea?.firstElementChild as HTMLElement | null;
-    if (!svg || !mapArea) return;
-    svg.style.width = "100%";
-    svg.style.height = "auto";
-    svg.style.maxWidth = "none";
-    svg.style.maxHeight = "none";
-    if (wrap) {
-      const fits = svg.getBoundingClientRect().height <= mapArea.clientHeight;
-      wrap.style.alignItems = fits ? "center" : "flex-start";
-    }
-  };
-
-  const updateZoom = () => {
-    const wrap = shadow.getElementById("map-area")
-      ?.firstElementChild as HTMLElement | null;
-    if (wrap) {
-      wrap.style.transform = `scale(${zoomLevel})`;
-      wrap.style.transformOrigin =
-        zoomLevel <= 1 ? "center center" : "top left";
+    if (mapArea && svg) {
+      svg.style.width = `${Math.max(
+        1,
+        Math.round(mapArea.clientWidth * zoomLevel),
+      )}px`;
+      svg.style.height = "auto";
     }
     const pct = shadow.querySelector(".zoom-pct") as HTMLElement | null;
     if (pct) pct.textContent = `${Math.round(zoomLevel * 100)}%`;
@@ -347,7 +334,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
           width: 100%;
           height: auto;
           display: block;
-          margin: auto;
+          margin: 0 auto;
         }
         .seat-link {
           position: absolute;
@@ -466,15 +453,26 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
               <button
                 type="button"
                 id="campus-trigger"
-                class="btn btn-sm btn-ghost"
-                style="padding:0 6px;font-size:16px;line-height:1;"
+                class="btn btn-sm btn-ghost gap-1.5 px-2"
                 data-tip="Campus"
                 data-tip-size="14px"
               >
-                ${getCampusFlag(
-                  campusOptions.find((o) => o.id === activeCampusId)?.name ||
-                    activeCampusId,
-                )}
+                <span
+                  class="text-base leading-none"
+                  id="campus-trigger-flag"
+                  >${getCampusFlag(
+                    campusOptions.find((o) => o.id === activeCampusId)?.name ||
+                      activeCampusId,
+                  )}</span
+                >
+                <span
+                  class="text-xs font-semibold uppercase tracking-wide"
+                  id="campus-trigger-name"
+                  >${(
+                    campusOptions.find((o) => o.id === activeCampusId)?.name ||
+                    activeCampusId
+                  ).toUpperCase()}</span
+                >
               </button>
               <div
                 id="campus-menu"
@@ -562,14 +560,14 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
             </details>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <span
+            <div
               id="totals-badge"
-              class="badge badge-sm h-8"
-              style="white-space:nowrap;border-radius:var(--radius-field)"
+              class="flex items-center gap-1 whitespace-nowrap text-xs tabular-nums font-medium bg-accent text-accent-content rounded-lg px-2 h-8 border border-accent"
               data-tip="Total taken / Total seats"
               data-tip-size="14px"
-              >- / -</span
             >
+              - / -
+            </div>
             <select
               class="select select-accent select-sm max-w-32"
               id="default-cluster-select"
@@ -620,29 +618,34 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         <div class="relative flex-1 min-h-0 mx-3 mb-3 mt-2">
           <div id="map-area" class="rounded-lg h-full"></div>
           <div
-            id="seat-count-badge"
-            class="absolute top-2 left-2 z-20 text-xs tabular-nums font-medium bg-base-100/80 backdrop-blur rounded-lg px-2 py-1 border border-base-300 text-base-content/70"
+            id="top-left-badges"
+            class="absolute top-2 left-2 z-20 flex items-center gap-2"
           >
-            - / -
-          </div>
-          <div
-            id="campus-time"
-            class="absolute bottom-2 left-2 z-20 flex items-center gap-1 whitespace-nowrap text-xs tabular-nums font-medium bg-base-100/80 backdrop-blur rounded-lg px-2 py-1 border border-base-300 text-base-content/70"
-            style="display:none"
-          >
-            <span
-              id="campus-time-icon"
-              class="size-3 flex items-center justify-center"
-              >${unsafeHTML(CLOCK_SVG)}</span
+            <div
+              id="seat-count-badge"
+              class="text-xs tabular-nums font-medium bg-accent text-accent-content rounded-lg px-2 py-1 border border-accent"
             >
-            <span id="campus-time-text"></span>
+              - / -
+            </div>
+            <div
+              id="campus-time"
+              class="flex items-center gap-1 whitespace-nowrap text-xs tabular-nums font-medium bg-accent text-accent-content rounded-lg px-2 py-1 border border-accent"
+              style="display:none"
+            >
+              <span
+                id="campus-time-icon"
+                class="size-3 flex items-center justify-center"
+                >${unsafeHTML(CLOCK_SVG)}</span
+              >
+              <span id="campus-time-text"></span>
+            </div>
           </div>
           <div
             id="zoom-controls"
-            class="absolute top-2 right-6 z-20 flex items-center gap-1 bg-base-100/80 backdrop-blur rounded-lg px-1 py-0.5 border border-base-300"
+            class="absolute top-2 right-6 z-20 flex items-center gap-1 bg-accent text-accent-content rounded-lg px-1 py-0.5 border border-accent"
           >
             <button
-              class="btn btn-ghost btn-xs text-xs"
+              class="btn btn-ghost btn-xs text-xs text-accent-content"
               id="zoom-reset"
               data-tip="Reset zoom"
               data-tip-size="14px"
@@ -652,7 +655,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
               >
             </button>
             <button
-              class="btn btn-ghost btn-xs text-xs"
+              class="btn btn-ghost btn-xs text-xs text-accent-content"
               id="zoom-out"
               data-tip="Zoom out"
               data-tip-size="14px"
@@ -663,7 +666,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
               >100%</span
             >
             <button
-              class="btn btn-ghost btn-xs text-xs"
+              class="btn btn-ghost btn-xs text-xs text-accent-content"
               id="zoom-in"
               data-tip="Zoom in"
               data-tip-size="14px"
@@ -1020,7 +1023,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       const imported = document.importNode(svgDoc.documentElement, true);
       const centeringWrap = document.createElement("div");
       centeringWrap.style.cssText =
-        "display:flex;justify-content:center;align-items:flex-start;min-height:100%;";
+        "display:flex;align-items:flex-start;min-height:100%;padding-top:2rem;";
       centeringWrap.appendChild(imported);
       mapArea.replaceChildren(centeringWrap);
       const svgEl = mapArea.querySelector("svg") as SVGSVGElement | null;
@@ -1035,7 +1038,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       });
 
       trimSvgToContent();
-      fitSvgToArea();
       mapArea.scrollTop = 0;
       mapArea.scrollLeft = 0;
 
@@ -1061,21 +1063,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         }
       }
       updateZoom();
-      fitSvgToArea();
-
-      if (svgEl) {
-        const mapTop = mapArea.getBoundingClientRect().top;
-        const svgTop = svgEl.getBoundingClientRect().top;
-        const gap = svgTop - mapTop;
-        if (gap > 0) {
-          if (mapArea.scrollHeight > mapArea.clientHeight) {
-            mapArea.scrollTop += Math.round(gap);
-          } else {
-            const wrap = mapArea.firstElementChild as HTMLElement | null;
-            if (wrap) wrap.style.alignItems = "flex-start";
-          }
-        }
-      }
 
       if (id !== loadId) return;
 
@@ -1217,7 +1204,10 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     if (trigger) {
       const name =
         campusOptions.find((o) => o.id === campusId)?.name || campusId;
-      trigger.textContent = getCampusFlag(name);
+      const flagEl = shadow.getElementById("campus-trigger-flag");
+      if (flagEl) flagEl.textContent = getCampusFlag(name);
+      const nameEl = shadow.getElementById("campus-trigger-name");
+      if (nameEl) nameEl.textContent = name.toUpperCase();
     }
     rebuildHeader();
     updateDefaultSelect();
