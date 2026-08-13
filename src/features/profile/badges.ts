@@ -61,7 +61,9 @@ export async function getBadgeUrl(name: string): Promise<string | null> {
   const data = await getCampusBadgeData();
   if (!data) return null;
 
-  const resolved = data.badges[name];
+  const resolved =
+    data.badges[name] ??
+    Object.entries(data.badges).find(([key]) => name.endsWith(key))?.[1];
   if (!resolved) return null;
   return data.badgeBaseUrl.replace("{name}", resolved);
 }
