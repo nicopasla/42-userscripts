@@ -5,7 +5,6 @@ import { getConfig } from "../../config.ts";
 import {
   getClusterData,
   fetchCampusList,
-  clearClusterData,
 } from "./clusters.data.ts";
 import {
   getEffectiveTheme,
@@ -143,7 +142,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       const data = await getClusterData(campusId);
       repoClusters = data.clusters;
     } catch {
-      clearClusterData();
+      repoClusters = [];
     }
     const svgs = await scrapeCampusSVGUrls(campusId);
     const list: ClusterInfo[] = [];

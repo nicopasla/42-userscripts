@@ -32,6 +32,17 @@ async function resolveCampusFolder(campusId: string): Promise<string> {
   return campus.name.toLowerCase().replace(/\s+/g, "-");
 }
 
+async function resolveCampusId(campusId: string): Promise<string> {
+  if (campusId) return campusId;
+  const manifest = await fetchCampusList();
+  for (const campus of manifest.campuses) {
+    const prefix = campus.name.toLowerCase().replace(/\s+/g, "-");
+    const res = await fetch(`${CAMPUS_BASE}/${prefix}.json`);
+    if (res.ok) return campus.id;
+  }
+  return "";
+}
+
 let campusListenerInstalled = false;
 
 function installCampusDetectedListener(): void {
@@ -74,7 +85,9 @@ export async function loadCampusData(
   campusId: string,
   force?: boolean,
 ): Promise<ClusterDataFile> {
-  const cacheKey = `${CACHE_PREFIX}${campusId}`;
+  const resolvedId = await resolveCampusId(campusId);
+  if (!resolvedId) throw new Error("No campus data available");
+  const cacheKey = `${CACHE_PREFIX}${resolvedId}`;
   if (!force) {
     const cached = await chrome.storage.local.get(cacheKey);
     const cachedData = cached[cacheKey] as
@@ -87,9 +100,9 @@ export async function loadCampusData(
   const existing = inFlightLoads.get(cacheKey);
   if (existing) return existing;
   const load = (async () => {
-    const prefix = await resolveCampusFolder(campusId);
+    const prefix = await resolveCampusFolder(resolvedId);
     const res = await fetch(`${CAMPUS_BASE}/${prefix}.json`);
-    if (!res.ok) throw new Error(`Failed to fetch campus data for ${campusId}`);
+    if (!res.ok) throw new Error(`Failed to fetch campus data for ${resolvedId}`);
     const data = (await res.json()) as ClusterDataFile;
     await chrome.storage.local.set({
       [cacheKey]: { data, timestamp: Date.now() },

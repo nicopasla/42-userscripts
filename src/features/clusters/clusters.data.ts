@@ -98,7 +98,6 @@ export async function getClusterData(campusId: string): Promise<{
   clusters: { id: string; name: string }[];
   screens: Record<string, ScreenDirection>;
 }> {
-  if (!campusId) return { clusters: [], screens: {} };
   const data = await loadCampusData(campusId);
   const definitions = (data.definitions ?? {}) as Record<
     string,
