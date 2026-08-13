@@ -117,8 +117,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     campusOptions.sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
     );
-  } catch {
-  }
+  } catch {}
   let activeCampusId = detectedCampus;
   if (activeCampusId && !campusOptions.some((c) => c.id === activeCampusId)) {
     activeCampusId = "";
@@ -413,14 +412,24 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         @keyframes ft-dialog-pulsate {
           0%,
           100% {
-            filter: drop-shadow(0 0 2px #ff0055) drop-shadow(0 0 5px #ff0055);
+            box-shadow:
+              0 0 0 2px #ff0055,
+              0 0 5px 2px #ff0055,
+              0 0 10px 4px #ff0055;
           }
           50% {
-            filter: drop-shadow(0 0 8px #ff0055) drop-shadow(0 0 14px #ff0055);
+            box-shadow:
+              0 0 0 3px #ff0055,
+              0 0 8px 3px #ff0055,
+              0 0 15px 6px #ff0055;
           }
         }
         .ft-dialog-seat-glow {
           animation: ft-dialog-pulsate 1.6s ease-in-out infinite !important;
+        }
+        .seat-link.ft-dialog-seat-glow {
+          overflow: visible !important;
+          z-index: 10;
         }
         .tabs-scroll {
           flex: 1 1 auto;
@@ -457,9 +466,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
                 data-tip="Campus"
                 data-tip-size="14px"
               >
-                <span
-                  class="text-base leading-none"
-                  id="campus-trigger-flag"
+                <span class="text-base leading-none" id="campus-trigger-flag"
                   >${getCampusFlag(
                     campusOptions.find((o) => o.id === activeCampusId)?.name ||
                       activeCampusId,
@@ -825,6 +832,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
 
   let occupancyCache: Map<string, OccupancyEntry> | null = null;
   let countdownTimer: ReturnType<typeof setInterval> | null = null;
+  let flashingSeat: string | null = null;
 
   const applyOccupancy = (occupancy: Map<string, OccupancyEntry>) => {
     wifiUsers = [];
@@ -849,6 +857,9 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     const viewBox = svgViewBoxes.get(keyOf(activeCampusId, activeCluster.id));
     if (positions && viewBox) {
       renderSeatOverlays(shadow, workCopy, positions, viewBox);
+    }
+    if (flashingSeat) {
+      applySeatGlow(flashingSeat);
     }
     const badge = shadow.getElementById("seat-count-badge");
     if (badge) {
@@ -965,6 +976,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   const loadCluster = async (cluster: ClusterInfo) => {
     activeCluster = cluster;
     zoomLevel = 1.0;
+    clearSeatGlow();
     const isWifi = cluster.id === "wifi";
     const badge = shadow.getElementById("seat-count-badge");
     if (badge) badge.style.display = isWifi ? "none" : "";
@@ -1156,26 +1168,54 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     el.style.display = "flex";
   };
 
-  const flashSeat = (seatId: string) => {
-    const mapArea = shadow.getElementById("map-area");
-    const svg = mapArea?.querySelector("svg");
-    if (!svg) return;
-    const matches = svg.querySelectorAll(
-      `[id="${CSS.escape(seatId)}"], [id="shi-${CSS.escape(seatId)}"]`,
-    );
+  const getSeatGlowTarget = (seatId: string): Element | null => {
     const overlayLink = shadow.querySelector<HTMLElement>(
       `#seat-overlay .seat-link[data-host="${CSS.escape(seatId)}"]`,
     );
-    const targets = matches.length > 0 ? Array.from(matches) : [];
-    if (overlayLink) targets.push(overlayLink);
-    if (targets.length === 0) {
-      return;
-    }
-    svg
+    if (overlayLink) return overlayLink;
+    const mapArea = shadow.getElementById("map-area");
+    const svg = mapArea?.querySelector("svg");
+    if (!svg) return null;
+    const matches = svg.querySelectorAll(
+      `[id="${CSS.escape(seatId)}"], [id="shi-${CSS.escape(seatId)}"]`,
+    );
+    return matches.length > 0 ? matches[0] : null;
+  };
+
+  const clearSeatGlow = () => {
+    flashingSeat = null;
+    shadow
       .querySelectorAll(".ft-dialog-seat-glow")
       .forEach((n) => n.classList.remove("ft-dialog-seat-glow"));
-    targets.forEach((el) => el.classList.add("ft-dialog-seat-glow"));
-    (matches[0] || overlayLink).scrollIntoView({
+  };
+
+  const applySeatGlow = (seatId: string) => {
+    const target = getSeatGlowTarget(seatId);
+    if (!target) return false;
+    target.classList.add("ft-dialog-seat-glow");
+    return true;
+  };
+
+  const flashSeat = (seatId: string) => {
+    const mapArea = shadow.getElementById("map-area");
+    if (!mapArea) return;
+    const svg = mapArea.querySelector("svg");
+    if (!svg) return;
+    clearSeatGlow();
+    flashingSeat = seatId;
+    if (!applySeatGlow(seatId)) {
+      flashingSeat = null;
+      return;
+    }
+    const overlayLink = shadow.querySelector<HTMLElement>(
+      `#seat-overlay .seat-link[data-host="${CSS.escape(seatId)}"]`,
+    );
+    const scrollTarget =
+      overlayLink ||
+      svg.querySelector(
+        `[id="${CSS.escape(seatId)}"], [id="shi-${CSS.escape(seatId)}"]`,
+      );
+    scrollTarget?.scrollIntoView({
       behavior: "smooth",
       block: "center",
       inline: "center",
