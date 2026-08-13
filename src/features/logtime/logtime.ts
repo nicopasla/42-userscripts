@@ -460,7 +460,8 @@ function installFetchHook() {
     if (!detail) return;
 
     const hookDates = Object.keys(detail).sort();
-    const before = hookDates.length > 0 ? hookDates[0] : undefined;
+    const before =
+      hookDates.length > 0 ? hookDates[hookDates.length - 1] : undefined;
 
     if (isOwnProfile()) {
       const cloudLogin = await getConfig("CLOUD_LOGIN");
