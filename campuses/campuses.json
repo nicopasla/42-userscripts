@@ -1,17 +1,278 @@
 {
   "campuses": [
-    { "id": "12", "name": "Belgium" },
-    { "id": "16", "name": "Khouribga" },
-    { "id": "22", "name": "Madrid" },
-    { "id": "35", "name": "Amman" },
-    { "id": "41", "name": "Nice" },
-    { "id": "48", "name": "Mulhouse" },
-    { "id": "50", "name": "Kocaeli" },
-    { "id": "55", "name": "Tétouan" },
-    { "id": "62", "name": "Le Havre" },
-    { "id": "65", "name": "Antananarivo" },
-    { "id": "67", "name": "Warsaw" },
-    { "id": "69", "name": "Gyeongsan" },
-    { "id": "75", "name": "Rabat" }
+    {
+      "id": "1",
+      "name": "Paris",
+      "timezone": "Europe/Paris"
+    },
+    {
+      "id": "7",
+      "name": "Fremont",
+      "timezone": "America/Los_Angeles"
+    },
+    {
+      "id": "9",
+      "name": "Lyon",
+      "timezone": "Europe/Paris"
+    },
+    {
+      "id": "12",
+      "name": "Belgium",
+      "timezone": "Europe/Brussels"
+    },
+    {
+      "id": "13",
+      "name": "Helsinki",
+      "timezone": "Europe/Helsinki"
+    },
+    {
+      "id": "14",
+      "name": "Amsterdam",
+      "timezone": "Europe/Amsterdam"
+    },
+    {
+      "id": "16",
+      "name": "Khouribga",
+      "timezone": "Africa/Casablanca"
+    },
+    {
+      "id": "17",
+      "name": "Moscow",
+      "timezone": "Europe/Moscow"
+    },
+    {
+      "id": "20",
+      "name": "São-Paulo",
+      "timezone": "America/Sao_Paulo"
+    },
+    {
+      "id": "21",
+      "name": "Benguerir",
+      "timezone": "Africa/Casablanca"
+    },
+    {
+      "id": "22",
+      "name": "Madrid",
+      "timezone": "Europe/Madrid"
+    },
+    {
+      "id": "23",
+      "name": "Kazan",
+      "timezone": "Europe/Moscow"
+    },
+    {
+      "id": "25",
+      "name": "Quebec",
+      "timezone": "America/Toronto"
+    },
+    {
+      "id": "26",
+      "name": "Tokyo",
+      "timezone": "Asia/Tokyo"
+    },
+    {
+      "id": "28",
+      "name": "Rio de Janeiro",
+      "timezone": "America/Sao_Paulo"
+    },
+    {
+      "id": "29",
+      "name": "Seoul",
+      "timezone": "Asia/Seoul"
+    },
+    {
+      "id": "30",
+      "name": "Rome",
+      "timezone": "Europe/Rome"
+    },
+    {
+      "id": "31",
+      "name": "Angouleme",
+      "timezone": "Europe/Paris"
+    },
+    {
+      "id": "32",
+      "name": "Yerevan",
+      "timezone": "Asia/Yerevan"
+    },
+    {
+      "id": "34",
+      "name": "Kuala Lumpur",
+      "timezone": "Asia/Kuala_Lumpur"
+    },
+    {
+      "id": "35",
+      "name": "Amman",
+      "timezone": "Asia/Amman"
+    },
+    {
+      "id": "36",
+      "name": "Adelaide",
+      "timezone": "Australia/Adelaide"
+    },
+    {
+      "id": "37",
+      "name": "Malaga",
+      "timezone": "Europe/Madrid"
+    },
+    {
+      "id": "38",
+      "name": "Lisboa",
+      "timezone": "Europe/Lisbon"
+    },
+    {
+      "id": "39",
+      "name": "Heilbronn",
+      "timezone": "Europe/Berlin"
+    },
+    {
+      "id": "40",
+      "name": "Urduliz",
+      "timezone": "Europe/Madrid"
+    },
+    {
+      "id": "41",
+      "name": "Nice",
+      "timezone": "Europe/Paris"
+    },
+    {
+      "id": "43",
+      "name": "Abu Dhabi",
+      "timezone": "Asia/Dubai"
+    },
+    {
+      "id": "44",
+      "name": "Wolfsburg",
+      "timezone": "Europe/Berlin"
+    },
+    {
+      "id": "46",
+      "name": "Barcelona",
+      "timezone": "Europe/Madrid"
+    },
+    {
+      "id": "47",
+      "name": "Lausanne",
+      "timezone": "Europe/Zurich"
+    },
+    {
+      "id": "48",
+      "name": "Mulhouse",
+      "timezone": "Europe/Paris"
+    },
+    {
+      "id": "49",
+      "name": "Istanbul",
+      "timezone": "Europe/Istanbul"
+    },
+    {
+      "id": "50",
+      "name": "Kocaeli",
+      "timezone": "Europe/Istanbul"
+    },
+    {
+      "id": "51",
+      "name": "Berlin",
+      "timezone": "Europe/Berlin"
+    },
+    {
+      "id": "52",
+      "name": "Florence",
+      "timezone": "Europe/Rome"
+    },
+    {
+      "id": "53",
+      "name": "Vienna",
+      "timezone": "Europe/Vienna"
+    },
+    {
+      "id": "54",
+      "name": "42 Central"
+    },
+    {
+      "id": "55",
+      "name": "Tétouan",
+      "timezone": "Africa/Casablanca"
+    },
+    {
+      "id": "56",
+      "name": "Prague",
+      "timezone": "Europe/Prague"
+    },
+    {
+      "id": "57",
+      "name": "London",
+      "timezone": "Europe/London"
+    },
+    {
+      "id": "58",
+      "name": "Porto",
+      "timezone": "Europe/Lisbon"
+    },
+    {
+      "id": "59",
+      "name": "Luxembourg",
+      "timezone": "Europe/Luxembourg"
+    },
+    {
+      "id": "60",
+      "name": "Perpignan",
+      "timezone": "Europe/Paris"
+    },
+    {
+      "id": "62",
+      "name": "Le Havre",
+      "timezone": "Europe/Paris"
+    },
+    {
+      "id": "64",
+      "name": "Singapore",
+      "timezone": "Asia/Singapore"
+    },
+    {
+      "id": "65",
+      "name": "Antananarivo",
+      "timezone": "Indian/Antananarivo"
+    },
+    {
+      "id": "67",
+      "name": "Warsaw",
+      "timezone": "Europe/Warsaw"
+    },
+    {
+      "id": "68",
+      "name": "Luanda",
+      "timezone": "Africa/Luanda"
+    },
+    {
+      "id": "69",
+      "name": "Gyeongsan",
+      "timezone": "Asia/Seoul"
+    },
+    {
+      "id": "71",
+      "name": "Beirut",
+      "timezone": "Asia/Beirut"
+    },
+    {
+      "id": "73",
+      "name": "IskandarPuteri",
+      "timezone": "Asia/Kuala_Lumpur"
+    },
+    {
+      "id": "74",
+      "name": "Penang",
+      "timezone": "Asia/Kuala_Lumpur"
+    },
+    {
+      "id": "75",
+      "name": "Rabat",
+      "timezone": "Africa/Casablanca"
+    },
+    {
+      "id": "76",
+      "name": "Al-Aïn",
+      "timezone": "Asia/Dubai"
+    }
   ]
 }

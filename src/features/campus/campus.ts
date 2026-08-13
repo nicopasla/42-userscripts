@@ -14,14 +14,14 @@ interface ClusterDataFile {
 }
 
 interface CampusManifest {
-  campuses: { id: string; name: string }[];
+  campuses: { id: string; name: string; timezone?: string }[];
 }
 
 export let CLUSTERS: { id: string; name: string; svg?: string }[] = [];
 
 const CAMPUS_BASE = "https://api.betterintra.com/gh/campuses";
 const CACHE_PREFIX = "CAMPUS_DATA_";
-const MANIFEST_CACHE_KEY = "CAMPUS_MANIFEST";
+const MANIFEST_CACHE_KEY = "CAMPUS_MANIFEST_V2";
 const CACHE_TTL = 60 * 60 * 1000;
 const inFlightLoads = new Map<string, Promise<ClusterDataFile>>();
 

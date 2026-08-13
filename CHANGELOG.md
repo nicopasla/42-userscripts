@@ -2,6 +2,46 @@
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-08-10
+
+### Features 🎉
+
+- feat(clusters): replace grip-vertical SVG with clusters SVG in hub settings and profile ([da75562](https://github.com/nicopasla/better-intra/commit/da75562))
+- feat(friends): add close on outside click functionality ([b50c510](https://github.com/nicopasla/better-intra/commit/b50c510))
+- feat(map-dialog): add zoom reset functionality ([d42020c](https://github.com/nicopasla/better-intra/commit/d42020c))
+- feat(issue-templates): add bug report, feature request templates, and pull request template ([46b4df4](https://github.com/nicopasla/better-intra/commit/46b4df4))
+- feat(students): add clipboard functionality for student login copying ([a1be13f](https://github.com/nicopasla/better-intra/commit/a1be13f))
+- feat(students): add isPisciner function to check student eligibility ([0fff8ed](https://github.com/nicopasla/better-intra/commit/0fff8ed))
+- feat(piscines): add cursus field to selectedPiscine and update related functions ([8a4fa08](https://github.com/nicopasla/better-intra/commit/8a4fa08))
+- feat(piscines): add piscines cards navigation ([37786f4](https://github.com/nicopasla/better-intra/commit/37786f4))
+- feat(students): enhance filter menu rendering and logic for student tab ([225bbb1](https://github.com/nicopasla/better-intra/commit/225bbb1))
+- feat(marks): improve caching logic and refactor entry collection for enhanced marks display ([09763aa](https://github.com/nicopasla/better-intra/commit/09763aa))
+- feat(popup): implement placeholder rendering for non-Intra URLs ([5b8a6ae](https://github.com/nicopasla/better-intra/commit/5b8a6ae))
+- feat(account): remove 'Open Intra' button and associated handler from account UI ([d867080](https://github.com/nicopasla/better-intra/commit/d867080))
+- feat(scale-team): add styles for evaluation page components and improve color consistency ([6b69dca](https://github.com/nicopasla/better-intra/commit/6b69dca))
+- feat(clusters): simplify campus selection logic and improve error handling for cluster data ([4af29c0](https://github.com/nicopasla/better-intra/commit/4af29c0))
+- feat(students): enhance sorting logic for filtered student entries based on status ([3206304](https://github.com/nicopasla/better-intra/commit/3206304))
+- feat(roulette): adjust success percentage threshold for badge color indication ([2b63834](https://github.com/nicopasla/better-intra/commit/2b63834))
+- feat(students): update row class logic to include 'pisciners' tab for inactive state ([a7c6f8b](https://github.com/nicopasla/better-intra/commit/a7c6f8b))
+- feat(announcement): add support for announcement links and enhance dismissal logic ([5716ec1](https://github.com/nicopasla/better-intra/commit/5716ec1))
+- feat(announcement): enhance announcement banner with level-based styling and dismissal logic ([9f161c9](https://github.com/nicopasla/better-intra/commit/9f161c9))
+- feat(announcement): implement announcement banner functionality ([028eb94](https://github.com/nicopasla/better-intra/commit/028eb94))
+- feat(theme): add getIsLight function to determine if the current theme is light ([d8ab265](https://github.com/nicopasla/better-intra/commit/d8ab265))
+- feat(clusters): add clusters for every 42 campus ([6c2000f](https://github.com/nicopasla/better-intra/commit/6c2000f))
+- feat: enhance tooltip functionality across the extension ([733c966](https://github.com/nicopasla/better-intra/commit/733c966))
+- feat(campuses): add timezone information for campuses ([cadb05c](https://github.com/nicopasla/better-intra/commit/cadb05c))
+- feat(campuses): add new campuses to the campuses list ([443261d](https://github.com/nicopasla/better-intra/commit/443261d))
+- feat(students): add level display  for old piscines and students ([2a9157f](https://github.com/nicopasla/better-intra/commit/2a9157f))
+
+### Bug fixes 🐛
+
+- fix(seat-overlays): add round property for circular seat overlays ([96a1908](https://github.com/nicopasla/better-intra/commit/96a1908))
+- fix(campuses): remove outdated campuses from the list ([2c2c000](https://github.com/nicopasla/better-intra/commit/2c2c000))
+
+### Other Changes 🔄
+
+- refactor(map-dialog): remove debug logging from cluster dialog and cache functions ([c1471e0](https://github.com/nicopasla/better-intra/commit/c1471e0))
+
 ## [1.7.2] - 2026-08-02
 
 ### Features 🎉
@@ -1009,7 +1049,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.7.2...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/nicopasla/better-intra/compare/v1.7.2...v1.8.0
 [1.7.2]: https://github.com/nicopasla/better-intra/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/nicopasla/better-intra/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/nicopasla/better-intra/compare/v1.6.3...v1.7.0

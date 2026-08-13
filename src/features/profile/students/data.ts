@@ -32,6 +32,18 @@ export interface StudentsResponse {
   data?: StudentEntry[];
 }
 
+export interface PiscineEntry {
+  year: number;
+  month: number;
+  count: number;
+  cursus: number;
+}
+
+export interface PiscinesResponse {
+  cached_at?: number;
+  data?: PiscineEntry[];
+}
+
 export interface Intake {
   month: number;
   year: number;
@@ -43,16 +55,11 @@ const monthLabel = (value: number) =>
     month: "long",
   });
 
-export const PISCINE_MONTHS = [
-  { value: 2, label: "February", color: "#ff6b6b" },
-  { value: 3, label: "March", color: "#f06595" },
-  { value: 7, label: "July", color: "#ffd43b" },
-  { value: 8, label: "August", color: "#da77f2" },
-];
-
-export type PiscineMonth = (typeof PISCINE_MONTHS)[number];
-
 const MONTH_LABELS = Array.from({ length: 12 }, (_, i) => monthLabel(i + 1));
+
+export function piscineMonthName(month: number): string {
+  return MONTH_LABELS[month - 1] ?? String(month);
+}
 
 const monthNumber = (name?: string | null): number | null => {
   if (!name) return null;
@@ -164,18 +171,6 @@ export function formatLevel(level?: number): string {
   return `Lvl ${level.toFixed(2)}`;
 }
 
-export function isCurrentPiscineMonth(
-  month: number,
-  year: number,
-  now: Date = new Date(),
-): boolean {
-  return (
-    PISCINE_MONTHS.some((m) => m.value === month) &&
-    month === now.getMonth() + 1 &&
-    year === now.getFullYear()
-  );
-}
-
 export function nextIntakes(now: Date): Intake[] {
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -277,12 +272,40 @@ export async function fetchStudents(): Promise<{
 export async function fetchPisciners(
   year: number,
   month: number,
+  cursus?: number,
 ): Promise<{
   data?: StudentsResponse;
   unauthorized?: boolean;
 } | null> {
-  return fetchEndpoint(
-    "pisciners",
-    new URLSearchParams({ year: String(year), month: String(month) }),
-  );
+  const params = new URLSearchParams({
+    year: String(year),
+    month: String(month),
+  });
+  if (cursus) params.set("cursus", String(cursus));
+  return fetchEndpoint("pisciners", params);
+}
+
+export async function fetchPiscines(): Promise<{
+  data?: PiscinesResponse;
+  unauthorized?: boolean;
+} | null> {
+  try {
+    const cloudLogin = await getConfig("CLOUD_LOGIN");
+    const token = await getConfig("CLOUD_TOKEN");
+    if (!cloudLogin || !token) return { unauthorized: true };
+
+    const params = new URLSearchParams({
+      _: String(Date.now()),
+      login: await hashLogin(cloudLogin),
+    });
+
+    const res = await fetch(`${WORKER_URL}/api/v1/piscines?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) return { unauthorized: true };
+    if (!res.ok) return null;
+    return { data: (await res.json()) as PiscinesResponse };
+  } catch {
+    return null;
+  }
 }

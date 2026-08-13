@@ -89,13 +89,6 @@ function renderAccountTab(
             </button>
           </div>`
         : ""}
-      <button
-        class="btn btn-accent w-full font-bold text-base"
-        type="button"
-        @click="${handlers.handleOpenIntra}"
-      >
-        Open Intra
-      </button>
       <!-- Top Section: Status & Sync Info -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Left Card: Account Status -->

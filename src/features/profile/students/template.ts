@@ -16,7 +16,6 @@ import FILTER_SVG from "../../../assets/svg/filter.svg?raw";
 import FILTER_CLEAR_SVG from "../../../assets/svg/filter-clear.svg?raw";
 import CHECK_SVG from "../../../assets/svg/check.svg?raw";
 import {
-  PISCINE_MONTHS,
   beginAtIntake,
   formatAlumniDate,
   formatBlackholeDate,
@@ -28,16 +27,15 @@ import {
   isBlackholed,
   isFrozen,
   formatLevel,
-  isCurrentPiscineMonth,
   nextIntakes,
+  piscineMonthName,
   poolIntakes,
   poolMonthName,
   poolYearOptions,
-  yearOptions,
 } from "./data.ts";
 import type {
   FilterKey,
-  PiscineMonth,
+  PiscineEntry,
   SortField,
   SortDir,
   StudentEntry,
@@ -56,8 +54,9 @@ export interface StudentsTemplateState {
   filter: StudentsFilter;
   poolIntake: { month: number; year: number } | null;
   poolYear: number | null;
-  selectedMonth: PiscineMonth;
-  selectedYear: number;
+  piscineList: PiscineEntry[];
+  piscineListLoading: boolean;
+  selectedPiscine: { year: number; month: number; cursus: number } | null;
   entries: StudentEntry[];
   loading: boolean;
   lastFetched: number;
@@ -65,6 +64,7 @@ export interface StudentsTemplateState {
   authError: boolean;
   visibleCount: number;
   currentYear: number;
+  copiedLogin: string | null;
 }
 
 export interface StudentsTemplateHandlers {
@@ -74,11 +74,12 @@ export interface StudentsTemplateHandlers {
   onToggleFilter: (key: FilterKey) => void;
   onClose: () => void;
   onSearchInput: (value: string) => void;
-  onPiscineMonth: (value: number) => void;
-  onPiscineYear: (year: number) => void;
+  onSelectPiscine: (year: number, month: number, cursus: number) => void;
+  onBackToPiscines: () => void;
   onPoolIntake: (value: number) => void;
   onPoolYear: (value: number) => void;
   onClearFilters: () => void;
+  onCopyLogin: (login: string) => void;
 }
 
 const STATUS_FILTERS: Array<{
@@ -110,10 +111,11 @@ const STATUS_FILTERS: Array<{
 function renderFilterMenu(
   state: StudentsTemplateState,
   handlers: StudentsTemplateHandlers,
+  poolEntries: StudentEntry[],
 ): TemplateResult {
-  const { filter, poolIntake, poolYear } = state;
-  const poolYears = poolYearOptions(state.entries, state.currentYear);
-  const intakes = poolIntakes(state.entries, state.currentYear);
+  const { filter, poolIntake, poolYear, tab } = state;
+  const poolYears = poolYearOptions(poolEntries, state.currentYear);
+  const intakes = poolIntakes(poolEntries, state.currentYear);
 
   return html`
     <div
@@ -154,28 +156,35 @@ function renderFilterMenu(
         )}
       </select>
       <div class="divider my-1"></div>
-      <span class="students-filter-menu__label">Status</span>
-      ${STATUS_FILTERS.map(
-        (f) => html`
-          <button
-            class="btn btn-md justify-start ${f.color} ${filter !== "none" &&
-            filter !== f.key
-              ? "opacity-40"
-              : ""}"
-            @click="${() => handlers.onToggleFilter(f.key)}"
-          >
-            ${unsafeHTML(f.icon.replace("<svg", '<svg width="16" height="16"'))}
-            ${f.label}
-            ${filter === f.key
-              ? html`<span class="ml-auto"
-                  >${unsafeHTML(
-                    CHECK_SVG.replace("<svg", '<svg width="14" height="14"'),
-                  )}</span
-                >`
-              : ""}
-          </button>
-        `,
-      )}
+      ${tab === "students"
+        ? html`<span class="students-filter-menu__label">Status</span>
+            ${STATUS_FILTERS.map(
+              (f) => html`
+                <button
+                  class="btn btn-md justify-start ${f.color} ${filter !==
+                    "none" && filter !== f.key
+                    ? "opacity-40"
+                    : ""}"
+                  @click="${() => handlers.onToggleFilter(f.key)}"
+                >
+                  ${unsafeHTML(
+                    f.icon.replace("<svg", '<svg width="16" height="16"'),
+                  )}
+                  ${f.label}
+                  ${filter === f.key
+                    ? html`<span class="ml-auto"
+                        >${unsafeHTML(
+                          CHECK_SVG.replace(
+                            "<svg",
+                            '<svg width="14" height="14"',
+                          ),
+                        )}</span
+                      >`
+                    : ""}
+                </button>
+              `,
+            )}`
+        : ""}
     </div>
   `;
 }
@@ -187,8 +196,9 @@ export function renderStudentsDialogTemplate(
   const { currentTheme, tab, view, sortField, nameDir, dateDir, filter } =
     state;
   const {
-    selectedMonth,
-    selectedYear,
+    piscineList,
+    piscineListLoading,
+    selectedPiscine,
     poolIntake,
     poolYear,
     entries,
@@ -198,11 +208,13 @@ export function renderStudentsDialogTemplate(
     authError,
     visibleCount,
     currentYear,
+    copiedLogin,
   } = state;
 
-  const years = yearOptions(currentYear);
   const hasActiveFilters =
     filter !== "none" || poolIntake != null || poolYear != null;
+  const showPoolFilter = tab === "students" || tab === "new";
+  const showRosterControls = tab !== "pisciners" || selectedPiscine != null;
   const ago = lastFetched ? formatTimeAgo(lastFetched) : "";
   const normalize = (s: string) =>
     s
@@ -229,21 +241,42 @@ export function renderStudentsDialogTemplate(
     if (filter === "blackhole" && !isBlackholed(e)) return false;
     if (filter === "alumni" && !e.alumni) return false;
     if (filter === "freeze" && !isFrozen(e)) return false;
-    if (tab === "students") {
-      if (poolIntake != null) {
-        if (
-          e.pool_year !== String(poolIntake.year) ||
-          e.pool_month?.toLowerCase() !== poolMonthName(poolIntake.month)
-        )
-          return false;
-      } else if (poolYear != null && e.pool_year !== String(poolYear)) {
+    if (poolIntake != null) {
+      if (
+        e.pool_year !== String(poolIntake.year) ||
+        e.pool_month?.toLowerCase() !== poolMonthName(poolIntake.month)
+      )
         return false;
-      }
+    } else if (poolYear != null && e.pool_year !== String(poolYear)) {
+      return false;
     }
     return !q || normalize(`${e.login} ${e.displayname}`).includes(q);
   });
-  const windowed = filtered.slice(0, visibleCount);
-  const hasMore = filtered.length > windowed.length;
+  const display =
+    filter === "blackhole"
+      ? [...filtered].sort(
+          (a, b) =>
+            new Date(b.blackholed_at!).getTime() -
+            new Date(a.blackholed_at!).getTime(),
+        )
+      : filter === "alumni"
+        ? [...filtered].sort((a, b) => {
+            const ta = a.alumnized_at ? new Date(a.alumnized_at).getTime() : 0;
+            const tb = b.alumnized_at ? new Date(b.alumnized_at).getTime() : 0;
+            return tb - ta;
+          })
+        : filtered;
+  const windowed = display.slice(0, visibleCount);
+  const hasMore = display.length > windowed.length;
+  const showPiscineGrid = tab === "pisciners" && selectedPiscine == null;
+  const piscineListFiltered = showPiscineGrid
+    ? piscineList.filter((p) => {
+        if (!q) return true;
+        return normalize(
+          `${piscineMonthName(p.month)} ${p.year}`,
+        ).includes(q);
+      })
+    : [];
   const cursusLabel =
     tab === "pisciners"
       ? "Piscine Brussels"
@@ -252,19 +285,23 @@ export function renderStudentsDialogTemplate(
         : "42 Cursus";
   const countLabel =
     tab === "pisciners"
-      ? "pisciners"
+      ? selectedPiscine
+        ? "pisciners"
+        : "piscines"
       : tab === "new"
         ? "future students"
         : "students";
+  const countValue = showPiscineGrid
+    ? piscineListFiltered.length
+    : intakeFiltered.length;
   const dateLabel =
     tab === "pisciners"
-      ? `${selectedMonth.label} ${selectedYear}`
+      ? selectedPiscine
+        ? `${piscineMonthName(selectedPiscine.month)} ${selectedPiscine.year}`
+        : "all piscines"
       : tab === "new"
         ? intakes.map((i) => i.label).join(" · ")
         : "all students";
-  const hidePiscineLevel =
-    tab === "pisciners" &&
-    isCurrentPiscineMonth(selectedMonth.value, selectedYear);
   const renderRows = (rows: StudentEntry[]) => html`
     <div class="${view}">
       ${rows.map(
@@ -336,12 +373,19 @@ export function renderStudentsDialogTemplate(
                     </span>`
                   : ""}
               </div>
-              <div class="login">${r.login}</div>
+              <div
+                class="login ${r.login === copiedLogin ? "copied" : ""}"
+                data-tip="Copy login"
+                @click="${(e: Event) => {
+                  e.stopPropagation();
+                  handlers.onCopyLogin(r.login);
+                }}"
+              >
+                ${r.login === copiedLogin ? "Copied ✓" : r.login}
+              </div>
             </div>
             <div class="row-meta">
-              ${tab !== "new" &&
-              !hidePiscineLevel &&
-              typeof r.level === "number"
+              ${tab !== "new" && typeof r.level === "number"
                 ? html`<span
                     class="level-badge"
                     data-tip="Level in ${tab === "pisciners"
@@ -497,6 +541,21 @@ export function renderStudentsDialogTemplate(
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        cursor: copy;
+        border-radius: 0.25rem;
+        display: inline-block;
+        max-width: 100%;
+        vertical-align: bottom;
+      }
+      .login:hover {
+        opacity: 1;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .login.copied {
+        color: var(--color-success);
+        font-weight: 700;
+        opacity: 1;
       }
       .row-meta {
         display: flex;
@@ -557,6 +616,28 @@ export function renderStudentsDialogTemplate(
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 0.5rem;
+      }
+      .grid .piscine-card {
+        padding: 0.9rem 0.5rem;
+        gap: 0.15rem;
+      }
+      .piscine-card__month {
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+      .piscine-card__year {
+        font-size: 0.8rem;
+        opacity: 0.6;
+      }
+      .piscine-card__count {
+        margin-top: 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        white-space: nowrap;
+        color: var(--color-accent-content);
+        background: color-mix(in oklch, var(--color-accent) 40%, transparent);
+        border-radius: var(--radius-field);
+        padding: 0.1rem 0.5rem;
       }
       .list {
         display: flex;
@@ -657,7 +738,7 @@ export function renderStudentsDialogTemplate(
             @input="${(e: Event) =>
               handlers.onSearchInput((e.target as HTMLInputElement).value)}"
           />
-          ${tab === "students"
+          ${showPoolFilter
             ? html`<div class="indicator">
                   ${hasActiveFilters
                     ? html`<span
@@ -686,7 +767,11 @@ export function renderStudentsDialogTemplate(
                         ),
                       )}
                     </summary>
-                    ${renderFilterMenu(state, handlers)}
+                    ${renderFilterMenu(
+                      state,
+                      handlers,
+                      tab === "new" ? intakeFiltered : entries,
+                    )}
                   </details>
                 </div>
                 ${hasActiveFilters
@@ -701,7 +786,7 @@ export function renderStudentsDialogTemplate(
                           '<svg width="16" height="16"',
                         ),
                       )}
-                      Clear filters
+                      Clear
                     </button>`
                   : ""}
                 <div class="mx-0.5 h-6 w-px bg-base-content/20"></div>`
@@ -710,7 +795,7 @@ export function renderStudentsDialogTemplate(
             class="badge badge-sm badge-accent h-8 flex-shrink-0 font-bold"
             style="white-space:nowrap;border-radius:var(--radius-field)"
             data-tip="${cursusLabel} — ${dateLabel}"
-            >${intakeFiltered.length} ${countLabel}</span
+            >${countValue} ${countLabel}</span
           >
           ${tab === "students"
             ? html`<span
@@ -721,47 +806,19 @@ export function renderStudentsDialogTemplate(
               >`
             : ""}
           <div class="ml-auto flex items-center gap-2">
-            ${tab === "pisciners"
+            ${tab === "pisciners" && selectedPiscine
               ? html`
-                  <select
-                    class="select select-sm w-32"
-                    @change="${(e: Event) =>
-                      handlers.onPiscineMonth(
-                        Number((e.target as HTMLSelectElement).value),
-                      )}"
+                  <button
+                    class="btn btn-sm btn-outline"
+                    @click="${handlers.onBackToPiscines}"
                   >
-                    ${PISCINE_MONTHS.map(
-                      (m) =>
-                        html`<option
-                          value="${m.value}"
-                          ?selected="${m.value === selectedMonth.value}"
-                          style="color:${m.color};font-weight:600;"
-                        >
-                          ${m.label}
-                        </option>`,
-                    )}
-                  </select>
-                  <select
-                    class="select select-sm w-20"
-                    @change="${(e: Event) =>
-                      handlers.onPiscineYear(
-                        Number((e.target as HTMLSelectElement).value),
-                      )}"
-                  >
-                    ${years.map(
-                      (y) =>
-                        html`<option
-                          value="${y}"
-                          ?selected="${y === selectedYear}"
-                        >
-                          ${y}
-                        </option>`,
-                    )}
-                  </select>
+                    ← Piscines
+                  </button>
                   <div class="h-6 w-px bg-base-content/20 mx-0.5"></div>
                 `
               : ""}
-            <div class="join">
+            ${showRosterControls
+              ? html`<div class="join">
               <button
                 class="btn btn-sm join-item ${view === "grid"
                   ? "btn-primary"
@@ -785,7 +842,10 @@ export function renderStudentsDialogTemplate(
                 )}
               </button>
             </div>
-            <div class="join">
+            `
+              : ""}
+            ${showRosterControls
+              ? html`<div class="join">
               <button
                 class="btn btn-sm join-item ${sortField === "name"
                   ? "btn-primary"
@@ -821,55 +881,88 @@ export function renderStudentsDialogTemplate(
                   </button>`
                 : ""}
             </div>
+            `
+              : ""}
           </div>
         </div>
       </div>
       <div class="scroll-area flex-1 min-h-0 overflow-y-auto p-3">
-        ${loading
-          ? html`<div class="flex items-center justify-center p-8">
-              <span class="loading loading-spinner loading-lg"></span>
-            </div>`
-          : authError
-            ? html`<div class="text-center p-6 text-base-content/50">
-                Requires a connected 42 account
+        ${showPiscineGrid
+          ? piscineListLoading
+            ? html`<div class="flex items-center justify-center p-8">
+                <span class="loading loading-spinner loading-lg"></span>
               </div>`
-            : filtered.length === 0
+            : authError
               ? html`<div class="text-center p-6 text-base-content/50">
-                  ${entries.length === 0 ? "No data" : "No results"}
+                  Requires a connected 42 account
                 </div>`
-              : html`${tab === "new"
-                  ? html`<div class="flex flex-col gap-5">
-                      ${intakes.map((i) => {
-                        const rows = windowed.filter((e) => {
-                          const intake = beginAtIntake(e.begin_at);
-                          return (
-                            intake &&
-                            intake.month === i.month &&
-                            intake.year === i.year
-                          );
-                        });
-                        if (rows.length === 0) return html``;
-                        return html`<div>
-                          <div class="flex items-center gap-2 mb-2 px-1">
-                            <span
-                              class="text-xs opacity-50 font-semibold uppercase tracking-wider"
-                            >
-                              ${i.label}
-                            </span>
-                            <span
-                              class="badge badge-sm"
-                              style="border-radius:var(--radius-field)"
-                              >${rows.length}</span
-                            >
-                          </div>
-                          ${renderRows(rows)}
-                        </div>`;
-                      })}
-                    </div>`
-                  : renderRows(windowed)}
-                ${hasMore
-                  ? html`<div class="sentinel" aria-hidden="true"></div>`
-                  : ""}`}
+              : piscineListFiltered.length === 0
+                ? html`<div class="text-center p-6 text-base-content/50">
+                    ${piscineList.length === 0
+                      ? "No piscine data"
+                      : "No results"}
+                  </div>`
+                : html`<div class="grid">
+                    ${piscineListFiltered.map((p) => html`<div
+                      class="row piscine-card"
+                      @click="${() =>
+                        handlers.onSelectPiscine(p.year, p.month, p.cursus)}"
+                    >
+                      <span class="piscine-card__month"
+                        >${piscineMonthName(p.month)}</span
+                      >
+                      <span class="piscine-card__year">${p.year}</span>
+                      <span class="piscine-card__count"
+                        >${p.count}
+                        ${p.count === 1 ? "pisciner" : "pisciners"}</span
+                      >
+                    </div>`)}
+                  </div>`
+          : loading
+            ? html`<div class="flex items-center justify-center p-8">
+                <span class="loading loading-spinner loading-lg"></span>
+              </div>`
+            : authError
+              ? html`<div class="text-center p-6 text-base-content/50">
+                  Requires a connected 42 account
+                </div>`
+              : filtered.length === 0
+                ? html`<div class="text-center p-6 text-base-content/50">
+                    ${entries.length === 0 ? "No data" : "No results"}
+                  </div>`
+                : html`${tab === "new"
+                    ? html`<div class="flex flex-col gap-5">
+                        ${intakes.map((i) => {
+                          const rows = windowed.filter((e) => {
+                            const intake = beginAtIntake(e.begin_at);
+                            return (
+                              intake &&
+                              intake.month === i.month &&
+                              intake.year === i.year
+                            );
+                          });
+                          if (rows.length === 0) return html``;
+                          return html`<div>
+                            <div class="flex items-center gap-2 mb-2 px-1">
+                              <span
+                                class="text-xs opacity-50 font-semibold uppercase tracking-wider"
+                              >
+                                ${i.label}
+                              </span>
+                              <span
+                                class="badge badge-sm"
+                                style="border-radius:var(--radius-field)"
+                                >${rows.length}</span
+                              >
+                            </div>
+                            ${renderRows(rows)}
+                          </div>`;
+                        })}
+                      </div>`
+                    : renderRows(windowed)}
+                  ${hasMore
+                    ? html`<div class="sentinel" aria-hidden="true"></div>`
+                    : ""}`}
       </div>
     </div>
   `;

@@ -6,6 +6,7 @@ import USERS_SVG from "../../assets/svg/users.svg?raw";
 import { getActiveFeatures } from "./hubSettings.storage.ts";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { openStudentsDialog } from "../profile/students/index.ts";
+import { isPisciner } from "../../utils/intrapy.ts";
 
 function findSidebarMainGroup(): HTMLDivElement | null {
   const profileLink = document.querySelector<HTMLAnchorElement>(
@@ -42,7 +43,8 @@ function renderStudentsButton(
     id="ft-students-btn"
     class="py-5 w-full flex justify-center hover:opacity-100 opacity-40"
     href="#"
-    title="Students"
+    data-tip="Students"
+    data-tip-pos="right"
     @click="${(e: Event) => {
       e.preventDefault();
       onClick(e);
@@ -65,8 +67,13 @@ export function mountGearButton(): void {
 
   const sidebar = findSidebarMainGroup();
 
-  const openStudents = () => {
+  const openStudents = async () => {
     try {
+      const login = await getConfig("CLOUD_LOGIN");
+      if (login && (await isPisciner(login))) {
+        alert("You need to be a student to access that.");
+        return;
+      }
       openStudentsDialog();
     } catch (err) {}
   };

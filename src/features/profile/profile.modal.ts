@@ -62,7 +62,7 @@ function renderUrlHistory(
           <button
             type="button"
             class="rounded-lg border border-base-300 hover:border-accent"
-            title="${url}"
+            data-tip="${url}"
             @click="${() => onSelect(url)}"
             style="background-image: url(${url}); background-size: cover; background-position: center; width: 2rem; height: 2rem; flex-shrink: 0; border-radius: 0.5rem; cursor: pointer;"
           ></button>
@@ -73,7 +73,7 @@ function renderUrlHistory(
             type="button"
             class="rounded-lg border border-base-300 text-xs font-bold opacity-50 hover:opacity-100 hover:border-error"
             style="width: 2rem; height: 2rem; flex-shrink: 0; cursor: pointer; background: none;"
-            title="Clear history"
+            data-tip="Clear history"
             @click=${onClear}
           >
             ✕

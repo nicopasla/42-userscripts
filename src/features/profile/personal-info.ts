@@ -3,7 +3,7 @@ import { openClusterDialog } from "../clusters/map-dialog.ts";
 import { addFriend, removeFriend, isFriend } from "../friends/friends.ts";
 import { getCloudLogin, syncToCloud } from "../account/account.ts";
 import HOLY_GRAPH_SVG from "../../assets/svg/holy-graph.svg?raw";
-import GRIP_VERTICAL_SVG from "../../assets/svg/grip-vertical.svg?raw";
+import CLUSTERS_SVG from "../../assets/svg/clusters.svg?raw";
 import USER_COG_SVG from "../../assets/svg/user-cog.svg?raw";
 import CHECK_SVG from "../../assets/svg/check.svg?raw";
 import PLUS_SVG from "../../assets/svg/plus.svg?raw";
@@ -164,7 +164,7 @@ export async function initShortcutButtons() {
         openClusterDialog();
       } catch (err) {}
     });
-    a.insertAdjacentHTML("beforeend", GRIP_VERTICAL_SVG);
+    a.insertAdjacentHTML("beforeend", CLUSTERS_SVG);
     const span = document.createElement("span");
     span.textContent = "Clusters";
     a.appendChild(span);

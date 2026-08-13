@@ -77,6 +77,9 @@ function renderCompactMonthCard(
         <div
           class="day-cell"
           style="background: transparent; width: auto; height: auto; padding: 0; cursor: help; border: none;"
+          data-tip="${config.show_goal
+            ? `Remaining: ${fmtHours(Math.max(0, goalSecs - total))}`
+            : ""}"
         >
           ${config.show_goal ? html`<b>${goalPercent}%</b>` : ""}
           ${config.show_goal && config.show_tacos
@@ -86,11 +89,6 @@ function renderCompactMonthCard(
             : ""}
           ${config.show_tacos
             ? html`${monthTacos}${isMonthCapped ? "+" : ""} ${config.emoji}`
-            : ""}
-          ${config.show_goal
-            ? html`<div class="day-tooltip">
-                Remaining: ${fmtHours(Math.max(0, goalSecs - total))}
-              </div>`
             : ""}
         </div>
         ${config.show_average

@@ -26,14 +26,15 @@ campuses/
 ```json
 {
   "campuses": [
-    { "id": "12", "name": "Belgium" },
-    { "id": "67", "name": "Warsaw" }
+    { "id": "12", "name": "Belgium", "timezone": "Europe/Brussels" },
+    { "id": "67", "name": "Warsaw", "timezone": "Europe/Warsaw" }
   ]
 }
 ```
 
 - `id` — numeric campus ID from the 42 API (as a string)
 - `name` — display name, determines the cluster filename (`{lowercase-hyphenated}.json`)
+- `timezone` *(optional)* — IANA time zone (e.g. `"Europe/Paris"`); used to show the current campus-local time in the cluster map campus picker
 
 ## {name-slug}.json format
 

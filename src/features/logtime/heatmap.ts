@@ -170,13 +170,10 @@ export function renderHeatmapCard(
                     return html`<span
                       class="text-[10px] font-bold day-cell"
                       style="color:var(--muted-foreground); background:transparent; width:auto; height:auto; padding:0; cursor:help; border:none;"
+                      data-tip="${total > 0 ? fmtHours(total) : ""}"
+                      data-tip-size="14px"
                     >
                       ${labelMap.get(ci)}
-                      ${total > 0
-                        ? html`<div class="month-tooltip">
-                            ${fmtHours(total)}
-                          </div>`
-                        : ""}
                     </span>`;
                   })()
                 : ""}
@@ -224,26 +221,19 @@ export function renderHeatmapCard(
                     ? hexToRgba(config.calendar_color, alpha)
                     : "var(--muted)";
 
+                const dateLabel = `${String(cell.day).padStart(2, "0")}/${String(
+                  cell.month + 1,
+                ).padStart(2, "0")}/${cell.date.slice(0, 4)}`;
+
                 return html`<div
                   class="heatmap-cell day-cell ${cell.isToday
                     ? "today-highlight"
                     : ""}"
                   data-month="${cell.date.slice(0, 7)}"
                   style="width:${cellW}px; height:${cellW}px; background:${bgColor};"
-                >
-                  ${cell.secs
-                    ? html`<div class="heatmap-tooltip">
-                        ${String(cell.day).padStart(2, "0")}/${String(
-                          cell.month + 1,
-                        ).padStart(2, "0")}/${cell.date.slice(0, 4)}
-                        - ${fmtHours(cell.secs)}
-                      </div>`
-                    : html`<div class="heatmap-tooltip">
-                        ${String(cell.day).padStart(2, "0")}/${String(
-                          cell.month + 1,
-                        ).padStart(2, "0")}/${cell.date.slice(0, 4)}
-                      </div>`}
-                </div>`;
+                  data-tip="${dateLabel}${cell.secs ? ` - ${fmtHours(cell.secs)}` : ""}"
+                  data-tip-size="14px"
+                ></div>`;
               })}
             </div>`,
         )}

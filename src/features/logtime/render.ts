@@ -10,10 +10,40 @@ import {
 import { fmtHours, hexToRgba, safeLabelsColor } from "./utils";
 import { LogtimeConfig, CalendarEvent, EventsByDate } from "./logtime";
 import { sharedCSS } from "../../assets/shared-styles.ts";
+import { escapeHtml } from "../../utils/tooltip.ts";
 import LOGTIME_CSS from "./logtime.css?inline";
 import VIEW_NORMAL_SVG from "../../assets/svg/view-normal.svg?raw";
 import VIEW_COMPACT_SVG from "../../assets/svg/view-compact.svg?raw";
 import VIEW_HEATMAP_SVG from "../../assets/svg/view-heatmap.svg?raw";
+
+function buildDayTooltipHtml(
+  secs: number,
+  hasData: boolean,
+  events?: CalendarEvent[],
+): string {
+  const parts: string[] = [];
+  if (hasData) parts.push(escapeHtml(fmtHours(secs)));
+  if (events) {
+    for (const e of events) {
+      const url =
+        e.kind === "exam"
+          ? `https://profile.intra.42.fr/exams/${e.id}`
+          : `https://profile.intra.42.fr/events/${e.id}`;
+      const color = e.is_subscribed ? "rgb(34,197,94)" : "#ed8179";
+      const time = new Date(
+        e.begin_at.endsWith("Z") ? e.begin_at : e.begin_at + "Z",
+      ).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      parts.push(
+        `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer" style="color:${color};font-weight:600;text-decoration:none">${e.kind === "exam" ? "📚 " : "📅 "}${escapeHtml(e.name)} - ${escapeHtml(time)}</a>`,
+      );
+    }
+  }
+  return parts.join("<br/>");
+}
 
 function renderDayCell(
   day: number,
@@ -53,36 +83,12 @@ function renderDayCell(
       ? "today-highlight"
       : ""}"
     style="border-radius: ${CELL_RADIUS}; background: ${bgColor}; color: ${textColor}; ${borderStyle}"
+    data-tip-html="${showTooltip
+      ? buildDayTooltipHtml(secs, hasData, events)
+      : ""}"
+    data-tip-size="14px"
   >
     ${String(day)}
-    ${showTooltip
-      ? html`<div class="day-tooltip">
-          ${hasData ? fmtHours(secs) : ""}
-          ${events
-            ? events.map((e, i) => {
-                const url =
-                  e.kind === "exam"
-                    ? `https://profile.intra.42.fr/exams/${e.id}`
-                    : `https://profile.intra.42.fr/events/${e.id}`;
-                const color = e.is_subscribed ? "rgb(34,197,94)" : "#ed8179";
-                return html`${hasData || i > 0 ? html`<br />` : ""}<a
-                    href="${url}"
-                    target="_blank"
-                    rel="noreferrer"
-                    style="color:${color};font-weight:600;text-decoration:none"
-                    >${e.kind === "exam" ? "📚 " : "📅 "}${e.name} -
-                    ${new Date(
-                      e.begin_at.endsWith("Z") ? e.begin_at : e.begin_at + "Z",
-                    ).toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    })}</a
-                  >`;
-              })
-            : ""}
-        </div>`
-      : ""}
   </div>`;
 }
 
@@ -215,6 +221,9 @@ export function renderMonthCard(
       <div
         class="day-cell"
         style="background: transparent; width: auto; height: auto; padding: 0; cursor: help; border: none;"
+        data-tip="${config.show_goal
+          ? `Remaining: ${fmtHours(Math.max(0, goalSecs - total))}`
+          : ""}"
       >
         ${config.show_goal ? html`<b>${goalPercent}%</b>` : ""}
         ${config.show_goal && config.show_tacos
@@ -224,11 +233,6 @@ export function renderMonthCard(
           : ""}
         ${config.show_tacos
           ? html`${monthTacos}${isMonthCapped ? "+" : ""} ${config.emoji}`
-          : ""}
-        ${config.show_goal
-          ? html`<div class="day-tooltip">
-              Remaining: ${fmtHours(Math.max(0, goalSecs - total))}
-            </div>`
           : ""}
       </div>
       ${config.show_average
@@ -341,7 +345,7 @@ export function renderHeaderContent(
               v.id
                 ? `background-color:${primaryColor};border-color:${primaryColor};color:${primaryContent};`
                 : "background-color:transparent;border-color:color-mix(in oklab, var(--color-base-content) 20%, transparent);color:var(--color-base-content);"}"
-              title="${v.label}"
+              data-tip="${v.label}"
               @click="${() => onViewChange(v.id)}"
             >
               ${unsafeHTML(

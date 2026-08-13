@@ -1,0 +1,86 @@
+name: Bug report
+description: Report a bug or unexpected behaviour in Better Intra
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report. Please fill in as much detail as you can.
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: Found in about:debugging / chrome://extensions or on the Releases page.
+      placeholder: e.g. 2.4.1
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      description: Which browser are you using?
+      multiple: false
+      options:
+        - Chrome
+        - Firefox
+        - Brave
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which part of Better Intra is affected?
+      multiple: false
+      options:
+        - Profile
+        - Logtime
+        - Clusters
+        - Evaluations
+        - Hub / Settings
+        - Popup
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: cloud
+    attributes:
+      label: Cloud sync
+      description: Do you have cloud sync / 42 sign-in enabled?
+      multiple: false
+      options:
+        - "Yes"
+        - "No"
+        - "Not sure"
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is the bug? What did you expect to happen instead?
+      placeholder: Tell us what went wrong...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce the issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / logs
+      description: If applicable, add screenshots or console logs to help explain the problem.
+      placeholder: Drag and drop images here, or paste console error output.
+    validations:
+      required: false

@@ -44,9 +44,10 @@ To install this extension, click the buttons below or visit the [Releases](https
 * **Achievement milestones** — completed achievements get a subtle animated glow.
 * **Full achievements list** — replaces the native "Last Achievements" card with a scrollable list of all achievements, sorted by newest first.
 * **Completed projects (marks)** — the Projects card lists all your graded projects with dates and scores. Multi-attempt projects expand to show each attempt. Sort by newest or oldest first. Projects flagged "Outstanding" during evaluation get a ⭐ next to their name — visible on any user's profile. ☁️
+* **Star total badge** — on your own profile, the Projects card header shows the total count of ⭐ Outstanding projects.
 * **Download Transcript** — a "Transcript" button appears in the Projects card letting you download your academic transcript as a PDF. Choose your cursus, language, and year range. Only available for **Belgium** campus. 🇧🇪 ☁️
 * **Projects sort** — sort the projects list on any user's profile by name or date, with toggleable ascending/descending order.
-* **Freeze alerts** — a freeze card appears on profiles of frozen students.
+* **Freeze alerts** — a freeze card appears on profiles of frozen students, with a live countdown to the end of the freeze.
 * **Clickable seat label** — click someone's seat on their profile to open the cluster map with their seat highlighted and pulsating.
 * **Thursday Roulette** — a dashboard card showing the current profile's roulette win history, total points, and a live countdown to the next Friday 8:00 draw. Works on any user's profile. ☁️
 * **Correction stats** — a dashboard card showing your monthly evaluation history as a corrector: total evaluations, failures, and success percentage. ☁️
@@ -79,7 +80,7 @@ Replaces the default logtime view with a monthly calendar showing your logged ho
 
 ### 🖥️ Clusters
 
-* **Directional markers** — small indicators on the cluster map showing which way each chair faces. Toggle on/off from the cluster tab bar. 🇧🇪
+* **Directional markers** — small indicators on the cluster map showing which way each chair faces. Toggle on/off from the cluster tab bar. Available for all campuses.
 * **Cluster picker** — a dropdown on the cluster tab bar to quickly switch clusters.
 * **Markers toggle** — a button on the cluster tab bar to show/hide chair direction indicators.
 * **Default cluster** — set your preferred cluster and it loads automatically when you open the page.
@@ -94,11 +95,13 @@ A live interactive cluster map popup accessible from profile quick-link buttons.
 * **Real-time seat occupancy** — see user avatars overlaid on occupied seats with login tooltips. Polls every minute with a "Updated X min ago" indicator.
 * **Seat counts** — a badge on each cluster tab shows taken/total occupancy (e.g. `C1 14/42`). A smaller badge in the map corner shows the same for the current cluster.
 * **Wi-Fi tab** — a dedicated tab showing who's currently connected via Wi-Fi, with avatars, logins, connection time, and a live user count.
-* **Zoom controls** — zoom in/out (30%–300%) with + and - buttons. The current zoom percentage is displayed.
+* **Zoom controls** — zoom in/out (30%–300%) with + and - buttons, or reset to 100% with a single button. The current zoom percentage is displayed.
 * **Cluster room tabs** — switch between cluster rooms within the dialog.
+* **Campus selector** — switch between 42 campuses from within the dialog; the map loads the selected campus's clusters.
+* **Campus clock** — a live clock showing the selected campus's local time.
 * **Click to visit profile** — click any occupied seat to open that user's profile, optionally in a new tab.
 * **In-dialog settings** — toggle directional markers and set your default cluster from within the dialog.
-* **Belgium-only** — full live map for Belgian campuses (campus ID 12). Other campuses get a direct link to the cluster map page. 🇧🇪
+* **Works for all campuses** — the live map is available for every 42 campus.
 
 ---
 
@@ -109,10 +112,15 @@ A live interactive cluster map popup accessible from profile quick-link buttons.
 A students directory for the **Belgium** campus, opened from the **users icon** in the intra sidebar.
 
 * **Students / Future students / Pisciners tabs** — browse all 42 cursus students, the upcoming April/October intakes, or a specific piscine session (by month + year).
+* **Piscine cards** — when no specific piscine is chosen, the Pisciners tab shows a grid of month/year cards (e.g. "March 2026 · 243 pisciners") to pick a session.
 * **Grid & list views** — toggle between a 4-per-row card grid and a compact list.
 * **Sort** — by name or cursus start date, with click-to-invert direction.
 * **Search** — filter by name or login.
+* **Click to copy login** — click any student's login to copy it to the clipboard.
+* **Filters** — a filter menu lets you narrow by pool month, pool year, and status (active, inactive, blackholed, frozen, alumni).
 * **Status badges** — blackholed (skull), frozen (snowflake), and alumni (graduation cap) indicators; inactive students are dimmed.
+* **Level display** — levels are shown for current students as well as past pisciners.
+* **Infinite scroll** — the list loads more entries automatically as you scroll.
 * **Counts** — a totals badge (e.g. "1,075 students") plus an "active students" count.
 * **Pool & entry dates** — per-student badges showing piscine pool (e.g. `02/26`) and cursus entry date.
 * **Belgium-only** — the sidebar button only appears for Belgium campus (ID 12).
@@ -172,6 +180,17 @@ Discord DM notifications when your evaluations change state.
 
 ---
 
+### 📢 Announcements
+
+A top banner on profile pages shows official Better Intra announcements.
+
+* **Levels** — announcements are colour-coded **Notice**, **Warning**, or **Critical**.
+* **Action links** — an announcement can include links that open in a new tab.
+* **Dismissible** — click ✕ to hide an announcement; it stays dismissed for the current session.
+* **Instant load** — the banner is fetched from the worker and cached for 5 minutes.
+
+---
+
 ### ☁️ Account (Cloud Sync)
 
 * Authenticate with your 42 Intra account via OAuth through the Cloudflare Worker.
@@ -182,6 +201,7 @@ Discord DM notifications when your evaluations change state.
 * **Disconnect / Wipe All Data** — logout or erase all cloud-stored data.
 * **Share visuals** — synced avatar, banner, and background become visible to other Better Intra users viewing your profile.
 * Account panel is in the **extension popup** (click the extension icon).
+* **Non-Intra placeholder** — when opened outside of an Intra page, the popup shows a friendly placeholder instead of the account panel.
 
 ---
 
@@ -212,6 +232,7 @@ A friends panel accessible from a button in the bottom-right corner of the page.
 * **Reset all data** — wipe all Better Intra settings and start fresh. In the Advanced tab.
 * **Auto-detected campus** — shown as a badge in the Advanced tab.
 * **Open links in new tab** — external links from Better Intra open in a new tab. In the Advanced tab.
+* **Custom tooltips** — Better Intra's own styled tooltips replace native ones across the extension for a consistent look.
 
 ## Support
 

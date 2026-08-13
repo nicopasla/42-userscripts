@@ -3,13 +3,17 @@ import { initClusters } from "./features/clusters/clusters.ts";
 import { initProfile } from "./features/profile/profile.ts";
 import { initHubSettings } from "./features/hub/hubSettings.ts";
 import { initShortcuts } from "./features/shortcuts/shortcuts.ts";
-import { initThemeManager } from "./features/profile/theme/theme-manager.ts";
+import { initThemeManager, getIsLight } from "./features/profile/theme/theme-manager.ts";
+import { initGlobalTooltips } from "./utils/tooltip.ts";
 import { ensureCampusData } from "./features/campus/campus.ts";
 import { updateNavAvatar } from "./features/profile/visuals.ts";
 import { AVATAR_SELECTOR } from "./features/profile/selectors.ts";
+import { initAnnouncementBanner } from "./features/announcement/announcement.ts";
 import { html, render } from "lit-html";
 
 initThemeManager();
+void initAnnouncementBanner();
+initGlobalTooltips(getIsLight);
 
 {
   const s = document.createElement("script");
@@ -115,7 +119,7 @@ const featureInitializers: { [key: string]: () => Promise<void> } = {
         Better Intra is designed for the
         <strong>v3</strong> profile. You are on the old v2.
         <a href="https://profile.intra.42.fr/v3_early_access">Switch to v3</a>
-        <button class="ft-v2-dismiss" @click="${dismiss}" title="Dismiss">
+        <button class="ft-v2-dismiss" @click="${dismiss}" data-tip="Dismiss">
           &times;
         </button>
       </div>

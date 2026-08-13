@@ -1,6 +1,8 @@
 import { html, render } from "lit-html";
 import { CLUSTERS } from "./clusters.data.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
+import { bindTooltips } from "../../utils/tooltip.ts";
+import { getIsLight } from "../profile/theme/theme-manager.ts";
 
 export function renderClusterPicker(
   currentId: string,
@@ -29,33 +31,30 @@ export function renderClusterPicker(
     <div
       class="flex items-center gap-5 px-4 py-1 text-base-content bg-transparent"
     >
-      <div class="tooltip">
-        <div class="tooltip-content">
-          <div class="text-lg whitespace-nowrap">Choose a default cluster</div>
-        </div>
-        <div
-          class="flex items-center gap-3 cursor-pointer select-none py-1"
-          @click="${openSelectDropdown}"
+      <div
+        class="flex items-center gap-3 cursor-pointer select-none py-1"
+        data-tip="Choose a default cluster"
+        data-tip-size="15px"
+        @click="${openSelectDropdown}"
+      >
+        <select
+          id="cluster-select"
+          class="select select-lg font-black uppercase min-w-40 text-xl px-2"
+          @change="${(e: Event) =>
+            onClusterChange((e.target as HTMLSelectElement).value)}"
+          @click="${(e: Event) => e.stopPropagation()}"
         >
-          <select
-            id="cluster-select"
-            class="select select-lg font-black uppercase min-w-40 text-xl px-2"
-            @change="${(e: Event) =>
-              onClusterChange((e.target as HTMLSelectElement).value)}"
-            @click="${(e: Event) => e.stopPropagation()}"
-          >
-            ${CLUSTERS.map(
-              (c) => html`
-                <option
-                  value="${c.id}"
-                  ?selected="${String(currentId) === String(c.id)}"
-                >
-                  ${c.name.toLowerCase()}
-                </option>
-              `,
-            )}
-          </select>
-        </div>
+          ${CLUSTERS.map(
+            (c) => html`
+              <option
+                value="${c.id}"
+                ?selected="${String(currentId) === String(c.id)}"
+              >
+                ${c.name.toLowerCase()}
+              </option>
+            `,
+          )}
+        </select>
       </div>
       <div class="h-8 w-px bg-base-content/20"></div>
       <button
@@ -94,20 +93,12 @@ export function createShadowUI(
   });
 
   const shadowRoot = shadowHost.attachShadow({ mode: "open" });
+  bindTooltips(shadowRoot, getIsLight);
 
   const style = document.createElement("style");
   style.textContent = `
     ${sharedCSS}
     :host { display: inline-flex !important; align-items: center !important; }
-    .tooltip { position: relative; display: inline-block; }
-    .tooltip .tooltip-content {
-      position: absolute; bottom: 125%; left: 50%;
-      transform: translateX(-50%);
-      opacity: 0; visibility: hidden;
-      transition: opacity 0.15s ease, visibility 0.15s ease;
-      z-index: 50;
-    }
-    .tooltip:hover .tooltip-content { opacity: 1 !important; visibility: visible !important; }
   `;
   shadowRoot.appendChild(style);
 

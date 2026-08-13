@@ -1,11 +1,14 @@
 import { SeatPos } from "./crop";
 import { SCREENS } from "../clusters.data.ts";
 
-const SEAT_ID_PATTERN = /-r\d+-p\d+$|-c\d+-p\d+$/;
+const SEAT_ID_PATTERN = /[a-z]\d+[-_ ]?[ps]\d+$/i;
 const DANGEROUS_ATTR = /^on/i;
 
+export function getSvgTitle(svgDoc: Document): string {
+  return svgDoc.querySelector("svg > title")?.textContent?.trim() || "";
+}
+
 export function sanitizeAndParseSeats(svgDoc: Document): Map<string, SeatPos> {
-  const seatMap = new Map<string, SeatPos>();
   for (const el of svgDoc.querySelectorAll("*")) {
     const tagName = el.tagName.toLowerCase();
     if (tagName === "script") {
@@ -29,15 +32,24 @@ export function sanitizeAndParseSeats(svgDoc: Document): Map<string, SeatPos> {
         el.removeAttribute(attr.name);
       }
     }
-    const id = el.getAttribute("id");
-    if (id && SEAT_ID_PATTERN.test(id)) {
-      seatMap.set(id, {
-        x: parseFloat(el.getAttribute("x") || "0"),
-        y: parseFloat(el.getAttribute("y") || "0"),
-        w: parseFloat(el.getAttribute("width") || "30"),
-        h: parseFloat(el.getAttribute("height") || "30"),
-      });
-    }
+  }
+
+  const seatIds = new Set<string>();
+  for (const img of svgDoc.querySelectorAll("image[id]")) {
+    seatIds.add(img.getAttribute("id")!);
+  }
+
+  const seatMap = new Map<string, SeatPos>();
+  for (const el of svgDoc.querySelectorAll("[id]")) {
+    const id = el.getAttribute("id")!;
+    if (!seatIds.has(id) && !SEAT_ID_PATTERN.test(id)) continue;
+    if (seatMap.has(id)) continue;
+    seatMap.set(id, {
+      x: parseFloat(el.getAttribute("x") || "0"),
+      y: parseFloat(el.getAttribute("y") || "0"),
+      w: parseFloat(el.getAttribute("width") || "30"),
+      h: parseFloat(el.getAttribute("height") || "30"),
+    });
   }
   return seatMap;
 }

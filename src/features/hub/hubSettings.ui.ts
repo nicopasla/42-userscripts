@@ -230,7 +230,7 @@ function renderSettingControl(def: HubSettingDef, enabled: boolean) {
                           type="button"
                           class="p-1 -ml-1 rounded hover:bg-black/10 transition-colors pointer-events-auto cursor-pointer flex items-center justify-center text-white"
                           @click="${toggleVisibility}"
-                          title="${isDisabled ? "Show card" : "Hide card"}"
+                          data-tip="${isDisabled ? "Show card" : "Hide card"}"
                         >
                           ${isDisabled
                             ? html`<span

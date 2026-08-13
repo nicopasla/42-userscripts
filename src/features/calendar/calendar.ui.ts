@@ -53,7 +53,7 @@ function renderPanel(el: Element | undefined) {
                       @click="${async () => {
                         await navigator.clipboard.writeText(calUrl(token));
                       }}"
-                      title="Copy link"
+                      data-tip="Copy link"
                     >
                       <span class="size-4 flex items-center justify-center"
                         >${unsafeHTML(COPY_SVG)}</span

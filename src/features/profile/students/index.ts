@@ -1,14 +1,15 @@
 import { render } from "lit-html";
 import { getConfig } from "../../../config.ts";
 import {
+  TOOLTIP_SHOW_DELAY,
   hideFloatingTooltip,
   showFloatingTooltip,
 } from "../../../utils/tooltip.ts";
 import { getEffectiveTheme } from "../theme/theme-manager.ts";
 import {
   INITIAL_VISIBLE_COUNT,
-  PISCINE_MONTHS,
   WINDOW_STEP,
+  fetchPiscines,
   fetchPisciners,
   fetchStudents,
   poolIntakes,
@@ -21,7 +22,7 @@ import {
 } from "./template.ts";
 import type {
   FilterKey,
-  PiscineMonth,
+  PiscineEntry,
   SortField,
   SortDir,
   StudentEntry,
@@ -51,8 +52,8 @@ export async function openStudentsDialog() {
   let filter: StudentsFilter = "none";
   let poolIntake: { month: number; year: number } | null = null;
   let poolYear: number | null = null;
-  let selectedMonth: PiscineMonth = PISCINE_MONTHS[0];
-  let selectedYear = currentYear;
+  let selectedPiscine: { year: number; month: number; cursus: number } | null =
+    null;
 
   const toggleFilter = (key: FilterKey) => {
     filter = filter === key ? "none" : key;
@@ -108,34 +109,18 @@ export async function openStudentsDialog() {
     rerender();
   };
 
-  const saved = (await chrome.storage.local.get("STUDENTS_SELECTION")) as {
-    STUDENTS_SELECTION?: { month: number; year: number };
-  };
-  if (saved.STUDENTS_SELECTION) {
-    const m = PISCINE_MONTHS.find(
-      (x) => x.value === saved.STUDENTS_SELECTION!.month,
-    );
-    if (m) selectedMonth = m;
-    const y = saved.STUDENTS_SELECTION.year;
-    if (y >= 2023 && y <= currentYear) selectedYear = y;
-  }
-
-  const saveSelection = () => {
-    chrome.storage.local.set({
-      STUDENTS_SELECTION: {
-        month: selectedMonth.value,
-        year: selectedYear,
-      },
-    });
-  };
-
   let entries: StudentEntry[] = [];
+  let piscineList: PiscineEntry[] = [];
+  let piscineListLoading = false;
+  let piscineListLoaded = false;
   let loading = true;
   let lastFetched = 0;
   let query = "";
   let authError = false;
   let visibleCount = INITIAL_VISIBLE_COUNT;
   let searchTimeout: number | null = null;
+  let copiedLogin: string | null = null;
+  let copiedLoginTimeout: number | null = null;
   let sentinelObserver: IntersectionObserver | null = null;
 
   const dialog = Object.assign(document.createElement("dialog"), {
@@ -162,11 +147,13 @@ export async function openStudentsDialog() {
 
   const close = () => {
     hideFloatingTooltip();
+    if (tooltipShowTimer !== null) window.clearTimeout(tooltipShowTimer);
     if (sentinelObserver) {
       sentinelObserver.disconnect();
       sentinelObserver = null;
     }
     if (searchTimeout !== null) window.clearTimeout(searchTimeout);
+    if (copiedLoginTimeout !== null) window.clearTimeout(copiedLoginTimeout);
     dialog.close();
     dialog.remove();
   };
@@ -175,16 +162,28 @@ export async function openStudentsDialog() {
     if (e.target === dialog) close();
   });
 
+  let tooltipShowTimer: number | null = null;
+
   shadow.addEventListener("mouseover", (e) => {
     const tipTarget = (e.target as HTMLElement).closest<HTMLElement>(
       "[data-tip]",
     );
-    if (tipTarget?.dataset.tip) {
-      showFloatingTooltip(tipTarget, tipTarget.dataset.tip, isLight, dialog);
-    }
+    if (!tipTarget?.dataset.tip) return;
+    const tipText = tipTarget.dataset.tip;
+    if (tooltipShowTimer !== null) window.clearTimeout(tooltipShowTimer);
+    tooltipShowTimer = window.setTimeout(() => {
+      tooltipShowTimer = null;
+      showFloatingTooltip(tipTarget, tipText, isLight, dialog);
+    }, TOOLTIP_SHOW_DELAY);
   });
   shadow.addEventListener("mouseout", (e) => {
-    if ((e.target as HTMLElement).closest("[data-tip]")) hideFloatingTooltip();
+    if ((e.target as HTMLElement).closest("[data-tip]")) {
+      if (tooltipShowTimer !== null) {
+        window.clearTimeout(tooltipShowTimer);
+        tooltipShowTimer = null;
+      }
+      hideFloatingTooltip();
+    }
   });
 
   shadow.addEventListener("click", (e) => {
@@ -199,8 +198,14 @@ export async function openStudentsDialog() {
     authError = false;
     rerender();
     let res: Awaited<ReturnType<typeof fetchStudents>>;
-    if (tab === "pisciners") {
-      res = await fetchPisciners(selectedYear, selectedMonth.value);
+    if (tab === "pisciners" && selectedPiscine) {
+      res = await fetchPisciners(
+        selectedPiscine.year,
+        selectedPiscine.month,
+        selectedPiscine.cursus,
+      );
+    } else if (tab === "pisciners") {
+      res = null;
     } else {
       res = await fetchStudents();
     }
@@ -226,6 +231,27 @@ export async function openStudentsDialog() {
     rerender();
   };
 
+  const loadPiscineList = async () => {
+    if (piscineListLoaded) {
+      rerender();
+      return;
+    }
+    piscineListLoading = true;
+    rerender();
+    const res = await fetchPiscines();
+    if (res?.unauthorized) {
+      piscineList = [];
+      authError = true;
+    } else if (res?.data) {
+      piscineList = res.data.data || [];
+    } else {
+      piscineList = [];
+    }
+    piscineListLoading = false;
+    piscineListLoaded = true;
+    rerender();
+  };
+
   const switchTab = async (t: StudentsTab) => {
     if (tab === t) return;
     tab = t;
@@ -234,6 +260,12 @@ export async function openStudentsDialog() {
     poolIntake = null;
     poolYear = null;
     visibleCount = INITIAL_VISIBLE_COUNT;
+    if (tab === "pisciners") {
+      selectedPiscine = null;
+      rerender();
+      await loadPiscineList();
+      return;
+    }
     rerender();
     await load();
   };
@@ -252,16 +284,15 @@ export async function openStudentsDialog() {
       if (searchTimeout !== null) window.clearTimeout(searchTimeout);
       searchTimeout = window.setTimeout(() => rerender(), 150);
     },
-    onPiscineMonth: (value) => {
-      selectedMonth =
-        PISCINE_MONTHS.find((m) => m.value === value) || PISCINE_MONTHS[0];
-      saveSelection();
+    onSelectPiscine: (year, month, cursus) => {
+      selectedPiscine = { year, month, cursus };
+      visibleCount = INITIAL_VISIBLE_COUNT;
       void load();
     },
-    onPiscineYear: (year) => {
-      selectedYear = year;
-      saveSelection();
-      void load();
+    onBackToPiscines: () => {
+      selectedPiscine = null;
+      visibleCount = INITIAL_VISIBLE_COUNT;
+      rerender();
     },
     onPoolIntake: (value) => {
       poolIntake =
@@ -285,6 +316,17 @@ export async function openStudentsDialog() {
       visibleCount = INITIAL_VISIBLE_COUNT;
       rerender();
     },
+    onCopyLogin: (login) => {
+      void navigator.clipboard.writeText(login);
+      copiedLogin = login;
+      if (copiedLoginTimeout !== null) window.clearTimeout(copiedLoginTimeout);
+      copiedLoginTimeout = window.setTimeout(() => {
+        copiedLoginTimeout = null;
+        copiedLogin = null;
+        rerender();
+      }, 1500);
+      rerender();
+    },
   };
 
   const buildState = (): StudentsTemplateState => ({
@@ -297,8 +339,9 @@ export async function openStudentsDialog() {
     filter,
     poolIntake,
     poolYear,
-    selectedMonth,
-    selectedYear,
+    piscineList,
+    piscineListLoading,
+    selectedPiscine,
     entries,
     loading,
     lastFetched,
@@ -306,6 +349,7 @@ export async function openStudentsDialog() {
     authError,
     visibleCount,
     currentYear,
+    copiedLogin,
   });
 
   const rerender = () => {

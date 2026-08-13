@@ -18,7 +18,8 @@ import {
   syncToCloud,
 } from "../account/account.ts";
 import { getConfig } from "../../config.ts";
-import { getEffectiveTheme } from "../profile/theme/theme-manager.ts";
+import { getEffectiveTheme, getIsLight } from "../profile/theme/theme-manager.ts";
+import { bindTooltips } from "../../utils/tooltip.ts";
 import { CLUSTERS, getClusterData } from "../clusters/clusters.data.ts";
 import FRIENDS_SVG from "../../assets/svg/friends.svg?raw";
 import WARNING_SVG from "../../assets/svg/triangle-exclamation.svg?raw";
@@ -116,7 +117,7 @@ function renderFriendRow(
                     100}%;background-position:${friend.avatarPosX ??
                     50}% ${friend.avatarPosY ??
                     50}%;background-color:${friend.avatarBg || "transparent"};background-repeat:no-repeat;"
-                    title="${toggleTitle}"
+                    data-tip="${toggleTitle}"
                     @click="${toggleCustom}"
                   ></div>`
                 : html`<div class="w-14 h-14 rounded-full ${medalClass}">
@@ -124,7 +125,7 @@ function renderFriendRow(
                       src="${currentSrc}"
                       alt="${friend.login}"
                       loading="lazy"
-                      title="${toggleTitle}"
+                      data-tip="${toggleTitle}"
                       @click="${toggleCustom}"
                       @error="${(e: Event) => {
                         const img = e.target as HTMLImageElement;
@@ -198,7 +199,7 @@ function renderFriendRow(
               target="_blank"
               rel="noopener noreferrer"
               class="badge badge-success badge-sm shrink-0 hover:brightness-110 transition-all cursor-pointer no-underline"
-              title="View ${friend.lastSeen} on cluster map"
+              data-tip="View ${friend.lastSeen} on cluster map"
               >${friend.lastSeen}</a
             >`
           : ""}
@@ -220,11 +221,11 @@ function renderFriendRow(
 
     <!-- Stats column (right-aligned) -->
     <div class="flex flex-col items-end gap-1.5 shrink-0 justify-center">
-      <div class="flex items-center gap-1.5" title="Wallet">
+      <div class="flex items-center gap-1.5" data-tip="Wallet">
         <span class="text-xl opacity-40">₳</span>
         <span class="text-base font-bold opacity-80">${friend.wallet}</span>
       </div>
-      <div class="flex items-center gap-1.5" title="Correction points">
+      <div class="flex items-center gap-1.5" data-tip="Correction points">
         <span class="text-xl opacity-40">✦</span>
         <span class="text-base font-bold opacity-80"
           >${friend.correctionPoints}</span
@@ -233,7 +234,7 @@ function renderFriendRow(
       ${!friend.isOnline && friend.lastOnlineTimestamp
         ? html`<div
             class="text-xs opacity-60 font-medium"
-            title="Last seen online"
+            data-tip="Last seen online"
           >
             ${formatTimeAgo(friend.lastOnlineTimestamp)}
           </div>`
@@ -246,7 +247,7 @@ function renderFriendRow(
     >
       <button
         class="btn btn-ghost btn-sm btn-circle text-error"
-        title="Remove friend"
+        data-tip="Remove friend"
         @click="${(e: Event) => {
           e.stopPropagation();
           onRemove(friend.login);
@@ -351,7 +352,7 @@ function renderSortSelect(current: SortMode, onChange: (m: SortMode) => void) {
       class="select select-bordered select-sm min-w-36 font-bold tracking-wide text-base-content"
       @change="${(e: Event) =>
         onChange((e.target as HTMLSelectElement).value as SortMode)}"
-      title="Sort by"
+      data-tip="Sort by"
     >
       ${modes.map(
         (m) => html`
@@ -441,9 +442,22 @@ function renderWidget(state: WidgetState) {
         min-width: unset !important;
       }
 
+      .friends-fab .swap {
+        width: 30px;
+        height: 30px;
+      }
+
+      .friends-fab .swap > * {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
       .friends-fab .swap-off svg {
-        width: clamp(22px, 3vw, 34px);
-        height: clamp(22px, 3vw, 34px);
+        width: 100%;
+        height: 100%;
       }
 
       .friends-dropdown {
@@ -490,7 +504,7 @@ function renderWidget(state: WidgetState) {
             type="button"
             class="btn btn-circle btn-lg ${state.needsReconnect ? "btn-error" : "btn-primary"} shadow-xl"
             @click="${state.needsReconnect ? state.onConnect : state.onToggle}"
-            title="${state.needsReconnect ? "Token expired — reconnect" : state.open ? "Close" : "Friends"}"
+            data-tip="${state.needsReconnect ? "Token expired — reconnect" : state.open ? "Close" : "Friends"}"
           >
             ${
               state.needsReconnect
@@ -506,9 +520,9 @@ function renderWidget(state: WidgetState) {
                   </div>`
                 : html`
                     <div class="swap ${state.open ? "swap-active" : ""}">
-                      <span class="swap-on text-lg">✕</span>
+                      <span class="swap-on text-3xl">✕</span>
                       <span
-                        class="swap-off flex items-center justify-center w-6 h-6 [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current"
+                        class="swap-off flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current"
                         >${unsafeHTML(FRIENDS_SVG)}</span
                       >
                     </div>
@@ -551,33 +565,27 @@ function renderWidget(state: WidgetState) {
                 ? renderSortSelect(state.sortBy, state.onSortChange)
                 : ""
             }
-            <div
-              class="tooltip tooltip-left"
+            <button
+              type="button"
+              class="btn btn-sm btn-square opacity-50 hover:opacity-100 ${
+                state.loading ? "loading" : ""
+              } ${
+                state.lastFetch && Date.now() - state.lastFetch < 60000
+                  ? "btn-outline btn-success"
+                  : "btn-ghost"
+              }"
               data-tip="${
                 state.lastFetch
                   ? `Updated ${formatTimeAgo(state.lastFetch)}`
                   : "Not yet updated"
               }"
+              @click="${state.onRefresh}"
             >
-              <button
-                type="button"
-                class="btn btn-sm btn-square opacity-50 hover:opacity-100 ${
-                  state.loading ? "loading" : ""
-                } ${
-                  state.lastFetch && Date.now() - state.lastFetch < 60000
-                    ? "btn-outline btn-success"
-                    : "btn-ghost"
-                }"
-                @click="${state.onRefresh}"
-              >
-                <div class="swap ${state.loading ? "swap-active" : ""}">
-                  <span
-                    class="swap-on loading loading-spinner loading-xs"
-                  ></span>
-                  <span class="swap-off text-lg">↻</span>
-                </div>
-              </button>
-            </div>
+              <div class="swap ${state.loading ? "swap-active" : ""}">
+                <span class="swap-on loading loading-spinner loading-xs"></span>
+                <span class="swap-off text-lg">↻</span>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -716,6 +724,7 @@ export async function injectFriendsWidget() {
   _host.id = HOST_ID;
   document.body.appendChild(_host);
   _shadow = _host.attachShadow({ mode: "open" });
+  bindTooltips(_shadow, getIsLight);
 
   const token = await getConfig("CLOUD_TOKEN");
   const authFailed = !!(await getConfig("CLOUD_AUTH_FAILED"));
@@ -844,6 +853,14 @@ export async function injectFriendsWidget() {
   }
 
   renderWidgetUI();
+
+  const closeOnOutsideClick = (e: Event) => {
+    if (!_state || !_state.open) return;
+    if (e.composedPath().includes(_host!)) return;
+    _state.open = false;
+    renderWidgetUI();
+  };
+  document.addEventListener("click", closeOnOutsideClick);
 
   const pendingPull = (await chrome.storage.local.get("PENDING_SETTINGS_PULL"))
     .PENDING_SETTINGS_PULL;

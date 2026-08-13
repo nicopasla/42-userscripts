@@ -155,7 +155,6 @@ export function createHandlers(state: AccountState, updateUI: () => void) {
 
   return {
     handleLogin42,
-    handleOpenIntra,
     handleDelete,
     handleWipe,
     handlePush,

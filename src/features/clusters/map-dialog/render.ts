@@ -26,7 +26,7 @@ export function renderWifiList(shadow: ShadowRoot, users: OccupancyEntry[]) {
 
   const list = document.createElement("div");
   list.style.cssText =
-    "display:flex;flex-direction:column;gap:4px;padding:12px;";
+    "display:flex;flex-direction:column;gap:4px;padding:40px 12px 12px;";
   mapArea.replaceChildren(list);
 
   for (const user of users) {
@@ -112,12 +112,14 @@ export function renderSeatOverlays(
   }
 
   interface OverlayEntry {
+    host: string;
     seat: OccupancyEntry;
     left: number;
     top: number;
     width: number;
     height: number;
     rotationDeg: number;
+    round: boolean;
   }
   const entries: OverlayEntry[] = [];
 
@@ -127,8 +129,12 @@ export function renderSeatOverlays(
 
     let left: number, top: number, width: number, height: number;
     let rotationDeg = 0;
+    let round = false;
     const svgSeat = svgById.get(host);
     if (svgSeat) {
+      round =
+        svgSeat.tagName.toLowerCase() === "circle" ||
+        (svgSeat.getAttribute("clip-path") || "").includes("circle");
       const rect = svgSeat.getBoundingClientRect();
       const w = pos.w * scaleX;
       const h = pos.h * scaleY;
@@ -153,7 +159,7 @@ export function renderSeatOverlays(
       width = pos.w * scaleX;
       height = pos.h * scaleY;
     }
-    entries.push({ seat, left, top, width, height, rotationDeg });
+    entries.push({ host, seat, left, top, width, height, rotationDeg, round });
   }
 
   const overlay = document.createElement("div");
@@ -162,7 +168,7 @@ export function renderSeatOverlays(
     "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
 
   const frag = document.createDocumentFragment();
-  for (const { seat, left, top, width, height, rotationDeg } of entries) {
+  for (const { host, seat, left, top, width, height, rotationDeg, round } of entries) {
     const since = new Date(seat.begin_at);
     const timeStr = since.toLocaleTimeString([], {
       hour: "2-digit",
@@ -180,22 +186,106 @@ export function renderSeatOverlays(
       `left:${left}px;top:${top}px;`,
       `width:${width}px;height:${height}px;`,
       rotationDeg !== 0 ? `transform:rotate(${rotationDeg}deg);` : "",
+      round ? "border-radius:50%;" : "",
     ].join("");
-
-    const tip = document.createElement("span");
-    tip.className = "seat-tip";
-    tip.textContent = `${seat.login} - since ${timeStr}`;
-    a.appendChild(tip);
+    if (round) a.dataset.round = "true";
+    a.dataset.host = host;
+    a.setAttribute("data-tip", `${seat.login} - since ${timeStr}`);
+    a.setAttribute("data-tip-size", "15px");
 
     const avatar = Object.assign(document.createElement("img"), {
       src: seat.cdn_uri,
       alt: seat.login,
     });
+    if (round) avatar.style.borderRadius = "50%";
     a.appendChild(avatar);
     frag.appendChild(a);
   }
   overlay.appendChild(frag);
   mapArea.appendChild(overlay);
+}
+
+export function renderActiveList(shadow: ShadowRoot, users: OccupancyEntry[]) {
+  const mapArea = shadow.getElementById("map-area");
+  if (!mapArea) return;
+  mapArea.style.position = "";
+
+  if (users.length === 0) {
+    const emptyDiv = document.createElement("div");
+    emptyDiv.className =
+      "flex items-center justify-center p-12 text-base-content/50";
+    emptyDiv.textContent = "No one connected";
+    mapArea.replaceChildren(emptyDiv);
+    return;
+  }
+
+  const grid = document.createElement("div");
+  grid.style.cssText = [
+    "display:grid;",
+    "grid-template-columns:repeat(auto-fill,minmax(120px,1fr));",
+    "gap:8px;",
+    "padding:40px 16px 16px;",
+    "align-content:start;",
+  ].join("");
+
+  for (const user of users) {
+    const card = Object.assign(document.createElement("a"), {
+      href: `${PROFILE_BASE}/${user.login}`,
+      target: "_blank",
+      rel: "noopener noreferrer",
+    });
+    card.style.cssText = [
+      "display:flex;",
+      "flex-direction:column;",
+      "align-items:center;",
+      "gap:4px;",
+      "padding:10px 8px;",
+      "border-radius:10px;",
+      "background:var(--color-base-200);",
+      "text-align:center;",
+      "text-decoration:none;",
+      "min-width:0;",
+    ].join("");
+    card.addEventListener("mouseenter", () => {
+      card.style.background = "var(--color-base-300)";
+    });
+    card.addEventListener("mouseleave", () => {
+      card.style.background = "var(--color-base-200)";
+    });
+
+    const avatar = Object.assign(document.createElement("img"), {
+      src: user.cdn_uri,
+      alt: user.login,
+    });
+    avatar.style.cssText =
+      "width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;";
+
+    const login = document.createElement("span");
+    login.textContent = user.login;
+    login.style.cssText =
+      "font-size:13px;font-weight:600;color:var(--color-base-content);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+
+    const since = document.createElement("span");
+    since.className = "badge badge-sm";
+    since.textContent = formatTimeAgo(new Date(user.begin_at).getTime());
+    since.style.cssText = [
+      "max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;",
+      "background:#fff;color:#000;border-color:#fff;",
+    ].join("");
+    since.setAttribute(
+      "data-tip",
+      `since ${new Date(user.begin_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`,
+    );
+
+    card.appendChild(avatar);
+    card.appendChild(login);
+    card.appendChild(since);
+    grid.appendChild(card);
+  }
+  mapArea.replaceChildren(grid);
 }
 
 export function formatTimeAgo(ts: number): string {
