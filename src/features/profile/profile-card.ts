@@ -58,6 +58,7 @@ function populateMainBadges(
       "badge badge-lg h-auto flex w-full justify-between gap-4 px-5 py-1.5 text-lg";
     badge.style.backgroundColor = "var(--ft-card-bg)";
     badge.style.color = "var(--ft-card-text)";
+    badge.style.borderRadius = "0.75rem";
 
     badge.style.setProperty("border", "3px solid", "important");
     badge.style.setProperty(
@@ -127,6 +128,7 @@ async function injectSeatBadge(profileCard: HTMLElement) {
     badge.style.backgroundColor = "var(--ft-card-bg)";
     badge.style.color = "var(--ft-card-text)";
     badge.style.border = "3px solid transparent";
+    badge.style.borderRadius = "0.75rem";
     badge.style.cursor = "default";
     badge.textContent = "unavailable";
     wrapper.prepend(badge);
@@ -142,6 +144,7 @@ async function injectSeatBadge(profileCard: HTMLElement) {
   badge.style.backgroundColor = "var(--ft-card-bg)";
   badge.style.color = "var(--ft-card-text)";
   badge.style.border = "3px solid transparent";
+  badge.style.borderRadius = "0.75rem";
   badge.style.color = "inherit";
   badge.style.fontWeight = "600";
   badge.style.cursor = "pointer";
