@@ -1,11 +1,6 @@
 import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
-import {
-  applyCloudSettings,
-  fetchMySettings,
-  getCloudLogin,
-  testCloudConnection,
-} from "./account.ts";
+import { getCloudLogin, testCloudConnection } from "./account.ts";
 import { getConfig } from "../../config.ts";
 import FORTY_TWO_SVG from "../../assets/svg/42_Logo.svg?raw";
 import { AccountState, createInitialState } from "./state.ts";
@@ -195,30 +190,6 @@ export async function initAccountSettings(container: HTMLElement) {
     state.needsReconnect = !!(await getConfig("CLOUD_AUTH_FAILED"));
     if (state.token && state.login) {
       state.activeSessions = await testCloudConnection();
-    }
-
-    const promptedKey = "CLOUD_PULL_PROMPTED";
-    const prompted = (await chrome.storage.local.get(promptedKey)) as Record<
-      string,
-      string
-    >;
-    if (state.token && state.login && prompted[promptedKey] !== state.login) {
-      const settings = await fetchMySettings();
-      if (settings) {
-        const hasData = Object.entries(settings).some(
-          ([k, v]) =>
-            k !== "CLOUD_TOKEN" && k !== "CLOUD_LOGIN" && v != null && v !== "",
-        );
-        if (hasData && confirm("Cloud backup found. Restore your settings?")) {
-          await applyCloudSettings(settings);
-          const [tab] = await chrome.tabs.query({
-            active: true,
-            currentWindow: true,
-          });
-          if (tab?.id) chrome.tabs.reload(tab.id);
-        }
-      }
-      await chrome.storage.local.set({ [promptedKey]: state.login });
     }
 
     render(renderAccountTab(state, handlers), container);

@@ -4,6 +4,7 @@ import { initProfile } from "./features/profile/profile.ts";
 import { initHubSettings } from "./features/hub/hubSettings.ts";
 import { initShortcuts } from "./features/shortcuts/shortcuts.ts";
 import { initThemeManager, getIsLight } from "./features/profile/theme/theme-manager.ts";
+import { maybePromptRestore } from "./features/account/account.ts";
 import { initGlobalTooltips } from "./utils/tooltip.ts";
 import { ensureCampusData } from "./features/campus/campus.ts";
 import { updateNavAvatar } from "./features/profile/visuals.ts";
@@ -145,6 +146,7 @@ const featureInitializers: { [key: string]: () => Promise<void> } = {
     await chrome.storage.local.set({
       CLOUD_TOKEN: oauthToken,
       CLOUD_LOGIN: oauthLogin,
+      PENDING_SETTINGS_RESTORE: true,
     });
     await chrome.storage.local.remove("CLOUD_AUTH_FAILED");
     history.replaceState(null, "", window.location.pathname);
@@ -195,6 +197,8 @@ const featureInitializers: { [key: string]: () => Promise<void> } = {
             }
           }
         }
+
+        await maybePromptRestore();
       } catch (error) {
         console.error("Error during init of Better Intra :", error);
       }

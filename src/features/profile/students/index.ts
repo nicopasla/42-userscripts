@@ -1,5 +1,6 @@
 import { render } from "lit-html";
 import { getConfig } from "../../../config.ts";
+import { clearAuthFailed, loginWith42 } from "../../account/account.ts";
 import {
   TOOLTIP_SHOW_DELAY,
   hideFloatingTooltip,
@@ -326,6 +327,12 @@ export async function openStudentsDialog() {
         rerender();
       }, 1500);
       rerender();
+    },
+    onConnect: () => {
+      void loginWith42(async () => {
+        await clearAuthFailed();
+        window.location.reload();
+      });
     },
   };
 

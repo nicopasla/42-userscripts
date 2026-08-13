@@ -14,10 +14,19 @@ export function createHandlers(state: AccountState, updateUI: () => void) {
   const handleLogin42 = () => {
     loginWith42(async () => {
       await clearAuthFailed();
-      updateUI();
-      await reloadTab();
-      window.location.reload();
+      void chrome.runtime
+        .sendMessage({ type: "FT_RELOAD_INTRA_TABS" })
+        .catch(() => reloadActiveTab());
+      window.close();
     });
+  };
+
+  const reloadActiveTab = async () => {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (tab?.id) chrome.tabs.reload(tab.id);
   };
 
   const reloadTab = async () => {

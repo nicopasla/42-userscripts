@@ -60,6 +60,7 @@ export async function loginWith42(
         await chrome.storage.local.set({
           CLOUD_TOKEN: token,
           CLOUD_LOGIN: login,
+          PENDING_SETTINGS_RESTORE: true,
         });
 
         window.removeEventListener("message", messageListener);
@@ -86,6 +87,7 @@ export async function loginWith42(
       const savedLogin = await getCloudLogin();
       const savedToken = await getConfig("CLOUD_TOKEN");
       if (savedLogin && savedToken) {
+        await chrome.storage.local.set({ PENDING_SETTINGS_RESTORE: true });
         if (onSuccess) await onSuccess();
         else window.location.reload();
       }
@@ -383,5 +385,37 @@ export async function applyCloudSettings(
 
   if (Object.keys(dataToSave).length > 0) {
     await chrome.storage.local.set(dataToSave as Record<string, unknown>);
+  }
+}
+
+/**
+ * Prompts the user to restore their cloud settings after a fresh 42 connect.
+ * Triggered once per connect via the PENDING_SETTINGS_RESTORE flag.
+ */
+export async function maybePromptRestore(): Promise<void> {
+  const pending = (
+    await chrome.storage.local.get("PENDING_SETTINGS_RESTORE")
+  ) as Record<string, unknown>;
+  if (!pending.PENDING_SETTINGS_RESTORE) return;
+  await chrome.storage.local.remove("PENDING_SETTINGS_RESTORE");
+
+  const login = await getCloudLogin();
+  const token = await getConfig("CLOUD_TOKEN");
+  if (!login || !token) return;
+
+  const settings = await fetchMySettings();
+  if (!settings) return;
+
+  const hasData = Object.entries(settings).some(
+    ([k, v]) =>
+      k !== "CLOUD_TOKEN" && k !== "CLOUD_LOGIN" && v != null && v !== "",
+  );
+  if (hasData && confirm("Cloud backup found. Restore your settings?")) {
+    await applyCloudSettings(settings);
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (tab?.id) chrome.tabs.reload(tab.id);
   }
 }

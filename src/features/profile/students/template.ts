@@ -15,6 +15,7 @@ import CAL_UP_SVG from "../../../assets/svg/calendar-arrow-up.svg?raw";
 import FILTER_SVG from "../../../assets/svg/filter.svg?raw";
 import FILTER_CLEAR_SVG from "../../../assets/svg/filter-clear.svg?raw";
 import CHECK_SVG from "../../../assets/svg/check.svg?raw";
+import FORTY_TWO_SVG from "../../../assets/svg/42_Logo.svg?raw";
 import {
   beginAtIntake,
   formatAlumniDate,
@@ -80,6 +81,7 @@ export interface StudentsTemplateHandlers {
   onPoolYear: (value: number) => void;
   onClearFilters: () => void;
   onCopyLogin: (login: string) => void;
+  onConnect: () => void;
 }
 
 const STATUS_FILTERS: Array<{
@@ -185,6 +187,29 @@ function renderFilterMenu(
               `,
             )}`
         : ""}
+    </div>
+  `;
+}
+
+function renderConnectBanner(onConnect: () => void): TemplateResult {
+  return html`
+    <div class="flex flex-col items-center gap-4 py-12 px-6 text-center">
+      <p class="text-base-content/60">
+        Students data requires a connected 42 account
+      </p>
+      <button
+        type="button"
+        class="btn bg-[#00babc] text-white border-none hover:bg-[#1fd2d4] flex items-center justify-center gap-3"
+        style="height:3rem; min-width:15rem; font-size:1rem;"
+        @click="${onConnect}"
+      >
+        <span class="font-bold tracking-wide">Connect with</span>
+        <span
+          class="size-8 flex items-center justify-center [&_polygon]:fill-current"
+        >
+          ${unsafeHTML(FORTY_TWO_SVG)}
+        </span>
+      </button>
     </div>
   `;
 }
@@ -893,9 +918,7 @@ export function renderStudentsDialogTemplate(
                 <span class="loading loading-spinner loading-lg"></span>
               </div>`
             : authError
-              ? html`<div class="text-center p-6 text-base-content/50">
-                  Requires a connected 42 account
-                </div>`
+              ? renderConnectBanner(handlers.onConnect)
               : piscineListFiltered.length === 0
                 ? html`<div class="text-center p-6 text-base-content/50">
                     ${piscineList.length === 0
@@ -923,9 +946,7 @@ export function renderStudentsDialogTemplate(
                 <span class="loading loading-spinner loading-lg"></span>
               </div>`
             : authError
-              ? html`<div class="text-center p-6 text-base-content/50">
-                  Requires a connected 42 account
-                </div>`
+              ? renderConnectBanner(handlers.onConnect)
               : filtered.length === 0
                 ? html`<div class="text-center p-6 text-base-content/50">
                     ${entries.length === 0 ? "No data" : "No results"}

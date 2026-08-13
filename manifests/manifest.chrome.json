@@ -23,7 +23,10 @@
     "128": "icons/icon-128.png"
   },
   "incognito": "not_allowed",
-  "host_permissions": ["https://api.betterintra.com/*"],
+  "host_permissions": [
+    "https://api.betterintra.com/*",
+    "https://*.intra.42.fr/*"
+  ],
   "content_scripts": [
     {
       "matches": ["https://*.intra.42.fr/*"],

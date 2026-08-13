@@ -132,8 +132,26 @@ async function syncDiscordQuiet() {
   }
 }
 
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "FT_RELOAD_INTRA_TABS") {
+    reloadIntraTabs()
+      .catch(() => undefined)
+      .finally(sendResponse);
+    return true;
+  }
+  return undefined;
+});
+
 async function reloadIntraTabs() {
   const tabs = await chrome.tabs.query({ url: "https://*.intra.42.fr/*" });
+  if (tabs.length === 0) {
+    const [active] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (active?.id) chrome.tabs.reload(active.id);
+    return;
+  }
   for (const tab of tabs) {
     if (tab.id) chrome.tabs.reload(tab.id);
   }

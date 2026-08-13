@@ -53,6 +53,14 @@ async function main() {
   const root = document.getElementById("account-root");
   if (!root) return;
 
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+    const token = changes.CLOUD_TOKEN?.newValue;
+    if (typeof token === "string" && token) {
+      window.close();
+    }
+  });
+
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (isIntraUrl(tab?.url)) {
     await initAccountSettings(root);

@@ -13,8 +13,6 @@ import {
 import {
   loginWith42,
   clearAuthFailed,
-  fetchMySettings,
-  applyCloudSettings,
   syncToCloud,
 } from "../account/account.ts";
 import { getConfig } from "../../config.ts";
@@ -835,7 +833,6 @@ export async function injectFriendsWidget() {
       loginWith42(async () => {
         if (_state) _state.needsReconnect = false;
         await clearAuthFailed();
-        await chrome.storage.local.set({ PENDING_SETTINGS_PULL: true });
         window.location.reload();
       });
     },
@@ -861,16 +858,4 @@ export async function injectFriendsWidget() {
     renderWidgetUI();
   };
   document.addEventListener("click", closeOnOutsideClick);
-
-  const pendingPull = (await chrome.storage.local.get("PENDING_SETTINGS_PULL"))
-    .PENDING_SETTINGS_PULL;
-  if (pendingPull) {
-    await chrome.storage.local.remove("PENDING_SETTINGS_PULL");
-    const settings = await fetchMySettings();
-    if (settings) {
-      await applyCloudSettings(settings);
-      window.location.reload();
-      return;
-    }
-  }
 }
