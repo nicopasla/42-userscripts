@@ -31,6 +31,7 @@ import {
 import {
   renderSeatOverlays,
   renderWifiList,
+  renderActiveList,
   OccupancyEntry,
 } from "./map-dialog/render.ts";
 
@@ -40,33 +41,43 @@ interface ClusterInfo {
   svg?: string;
 }
 
-export interface WifiPresenceChange {
+export interface PseudoClusterChange {
   clusters: ClusterInfo[];
-  wifiAdded: boolean;
-  wifiRemoved: boolean;
+  added: boolean;
+  removed: boolean;
 }
 
-export function applyWifiPresence(
+export function applyPseudoCluster(
   clusters: ClusterInfo[],
-  hasWifi: boolean,
-): WifiPresenceChange {
-  const hasWifiCluster = clusters.some((c) => c.id === "wifi");
-  if (hasWifi && !hasWifiCluster) {
+  id: string,
+  name: string,
+  present: boolean,
+): PseudoClusterChange {
+  const hasCluster = clusters.some((c) => c.id === id);
+  if (present && !hasCluster) {
     return {
-      clusters: [...clusters, { id: "wifi", name: "Wi-Fi" }],
-      wifiAdded: true,
-      wifiRemoved: false,
+      clusters: [...clusters, { id, name }],
+      added: true,
+      removed: false,
     };
   }
-  if (!hasWifi && hasWifiCluster) {
+  if (!present && hasCluster) {
     return {
-      clusters: clusters.filter((c) => c.id !== "wifi"),
-      wifiAdded: false,
-      wifiRemoved: true,
+      clusters: clusters.filter((c) => c.id !== id),
+      added: false,
+      removed: true,
     };
   }
-  return { clusters, wifiAdded: false, wifiRemoved: false };
+  return { clusters, added: false, removed: false };
 }
+
+export const applyWifiPresence = (clusters: ClusterInfo[], hasWifi: boolean) =>
+  applyPseudoCluster(clusters, "wifi", "Wi-Fi", hasWifi);
+
+export const applyActivePresence = (
+  clusters: ClusterInfo[],
+  hasActive: boolean,
+) => applyPseudoCluster(clusters, "active", "Active", hasActive);
 
 const WORKER_URL = "https://api.betterintra.com";
 const CLUSTERS_JSON_URL = "https://meta.intra.42.fr/clusters.json";
@@ -177,6 +188,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   let lastUpdated = 0;
   let showMarkers = showMarkersVal;
   let wifiUsers: OccupancyEntry[] = [];
+  let activeUsers: OccupancyEntry[] = [];
   let zoomLevel = 1.0;
   let defaultZoomLevel = 1.0;
   const SEAT_TARGET_PX = 60;
@@ -843,12 +855,28 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         workCopy.delete(host);
       }
     }
+    activeUsers = [...workCopy.values()].sort((a, b) =>
+      a.login.localeCompare(b.login),
+    );
     const wifiVisible = wifiUsers.length > 0;
+    const activeVisible = workCopy.size > 0;
+    let clustersChanged = false;
     const wifiChange = applyWifiPresence(clusters, wifiVisible);
-    if (wifiChange.wifiAdded || wifiChange.wifiRemoved) {
+    if (wifiChange.added || wifiChange.removed) {
       clusters = wifiChange.clusters;
+      clustersChanged = true;
+    }
+    const activeChange = applyActivePresence(clusters, activeVisible);
+    if (activeChange.added || activeChange.removed) {
+      clusters = activeChange.clusters;
+      clustersChanged = true;
+    }
+    if (clustersChanged) {
       rebuildHeader();
-      if (wifiChange.wifiRemoved && activeCluster.id === "wifi") {
+      if (
+        (wifiChange.removed && activeCluster.id === "wifi") ||
+        (activeChange.removed && activeCluster.id === "active")
+      ) {
         activeCluster = clusters[0];
         if (activeCluster) loadCluster(activeCluster);
       }
@@ -857,6 +885,9 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     const viewBox = svgViewBoxes.get(keyOf(activeCampusId, activeCluster.id));
     if (positions && viewBox) {
       renderSeatOverlays(shadow, workCopy, positions, viewBox);
+    }
+    if (activeCluster.id === "active") {
+      renderActiveList(shadow, activeUsers);
     }
     if (flashingSeat) {
       applySeatGlow(flashingSeat);
@@ -903,6 +934,16 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         }
         continue;
       }
+      if (id === "active") {
+        if (activeUsers.length > 0) {
+          const num = document.createElement("span");
+          num.textContent = `${activeUsers.length}`;
+          num.style.cssText =
+            "font-weight:400;opacity:0.55;font-size:11px;margin-left:6px;";
+          tab.appendChild(num);
+        }
+        continue;
+      }
       const count = clusterCounts.get(id);
       if (count && count.total > 0) {
         const num = document.createElement("span");
@@ -925,7 +966,15 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     const sumTaken = allCounts.reduce((s, c) => s + c.taken, 0);
     const sumTotal = allCounts.reduce((s, c) => s + c.total, 0);
     const totalsBadge = shadow.getElementById("totals-badge");
-    if (totalsBadge) totalsBadge.textContent = `${sumTaken} / ${sumTotal}`;
+    if (totalsBadge) {
+      if (activeCluster.id === "active") {
+        totalsBadge.textContent = `${activeUsers.length} active`;
+        totalsBadge.title = "Users currently connected";
+      } else {
+        totalsBadge.textContent = `${sumTaken} / ${sumTotal}`;
+        totalsBadge.title = "Total taken / Total seats";
+      }
+    }
     startCountdown();
     updateTabsOverflow();
   };
@@ -977,11 +1026,11 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     activeCluster = cluster;
     zoomLevel = 1.0;
     clearSeatGlow();
-    const isWifi = cluster.id === "wifi";
+    const isOverview = cluster.id === "wifi" || cluster.id === "active";
     const badge = shadow.getElementById("seat-count-badge");
-    if (badge) badge.style.display = isWifi ? "none" : "";
+    if (badge) badge.style.display = isOverview ? "none" : "";
     const zoomCtrls = shadow.getElementById("zoom-controls");
-    if (zoomCtrls) zoomCtrls.style.display = isWifi ? "none" : "";
+    if (zoomCtrls) zoomCtrls.style.display = isOverview ? "none" : "";
     const id = ++loadId;
     retryCount = 0;
 
@@ -1007,6 +1056,11 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       spinner.className = "loading loading-spinner loading-lg";
       spinnerContainer.appendChild(spinner);
       mapArea.replaceChildren(spinnerContainer);
+    }
+
+    if (cluster.id === "active") {
+      renderActiveList(shadow, activeUsers);
+      return;
     }
 
     if (cluster.id === "wifi") {

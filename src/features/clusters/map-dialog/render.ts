@@ -205,6 +205,89 @@ export function renderSeatOverlays(
   mapArea.appendChild(overlay);
 }
 
+export function renderActiveList(shadow: ShadowRoot, users: OccupancyEntry[]) {
+  const mapArea = shadow.getElementById("map-area");
+  if (!mapArea) return;
+  mapArea.style.position = "";
+
+  if (users.length === 0) {
+    const emptyDiv = document.createElement("div");
+    emptyDiv.className =
+      "flex items-center justify-center p-12 text-base-content/50";
+    emptyDiv.textContent = "No one connected";
+    mapArea.replaceChildren(emptyDiv);
+    return;
+  }
+
+  const grid = document.createElement("div");
+  grid.style.cssText = [
+    "display:grid;",
+    "grid-template-columns:repeat(auto-fill,minmax(120px,1fr));",
+    "gap:8px;",
+    "padding:40px 16px 16px;",
+    "align-content:start;",
+  ].join("");
+
+  for (const user of users) {
+    const card = Object.assign(document.createElement("a"), {
+      href: `${PROFILE_BASE}/${user.login}`,
+      target: "_blank",
+      rel: "noopener noreferrer",
+    });
+    card.style.cssText = [
+      "display:flex;",
+      "flex-direction:column;",
+      "align-items:center;",
+      "gap:4px;",
+      "padding:10px 8px;",
+      "border-radius:10px;",
+      "background:var(--color-base-200);",
+      "text-align:center;",
+      "text-decoration:none;",
+      "min-width:0;",
+    ].join("");
+    card.addEventListener("mouseenter", () => {
+      card.style.background = "var(--color-base-300)";
+    });
+    card.addEventListener("mouseleave", () => {
+      card.style.background = "var(--color-base-200)";
+    });
+
+    const avatar = Object.assign(document.createElement("img"), {
+      src: user.cdn_uri,
+      alt: user.login,
+    });
+    avatar.style.cssText =
+      "width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;";
+
+    const login = document.createElement("span");
+    login.textContent = user.login;
+    login.style.cssText =
+      "font-size:13px;font-weight:600;color:var(--color-base-content);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+
+    const since = document.createElement("span");
+    since.className = "badge badge-sm";
+    since.textContent = formatTimeAgo(new Date(user.begin_at).getTime());
+    since.style.cssText = [
+      "max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;",
+      "background:#fff;color:#000;border-color:#fff;",
+    ].join("");
+    since.setAttribute(
+      "data-tip",
+      `since ${new Date(user.begin_at).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`,
+    );
+
+    card.appendChild(avatar);
+    card.appendChild(login);
+    card.appendChild(since);
+    grid.appendChild(card);
+  }
+  mapArea.replaceChildren(grid);
+}
+
 export function formatTimeAgo(ts: number): string {
   const secs = (Date.now() - ts) / 1000;
   if (secs < 3) return "now";
