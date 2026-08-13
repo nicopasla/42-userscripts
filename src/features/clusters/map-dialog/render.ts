@@ -26,7 +26,7 @@ export function renderWifiList(shadow: ShadowRoot, users: OccupancyEntry[]) {
 
   const list = document.createElement("div");
   list.style.cssText =
-    "display:flex;flex-direction:column;gap:4px;padding:12px;";
+    "display:flex;flex-direction:column;gap:4px;padding:40px 12px 12px;";
   mapArea.replaceChildren(list);
 
   for (const user of users) {
