@@ -1,6 +1,7 @@
 import { BetterIntraConfig, getConfig, CLOUD_SYNC_KEYS } from "../../config.ts";
 import type { VisualUrls } from "../profile/visuals.ts";
 import { hashLogin } from "../../utils/crypto.ts";
+import { showConfirmDialog } from "../../utils/confirm-dialog.ts";
 
 export { hashLogin };
 
@@ -393,9 +394,9 @@ export async function applyCloudSettings(
  * Triggered once per connect via the PENDING_SETTINGS_RESTORE flag.
  */
 export async function maybePromptRestore(): Promise<void> {
-  const pending = (
-    await chrome.storage.local.get("PENDING_SETTINGS_RESTORE")
-  ) as Record<string, unknown>;
+  const pending = (await chrome.storage.local.get(
+    "PENDING_SETTINGS_RESTORE",
+  )) as Record<string, unknown>;
   if (!pending.PENDING_SETTINGS_RESTORE) return;
   await chrome.storage.local.remove("PENDING_SETTINGS_RESTORE");
 
@@ -410,12 +411,15 @@ export async function maybePromptRestore(): Promise<void> {
     ([k, v]) =>
       k !== "CLOUD_TOKEN" && k !== "CLOUD_LOGIN" && v != null && v !== "",
   );
-  if (hasData && confirm("Cloud backup found. Restore your settings?")) {
+  if (
+    hasData &&
+    (await showConfirmDialog({
+      message: "Cloud backup found. Restore your settings?",
+      confirmLabel: "Restore",
+      cancelLabel: "Cancel",
+    }))
+  ) {
     await applyCloudSettings(settings);
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    if (tab?.id) chrome.tabs.reload(tab.id);
+    window.location.reload();
   }
 }
