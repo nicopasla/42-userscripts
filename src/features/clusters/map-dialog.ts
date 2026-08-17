@@ -30,7 +30,6 @@ import {
 } from "./map-dialog/cache.ts";
 import {
   renderSeatOverlays,
-  renderWifiList,
   renderActiveList,
   OccupancyEntry,
   ActiveSortMode,
@@ -73,9 +72,6 @@ export function applyPseudoCluster(
   }
   return { clusters, added: false, removed: false };
 }
-
-export const applyWifiPresence = (clusters: ClusterInfo[], hasWifi: boolean) =>
-  applyPseudoCluster(clusters, "wifi", "Wi-Fi", hasWifi);
 
 export const applyActivePresence = (
   clusters: ClusterInfo[],
@@ -125,6 +121,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   let activeSortMode: ActiveSortMode = ACTIVE_SORT_DEFAULT.mode;
   let activeNameDir: "asc" | "desc" = ACTIVE_SORT_DEFAULT.nameDir;
   let activeSinceDir: "asc" | "desc" = ACTIVE_SORT_DEFAULT.sinceDir;
+  let activeWifiOnly = false;
 
   const savedActiveSort = (await chrome.storage.local.get(
     "MAP_ACTIVE_SORT",
@@ -152,6 +149,13 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       savedActiveSortData.sinceDir === "desc"
     )
       activeSinceDir = savedActiveSortData.sinceDir;
+  }
+
+  const savedActiveWifi = (await chrome.storage.local.get(
+    "MAP_ACTIVE_WIFI",
+  )) as { MAP_ACTIVE_WIFI?: boolean };
+  if (typeof savedActiveWifi.MAP_ACTIVE_WIFI === "boolean") {
+    activeWifiOnly = savedActiveWifi.MAP_ACTIVE_WIFI;
   }
 
   let campusOptions: { id: string; name: string; timezone?: string }[] = [];
@@ -213,7 +217,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     : undefined;
   let activeCluster = targetCluster ||
     clusters.find((c) => c.id === defaultId) ||
-    clusters[0] || { id: "wifi", name: "Wi-Fi" };
+    clusters[0] || { id: "active", name: "Active" };
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   let clockTimer: ReturnType<typeof setInterval> | null = null;
   const seatPosCache = new Map<string, Map<string, SeatPos>>();
@@ -223,6 +227,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   let lastUpdated = 0;
   let showMarkers = showMarkersVal;
   let wifiUsers: OccupancyEntry[] = [];
+  let seatedUsers: OccupancyEntry[] = [];
   let activeUsers: OccupancyEntry[] = [];
   let zoomLevel = 1.0;
   let defaultZoomLevel = 1.0;
@@ -492,6 +497,36 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
           white-space: nowrap;
           flex-shrink: 0;
         }
+        #top-left-badges.active-tab #campus-time {
+          font-size: 14px;
+          padding: 5px 12px;
+        }
+        #top-left-badges.active-tab #campus-time-icon {
+          width: 14px;
+          height: 14px;
+        }
+        #top-left-badges.active-tab #active-sort {
+          gap: 2px;
+          padding: 4px 6px;
+        }
+        #top-left-badges.active-tab #active-sort .btn {
+          min-height: 2rem;
+          height: 2rem;
+          font-size: 13px;
+          padding: 0 10px;
+          border-radius: 6px;
+        }
+        #top-left-badges.active-tab #active-sort .sort-icon {
+          width: 15px;
+          height: 15px;
+        }
+        #top-left-badges.active-tab #active-sort .sort-icon svg {
+          width: 15px;
+          height: 15px;
+        }
+        #top-left-badges.active-tab #active-sort .w-px {
+          height: 1.25rem;
+        }
       </style>
       <div
         data-theme="${currentTheme}"
@@ -720,6 +755,15 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
                 ></span>
                 <span class="sort-label">Time</span>
               </button>
+              <div class="w-px h-4 bg-accent-content/40"></div>
+              <button
+                class="btn btn-ghost btn-xs text-accent-content gap-1"
+                id="active-wifi-toggle"
+                data-tip="Show only Wi-Fi users"
+                data-tip-size="14px"
+              >
+                <span class="sort-label">Wi-Fi</span>
+              </button>
             </div>
           </div>
           <div
@@ -904,6 +948,13 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       toggleActiveSort("since");
       return;
     }
+    const wifiToggle = path.find(
+      (el) => el instanceof HTMLElement && el.id === "active-wifi-toggle",
+    );
+    if (wifiToggle) {
+      toggleActiveWifi();
+      return;
+    }
     const closeBtn = path.find(
       (el) => el instanceof HTMLElement && el.id === "close-btn",
     );
@@ -933,19 +984,14 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       }
     }
     activeUsers = sortActiveUsers(
-      [...workCopy.values()],
+      activeWifiOnly ? wifiUsers : [...workCopy.values(), ...wifiUsers],
       activeSortMode,
       activeNameDir,
       activeSinceDir,
     );
-    const wifiVisible = wifiUsers.length > 0;
-    const activeVisible = workCopy.size > 0;
+    seatedUsers = [...workCopy.values()];
+    const activeVisible = activeUsers.length > 0;
     let clustersChanged = false;
-    const wifiChange = applyWifiPresence(clusters, wifiVisible);
-    if (wifiChange.added || wifiChange.removed) {
-      clusters = wifiChange.clusters;
-      clustersChanged = true;
-    }
     const activeChange = applyActivePresence(clusters, activeVisible);
     if (activeChange.added || activeChange.removed) {
       clusters = activeChange.clusters;
@@ -953,10 +999,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     }
     if (clustersChanged) {
       rebuildHeader();
-      if (
-        (wifiChange.removed && activeCluster.id === "wifi") ||
-        (activeChange.removed && activeCluster.id === "active")
-      ) {
+      if (activeChange.removed && activeCluster.id === "active") {
         activeCluster = clusters[0];
         if (activeCluster) loadCluster(activeCluster);
       }
@@ -1004,16 +1047,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         ? clusterLabel(cluster)
         : tab.dataset.clusterName || id.toUpperCase();
       tab.textContent = name;
-      if (id === "wifi") {
-        if (wifiUsers.length > 0) {
-          const num = document.createElement("span");
-          num.textContent = `${wifiUsers.length}`;
-          num.style.cssText =
-            "font-weight:400;opacity:0.55;font-size:11px;margin-left:6px;";
-          tab.appendChild(num);
-        }
-        continue;
-      }
       if (id === "active") {
         if (activeUsers.length > 0) {
           const num = document.createElement("span");
@@ -1106,7 +1139,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     activeCluster = cluster;
     zoomLevel = 1.0;
     clearSeatGlow();
-    const isOverview = cluster.id === "wifi" || cluster.id === "active";
+    const isOverview = cluster.id === "active";
     const badge = shadow.getElementById("seat-count-badge");
     if (badge) badge.style.display = isOverview ? "none" : "";
     const zoomCtrls = shadow.getElementById("zoom-controls");
@@ -1114,6 +1147,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     const sortCtrls = shadow.getElementById("active-sort");
     if (sortCtrls)
       sortCtrls.style.display = cluster.id === "active" ? "" : "none";
+    const topBadges = shadow.getElementById("top-left-badges");
+    topBadges?.classList.toggle("active-tab", cluster.id === "active");
     const id = ++loadId;
     retryCount = 0;
 
@@ -1144,11 +1179,6 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     if (cluster.id === "active") {
       updateActiveSortControls();
       renderActiveList(shadow, activeUsers);
-      return;
-    }
-
-    if (cluster.id === "wifi") {
-      renderWifiList(shadow, wifiUsers);
       return;
     }
 
@@ -1363,6 +1393,29 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
             : "Oldest first (click to invert)"
           : "Sort by connection time";
     }
+    const wifiBtn = shadow.getElementById("active-wifi-toggle");
+    if (wifiBtn) {
+      wifiBtn.style.opacity = activeWifiOnly ? "1" : "0.45";
+      wifiBtn.style.fontWeight = activeWifiOnly ? "700" : "";
+      wifiBtn.dataset.tip = activeWifiOnly
+        ? "Showing only Wi-Fi users (click to show all)"
+        : "Show only Wi-Fi users";
+    }
+  };
+
+  const toggleActiveWifi = () => {
+    activeWifiOnly = !activeWifiOnly;
+    chrome.storage.local.set({
+      MAP_ACTIVE_WIFI: activeWifiOnly,
+    });
+    activeUsers = sortActiveUsers(
+      activeWifiOnly ? wifiUsers : [...seatedUsers, ...wifiUsers],
+      activeSortMode,
+      activeNameDir,
+      activeSinceDir,
+    );
+    if (activeCluster.id === "active") renderActiveList(shadow, activeUsers);
+    updateActiveSortControls();
   };
 
   const toggleActiveSort = (mode: ActiveSortMode) => {
@@ -1457,7 +1510,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       return;
     }
     activeCluster = clusters.find((c) => c.id === defaultId) ||
-      clusters[0] || { id: "wifi", name: "Wi-Fi" };
+clusters[0] || { id: "active", name: "Active" };
     const trigger = shadow.getElementById("campus-trigger");
     if (trigger) {
       const name =

@@ -37,72 +37,6 @@ export function sortActiveUsers(
   });
 }
 
-export function renderWifiList(shadow: ShadowRoot, users: OccupancyEntry[]) {
-  const mapArea = shadow.getElementById("map-area");
-  if (!mapArea) return;
-  mapArea.style.position = "";
-
-  if (users.length === 0) {
-    const emptyDiv = document.createElement("div");
-    emptyDiv.className =
-      "flex items-center justify-center p-12 text-base-content/50";
-    emptyDiv.textContent = "No one on Wi-Fi";
-    mapArea.replaceChildren(emptyDiv);
-    return;
-  }
-
-  const list = document.createElement("div");
-  list.style.cssText =
-    "display:flex;flex-direction:column;gap:4px;padding:40px 12px 12px;";
-  mapArea.replaceChildren(list);
-
-  for (const user of users) {
-    const since = new Date(user.begin_at);
-    const timeStr = since.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    const row = document.createElement("div");
-    row.style.cssText =
-      "display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;cursor:pointer;";
-    row.addEventListener("click", () => {
-      window.open(`${PROFILE_BASE}/${user.login}`, "_blank");
-    });
-    row.addEventListener("mouseenter", () => {
-      row.style.background = "var(--color-base-200)";
-    });
-    row.addEventListener("mouseleave", () => {
-      row.style.background = "";
-    });
-
-    const avatar = Object.assign(document.createElement("img"), {
-      src: user.cdn_uri,
-      alt: user.login,
-    });
-    avatar.style.cssText =
-      "width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;";
-
-    const info = document.createElement("div");
-    info.style.cssText = "display:flex;flex-direction:column;min-width:0;";
-
-    const name = document.createElement("span");
-    name.textContent = user.login;
-    name.style.cssText =
-      "font-size:14px;font-weight:600;color:var(--color-base-content);";
-
-    const time = document.createElement("span");
-    time.textContent = `since ${timeStr}`;
-    time.style.cssText = "font-size:12px;opacity:0.6;";
-
-    info.appendChild(name);
-    info.appendChild(time);
-    row.appendChild(avatar);
-    row.appendChild(info);
-    list.appendChild(row);
-  }
-}
-
 export function renderSeatOverlays(
   shadow: ShadowRoot,
   occupancy: Map<string, OccupancyEntry>,
@@ -260,7 +194,7 @@ export function renderActiveList(shadow: ShadowRoot, users: OccupancyEntry[]) {
     "display:grid;",
     "grid-template-columns:repeat(auto-fill,minmax(120px,1fr));",
     "gap:8px;",
-    "padding:40px 16px 16px;",
+    "padding:72px 16px 16px;",
     "align-content:start;",
   ].join("");
 
