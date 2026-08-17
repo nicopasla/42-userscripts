@@ -2,10 +2,7 @@ import { html, render, TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 import { getConfig } from "../../config.ts";
-import {
-  getClusterData,
-  fetchCampusList,
-} from "./clusters.data.ts";
+import { getClusterData, fetchCampusList } from "./clusters.data.ts";
 import {
   getEffectiveTheme,
   getIsLight,
@@ -15,6 +12,10 @@ import { bindTooltips } from "../../utils/tooltip.ts";
 import RELOAD_SVG from "../../assets/svg/reload.svg?raw";
 import CLOCK_SVG from "../../assets/svg/clock.svg?raw";
 import RESET_SVG from "../../assets/svg/reset.svg?raw";
+import SORT_AZ_SVG from "../../assets/svg/sort-az.svg?raw";
+import SORT_ZA_SVG from "../../assets/svg/sort-za.svg?raw";
+import CAL_DOWN_SVG from "../../assets/svg/calendar-arrow-down.svg?raw";
+import CAL_UP_SVG from "../../assets/svg/calendar-arrow-up.svg?raw";
 import { SeatPos } from "./map-dialog/crop.ts";
 import {
   sanitizeAndParseSeats,
@@ -32,6 +33,9 @@ import {
   renderWifiList,
   renderActiveList,
   OccupancyEntry,
+  ActiveSortMode,
+  ACTIVE_SORT_DEFAULT,
+  sortActiveUsers,
 } from "./map-dialog/render.ts";
 
 interface ClusterInfo {
@@ -117,6 +121,38 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     getConfig("CLUSTERS_SHOW_MARKERS"),
   ]);
   const presetKey = (presetKeyRaw as string) || "dark";
+
+  let activeSortMode: ActiveSortMode = ACTIVE_SORT_DEFAULT.mode;
+  let activeNameDir: "asc" | "desc" = ACTIVE_SORT_DEFAULT.nameDir;
+  let activeSinceDir: "asc" | "desc" = ACTIVE_SORT_DEFAULT.sinceDir;
+
+  const savedActiveSort = (await chrome.storage.local.get(
+    "MAP_ACTIVE_SORT",
+  )) as {
+    MAP_ACTIVE_SORT?: {
+      mode?: ActiveSortMode;
+      nameDir?: "asc" | "desc";
+      sinceDir?: "asc" | "desc";
+    };
+  };
+  const savedActiveSortData = savedActiveSort.MAP_ACTIVE_SORT;
+  if (savedActiveSortData) {
+    if (
+      savedActiveSortData.mode === "name" ||
+      savedActiveSortData.mode === "since"
+    )
+      activeSortMode = savedActiveSortData.mode;
+    if (
+      savedActiveSortData.nameDir === "asc" ||
+      savedActiveSortData.nameDir === "desc"
+    )
+      activeNameDir = savedActiveSortData.nameDir;
+    if (
+      savedActiveSortData.sinceDir === "asc" ||
+      savedActiveSortData.sinceDir === "desc"
+    )
+      activeSinceDir = savedActiveSortData.sinceDir;
+  }
 
   let campusOptions: { id: string; name: string; timezone?: string }[] = [];
   try {
@@ -657,6 +693,34 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
               >
               <span id="campus-time-text"></span>
             </div>
+            <div
+              id="active-sort"
+              class="flex items-center gap-0.5 bg-accent text-accent-content rounded-lg px-1 py-0.5 border border-accent"
+              style="display:none"
+            >
+              <button
+                class="btn btn-ghost btn-xs text-accent-content gap-1"
+                id="sort-name"
+                data-tip="Sort by login"
+                data-tip-size="14px"
+              >
+                <span
+                  class="sort-icon size-3 flex items-center justify-center"
+                ></span>
+                <span class="sort-label">Name</span>
+              </button>
+              <button
+                class="btn btn-ghost btn-xs text-accent-content gap-1"
+                id="sort-since"
+                data-tip="Sort by connection time"
+                data-tip-size="14px"
+              >
+                <span
+                  class="sort-icon size-3 flex items-center justify-center"
+                ></span>
+                <span class="sort-label">Time</span>
+              </button>
+            </div>
           </div>
           <div
             id="zoom-controls"
@@ -826,6 +890,20 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       updateZoom();
       return;
     }
+    const sortName = path.find(
+      (el) => el instanceof HTMLElement && el.id === "sort-name",
+    );
+    if (sortName) {
+      toggleActiveSort("name");
+      return;
+    }
+    const sortSince = path.find(
+      (el) => el instanceof HTMLElement && el.id === "sort-since",
+    );
+    if (sortSince) {
+      toggleActiveSort("since");
+      return;
+    }
     const closeBtn = path.find(
       (el) => el instanceof HTMLElement && el.id === "close-btn",
     );
@@ -854,8 +932,11 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         workCopy.delete(host);
       }
     }
-    activeUsers = [...workCopy.values()].sort((a, b) =>
-      a.login.localeCompare(b.login),
+    activeUsers = sortActiveUsers(
+      [...workCopy.values()],
+      activeSortMode,
+      activeNameDir,
+      activeSinceDir,
     );
     const wifiVisible = wifiUsers.length > 0;
     const activeVisible = workCopy.size > 0;
@@ -1030,6 +1111,9 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     if (badge) badge.style.display = isOverview ? "none" : "";
     const zoomCtrls = shadow.getElementById("zoom-controls");
     if (zoomCtrls) zoomCtrls.style.display = isOverview ? "none" : "";
+    const sortCtrls = shadow.getElementById("active-sort");
+    if (sortCtrls)
+      sortCtrls.style.display = cluster.id === "active" ? "" : "none";
     const id = ++loadId;
     retryCount = 0;
 
@@ -1058,6 +1142,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     }
 
     if (cluster.id === "active") {
+      updateActiveSortControls();
       renderActiveList(shadow, activeUsers);
       return;
     }
@@ -1219,6 +1304,86 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     const text = shadow.getElementById("campus-time-text");
     if (text) text.textContent = formatCampusClock(tz);
     el.style.display = "flex";
+  };
+
+  const persistActiveSort = () => {
+    chrome.storage.local.set({
+      MAP_ACTIVE_SORT: {
+        mode: activeSortMode,
+        nameDir: activeNameDir,
+        sinceDir: activeSinceDir,
+      },
+    });
+  };
+
+  const updateActiveSortControls = () => {
+    const nameBtn = shadow.getElementById("sort-name");
+    const sinceBtn = shadow.getElementById("sort-since");
+    if (nameBtn) {
+      const icon = nameBtn.querySelector<HTMLElement>(".sort-icon");
+      if (icon) {
+        render(
+          unsafeHTML(
+            (activeNameDir === "asc" ? SORT_AZ_SVG : SORT_ZA_SVG).replace(
+              "<svg",
+              '<svg width="14" height="14"',
+            ),
+          ),
+          icon,
+        );
+      }
+      nameBtn.style.opacity = activeSortMode === "name" ? "1" : "0.45";
+      nameBtn.style.fontWeight = activeSortMode === "name" ? "700" : "";
+      nameBtn.dataset.tip =
+        activeSortMode === "name"
+          ? activeNameDir === "asc"
+            ? "Name A → Z (click to invert)"
+            : "Name Z → A (click to invert)"
+          : "Sort by login";
+    }
+    if (sinceBtn) {
+      const icon = sinceBtn.querySelector<HTMLElement>(".sort-icon");
+      if (icon) {
+        render(
+          unsafeHTML(
+            (activeSinceDir === "desc" ? CAL_DOWN_SVG : CAL_UP_SVG).replace(
+              "<svg",
+              '<svg width="14" height="14"',
+            ),
+          ),
+          icon,
+        );
+      }
+      sinceBtn.style.opacity = activeSortMode === "since" ? "1" : "0.45";
+      sinceBtn.style.fontWeight = activeSortMode === "since" ? "700" : "";
+      sinceBtn.dataset.tip =
+        activeSortMode === "since"
+          ? activeSinceDir === "desc"
+            ? "Newest first (click to invert)"
+            : "Oldest first (click to invert)"
+          : "Sort by connection time";
+    }
+  };
+
+  const toggleActiveSort = (mode: ActiveSortMode) => {
+    if (activeSortMode === mode) {
+      if (mode === "name") {
+        activeNameDir = activeNameDir === "asc" ? "desc" : "asc";
+      } else {
+        activeSinceDir = activeSinceDir === "desc" ? "asc" : "desc";
+      }
+    } else {
+      activeSortMode = mode;
+    }
+    persistActiveSort();
+    activeUsers = sortActiveUsers(
+      activeUsers,
+      activeSortMode,
+      activeNameDir,
+      activeSinceDir,
+    );
+    if (activeCluster.id === "active") renderActiveList(shadow, activeUsers);
+    updateActiveSortControls();
   };
 
   const getSeatGlowTarget = (seatId: string): Element | null => {

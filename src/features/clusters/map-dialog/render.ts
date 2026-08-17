@@ -10,6 +10,33 @@ export interface OccupancyEntry {
   end_at: string | null;
 }
 
+export type ActiveSortMode = "name" | "since";
+
+export const ACTIVE_SORT_DEFAULT = {
+  mode: "name",
+  nameDir: "asc",
+  sinceDir: "desc",
+} as const;
+
+export function sortActiveUsers(
+  list: OccupancyEntry[],
+  mode: ActiveSortMode,
+  nameDir: "asc" | "desc",
+  sinceDir: "asc" | "desc",
+): OccupancyEntry[] {
+  return [...list].sort((a, b) => {
+    if (mode === "since") {
+      const at = new Date(a.begin_at).getTime();
+      const bt = new Date(b.begin_at).getTime();
+      const diff = at - bt;
+      const result = sinceDir === "asc" ? diff : -diff;
+      return result || a.login.localeCompare(b.login);
+    }
+    const cmp = a.login.localeCompare(b.login);
+    return nameDir === "asc" ? cmp : -cmp;
+  });
+}
+
 export function renderWifiList(shadow: ShadowRoot, users: OccupancyEntry[]) {
   const mapArea = shadow.getElementById("map-area");
   if (!mapArea) return;
@@ -168,7 +195,16 @@ export function renderSeatOverlays(
     "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;";
 
   const frag = document.createDocumentFragment();
-  for (const { host, seat, left, top, width, height, rotationDeg, round } of entries) {
+  for (const {
+    host,
+    seat,
+    left,
+    top,
+    width,
+    height,
+    rotationDeg,
+    round,
+  } of entries) {
     const since = new Date(seat.begin_at);
     const timeStr = since.toLocaleTimeString([], {
       hour: "2-digit",
