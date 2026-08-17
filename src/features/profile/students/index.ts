@@ -13,6 +13,7 @@ import {
   fetchPiscines,
   fetchPisciners,
   fetchStudents,
+  fetchFutureStudents,
   poolIntakes,
   sortEntries,
 } from "./data.ts";
@@ -189,8 +190,9 @@ export async function openStudentsDialog() {
 
   shadow.addEventListener("click", (e) => {
     if ((e.target as HTMLElement).closest("details.dropdown")) return;
-    const dd =
-      shadow.querySelector<HTMLDetailsElement>("details.dropdown[open]");
+    const dd = shadow.querySelector<HTMLDetailsElement>(
+      "details.dropdown[open]",
+    );
     if (dd) dd.open = false;
   });
 
@@ -207,6 +209,8 @@ export async function openStudentsDialog() {
       );
     } else if (tab === "pisciners") {
       res = null;
+    } else if (tab === "new") {
+      res = await fetchFutureStudents();
     } else {
       res = await fetchStudents();
     }

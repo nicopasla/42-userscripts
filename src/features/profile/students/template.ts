@@ -17,7 +17,6 @@ import FILTER_CLEAR_SVG from "../../../assets/svg/filter-clear.svg?raw";
 import CHECK_SVG from "../../../assets/svg/check.svg?raw";
 import FORTY_TWO_SVG from "../../../assets/svg/42_Logo.svg?raw";
 import {
-  beginAtIntake,
   formatAlumniDate,
   formatBlackholeDate,
   formatMonthYear,
@@ -28,7 +27,8 @@ import {
   isBlackholed,
   isFrozen,
   formatLevel,
-  nextIntakes,
+  groupFutureIntakes,
+  isFutureStudent,
   piscineMonthName,
   poolIntakes,
   poolMonthName,
@@ -247,19 +247,12 @@ export function renderStudentsDialogTemplate(
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
   const q = normalize(query.trim());
-  const intakes = nextIntakes(new Date());
-  const inFutureIntake = (e: StudentEntry): boolean => {
-    const intake = beginAtIntake(e.begin_at);
-    return (
-      !!intake &&
-      intakes.some((i) => i.month === intake.month && i.year === intake.year)
-    );
-  };
+  const futureGroups = tab === "new" ? groupFutureIntakes(entries) : [];
   const intakeFiltered =
     tab === "new"
-      ? entries.filter(inFutureIntake)
+      ? entries.filter(isFutureStudent)
       : tab === "students"
-        ? entries.filter((e) => !inFutureIntake(e))
+        ? entries.filter((e) => !isFutureStudent(e))
         : entries;
   const activeCount = intakeFiltered.filter((e) => e.active !== false).length;
   const filtered = intakeFiltered.filter((e) => {
@@ -297,9 +290,7 @@ export function renderStudentsDialogTemplate(
   const piscineListFiltered = showPiscineGrid
     ? piscineList.filter((p) => {
         if (!q) return true;
-        return normalize(
-          `${piscineMonthName(p.month)} ${p.year}`,
-        ).includes(q);
+        return normalize(`${piscineMonthName(p.month)} ${p.year}`).includes(q);
       })
     : [];
   const cursusLabel =
@@ -325,7 +316,9 @@ export function renderStudentsDialogTemplate(
         ? `${piscineMonthName(selectedPiscine.month)} ${selectedPiscine.year}`
         : "all piscines"
       : tab === "new"
-        ? intakes.map((i) => i.label).join(" · ")
+        ? futureGroups.length > 0
+          ? futureGroups.map((i) => i.label).join(" · ")
+          : "future students"
         : "all students";
   const renderRows = (rows: StudentEntry[]) => html`
     <div class="${view}">
@@ -844,69 +837,67 @@ export function renderStudentsDialogTemplate(
               : ""}
             ${showRosterControls
               ? html`<div class="join">
-              <button
-                class="btn btn-sm join-item ${view === "grid"
-                  ? "btn-primary"
-                  : "btn-outline border-base-content/20"}"
-                data-tip="Grid view"
-                @click="${() => handlers.onSetView("grid")}"
-              >
-                ${unsafeHTML(
-                  GRID_SVG.replace("<svg", '<svg width="16" height="16"'),
-                )}
-              </button>
-              <button
-                class="btn btn-sm join-item ${view === "list"
-                  ? "btn-primary"
-                  : "btn-outline border-base-content/20"}"
-                data-tip="List view"
-                @click="${() => handlers.onSetView("list")}"
-              >
-                ${unsafeHTML(
-                  LIST_SVG.replace("<svg", '<svg width="16" height="16"'),
-                )}
-              </button>
-            </div>
-            `
+                  <button
+                    class="btn btn-sm join-item ${view === "grid"
+                      ? "btn-primary"
+                      : "btn-outline border-base-content/20"}"
+                    data-tip="Grid view"
+                    @click="${() => handlers.onSetView("grid")}"
+                  >
+                    ${unsafeHTML(
+                      GRID_SVG.replace("<svg", '<svg width="16" height="16"'),
+                    )}
+                  </button>
+                  <button
+                    class="btn btn-sm join-item ${view === "list"
+                      ? "btn-primary"
+                      : "btn-outline border-base-content/20"}"
+                    data-tip="List view"
+                    @click="${() => handlers.onSetView("list")}"
+                  >
+                    ${unsafeHTML(
+                      LIST_SVG.replace("<svg", '<svg width="16" height="16"'),
+                    )}
+                  </button>
+                </div> `
               : ""}
             ${showRosterControls
               ? html`<div class="join">
-              <button
-                class="btn btn-sm join-item ${sortField === "name"
-                  ? "btn-primary"
-                  : "btn-outline border-base-content/20"}"
-                data-tip="${nameDir === "asc"
-                  ? "Name A → Z (click to invert)"
-                  : "Name Z → A (click to invert)"}"
-                @click="${() => handlers.onSetSort("name")}"
-              >
-                ${unsafeHTML(
-                  (nameDir === "asc" ? SORT_AZ_SVG : SORT_ZA_SVG).replace(
-                    "<svg",
-                    '<svg width="16" height="16"',
-                  ),
-                )}
-              </button>
-              ${tab !== "pisciners"
-                ? html`<button
-                    class="btn btn-sm join-item ${sortField === "date"
+                  <button
+                    class="btn btn-sm join-item ${sortField === "name"
                       ? "btn-primary"
                       : "btn-outline border-base-content/20"}"
-                    data-tip="${dateDir === "desc"
-                      ? "Date (newest first)"
-                      : "Date (oldest first)"}"
-                    @click="${() => handlers.onSetSort("date")}"
+                    data-tip="${nameDir === "asc"
+                      ? "Name A → Z (click to invert)"
+                      : "Name Z → A (click to invert)"}"
+                    @click="${() => handlers.onSetSort("name")}"
                   >
                     ${unsafeHTML(
-                      (dateDir === "desc" ? CAL_DOWN_SVG : CAL_UP_SVG).replace(
+                      (nameDir === "asc" ? SORT_AZ_SVG : SORT_ZA_SVG).replace(
                         "<svg",
                         '<svg width="16" height="16"',
                       ),
                     )}
-                  </button>`
-                : ""}
-            </div>
-            `
+                  </button>
+                  ${tab !== "pisciners"
+                    ? html`<button
+                        class="btn btn-sm join-item ${sortField === "date"
+                          ? "btn-primary"
+                          : "btn-outline border-base-content/20"}"
+                        data-tip="${dateDir === "desc"
+                          ? "Date (newest first)"
+                          : "Date (oldest first)"}"
+                        @click="${() => handlers.onSetSort("date")}"
+                      >
+                        ${unsafeHTML(
+                          (dateDir === "desc"
+                            ? CAL_DOWN_SVG
+                            : CAL_UP_SVG
+                          ).replace("<svg", '<svg width="16" height="16"'),
+                        )}
+                      </button>`
+                    : ""}
+                </div> `
               : ""}
           </div>
         </div>
@@ -926,20 +917,27 @@ export function renderStudentsDialogTemplate(
                       : "No results"}
                   </div>`
                 : html`<div class="grid">
-                    ${piscineListFiltered.map((p) => html`<div
-                      class="row piscine-card"
-                      @click="${() =>
-                        handlers.onSelectPiscine(p.year, p.month, p.cursus)}"
-                    >
-                      <span class="piscine-card__month"
-                        >${piscineMonthName(p.month)}</span
-                      >
-                      <span class="piscine-card__year">${p.year}</span>
-                      <span class="piscine-card__count"
-                        >${p.count}
-                        ${p.count === 1 ? "pisciner" : "pisciners"}</span
-                      >
-                    </div>`)}
+                    ${piscineListFiltered.map(
+                      (p) =>
+                        html`<div
+                          class="row piscine-card"
+                          @click="${() =>
+                            handlers.onSelectPiscine(
+                              p.year,
+                              p.month,
+                              p.cursus,
+                            )}"
+                        >
+                          <span class="piscine-card__month"
+                            >${piscineMonthName(p.month)}</span
+                          >
+                          <span class="piscine-card__year">${p.year}</span>
+                          <span class="piscine-card__count"
+                            >${p.count}
+                            ${p.count === 1 ? "pisciner" : "pisciners"}</span
+                          >
+                        </div>`,
+                    )}
                   </div>`
           : loading
             ? html`<div class="flex items-center justify-center p-8">
@@ -953,13 +951,14 @@ export function renderStudentsDialogTemplate(
                   </div>`
                 : html`${tab === "new"
                     ? html`<div class="flex flex-col gap-5">
-                        ${intakes.map((i) => {
+                        ${futureGroups.map((i) => {
                           const rows = windowed.filter((e) => {
-                            const intake = beginAtIntake(e.begin_at);
+                            if (!isFutureStudent(e) || !e.begin_at)
+                              return false;
+                            const d = new Date(e.begin_at);
                             return (
-                              intake &&
-                              intake.month === i.month &&
-                              intake.year === i.year
+                              d.getMonth() + 1 === i.month &&
+                              d.getFullYear() === i.year
                             );
                           });
                           if (rows.length === 0) return html``;

@@ -309,3 +309,51 @@ export async function fetchPiscines(): Promise<{
     return null;
   }
 }
+
+export async function fetchFutureStudents(): Promise<{
+  data?: StudentsResponse;
+  unauthorized?: boolean;
+} | null> {
+  try {
+    const cloudLogin = await getConfig("CLOUD_LOGIN");
+    const token = await getConfig("CLOUD_TOKEN");
+    if (!cloudLogin || !token) return { unauthorized: true };
+
+    const params = new URLSearchParams({
+      _: String(Date.now()),
+      login: await hashLogin(cloudLogin),
+    });
+
+    const res = await fetch(`${WORKER_URL}/api/v1/future-students?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) return { unauthorized: true };
+    if (!res.ok) return null;
+    return { data: (await res.json()) as StudentsResponse };
+  } catch {
+    return null;
+  }
+}
+
+export function isFutureStudent(e: StudentEntry, now = Date.now()): boolean {
+  if (!e.begin_at) return false;
+  const t = new Date(e.begin_at).getTime();
+  return Number.isFinite(t) && t > now;
+}
+
+export function groupFutureIntakes(entries: StudentEntry[]): Intake[] {
+  const seen = new Set<string>();
+  const list: Intake[] = [];
+  for (const e of entries) {
+    if (!isFutureStudent(e) || !e.begin_at) continue;
+    const d = new Date(e.begin_at);
+    if (Number.isNaN(d.getTime())) continue;
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const key = `${year}-${month}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    list.push({ year, month, label: `${piscineMonthName(month)} ${year}` });
+  }
+  return list.sort((a, b) => a.year - b.year || a.month - b.month);
+}
