@@ -216,7 +216,9 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     ? findClusterForSeat(clusters, targetSeat)
     : undefined;
   let activeCluster = targetCluster ||
-    clusters.find((c) => c.id === defaultId) ||
+    (defaultId === "active"
+      ? { id: "active", name: "Active" }
+      : clusters.find((c) => c.id === defaultId)) ||
     clusters[0] || { id: "active", name: "Active" };
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   let clockTimer: ReturnType<typeof setInterval> | null = null;
@@ -663,15 +665,19 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
               data-tip="Default cluster"
               data-tip-size="14px"
             >
-              ${clusters.map(
-                (c) =>
-                  html`<option
-                    value="${c.id}"
-                    ?selected="${c.id === defaultId}"
-                  >
-                    ${c.name.toUpperCase()}
-                  </option>`,
-              )}
+              ${[...clusters, { id: "active", name: "Active" }]
+                .filter(
+                  (c, i, arr) => arr.findIndex((x) => x.id === c.id) === i,
+                )
+                .map(
+                  (c) =>
+                    html`<option
+                      value="${c.id}"
+                      ?selected="${c.id === defaultId}"
+                    >
+                      ${c.name.toUpperCase()}
+                    </option>`,
+                )}
             </select>
             <button
               class="btn btn-sm ${showMarkers ? "btn-accent" : "btn-ghost"}"
@@ -1283,8 +1289,11 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       "default-cluster-select",
     ) as HTMLSelectElement | null;
     if (defSel) {
+      const options = clusters.some((c) => c.id === "active")
+        ? clusters
+        : [...clusters, { id: "active", name: "Active" }];
       defSel.replaceChildren(
-        ...clusters.map((c) => {
+        ...options.map((c) => {
           const opt = document.createElement("option");
           opt.value = c.id;
           opt.textContent = clusterLabel(c);
@@ -1509,8 +1518,11 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       }
       return;
     }
-    activeCluster = clusters.find((c) => c.id === defaultId) ||
-clusters[0] || { id: "active", name: "Active" };
+    activeCluster =
+      defaultId === "active"
+        ? { id: "active", name: "Active" }
+        : clusters.find((c) => c.id === defaultId) ||
+          clusters[0] || { id: "active", name: "Active" };
     const trigger = shadow.getElementById("campus-trigger");
     if (trigger) {
       const name =
