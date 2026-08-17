@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-08-18
+
+### Features 🎉
+
+- feat(map-dialog): enhance active cluster handling ([5b5a34e](https://github.com/nicopasla/better-intra/commit/5b5a34e))
+- feat(students): fetch future students from dedicated endpoint ([68457c7](https://github.com/nicopasla/better-intra/commit/68457c7))
+- feat(map-dialog): add sort options for the active users tab ([ac7bf1e](https://github.com/nicopasla/better-intra/commit/ac7bf1e))
+- feat(account): use daisyUI alert prompt with green/red buttons for restore ([d805948](https://github.com/nicopasla/better-intra/commit/d805948))
+- feat(account): implement cloud settings restoration and update host permissions ([311e85c](https://github.com/nicopasla/better-intra/commit/311e85c))
+- feat(map-dialog): implement active user presence tab ([6ee57de](https://github.com/nicopasla/better-intra/commit/6ee57de))
+
+### Bug fixes 🐛
+
+- fix(worker): fall back to jsDelivr CDN when GitHub raw is unavailable ([db4842f](https://github.com/nicopasla/better-intra/commit/db4842f))
+- fix(badges): enhance badge URL resolution logic to support suffix matching ([a35e23e](https://github.com/nicopasla/better-intra/commit/a35e23e))
+- fix(clusters): load campus JSON from gh proxy in dialog when not connected ([173b7af](https://github.com/nicopasla/better-intra/commit/173b7af))
+- fix(profile): match info card badge corner radius to rounded-xl ([ad57974](https://github.com/nicopasla/better-intra/commit/ad57974))
+- fix(logtime): update fetch old data to use the latest hook date ([3b069af](https://github.com/nicopasla/better-intra/commit/3b069af))
+- fix(map-dialog): adjust padding for wifi user list display ([03d0620](https://github.com/nicopasla/better-intra/commit/03d0620))
+- fix(map-dialog): improve seat glow functionality ([2fdcf69](https://github.com/nicopasla/better-intra/commit/2fdcf69))
+- fix(map-dialog): enhance zoom functionality ([d5ad4b8](https://github.com/nicopasla/better-intra/commit/d5ad4b8))
+
+### Other Changes 🔄
+
+- refactor(map-dialog): remove unused Wi-Fi rendering logic and adjust active list padding ([a198ccd](https://github.com/nicopasla/better-intra/commit/a198ccd))
+
 ## [1.8.0] - 2026-08-10
 
 ### Features 🎉
@@ -1049,7 +1075,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.0...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/nicopasla/better-intra/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/nicopasla/better-intra/compare/v1.7.2...v1.8.0
 [1.7.2]: https://github.com/nicopasla/better-intra/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/nicopasla/better-intra/compare/v1.7.0...v1.7.1
