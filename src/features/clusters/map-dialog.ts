@@ -14,6 +14,7 @@ import RELOAD_SVG from "../../assets/svg/reload.svg?raw";
 import CLOCK_SVG from "../../assets/svg/clock.svg?raw";
 import MAXIMIZE_SVG from "../../assets/svg/maximize.svg?raw";
 import MINIMIZE_SVG from "../../assets/svg/minimize.svg?raw";
+import SETTINGS_SVG from "../../assets/svg/settings_gear.svg?raw";
 import RESET_SVG from "../../assets/svg/reset.svg?raw";
 import SORT_AZ_SVG from "../../assets/svg/sort-az.svg?raw";
 import SORT_ZA_SVG from "../../assets/svg/sort-za.svg?raw";
@@ -374,6 +375,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     if (pollTimer) clearInterval(pollTimer);
     if (countdownTimer) clearInterval(countdownTimer);
     if (clockTimer) clearInterval(clockTimer);
+    cleanupDragSuppress();
     abortController.abort();
   };
 
@@ -533,6 +535,12 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
           overflow-x: auto;
           flex-wrap: nowrap;
           scrollbar-width: none;
+          cursor: grab;
+          touch-action: pan-x;
+        }
+        .tabs-scroll.dragging {
+          cursor: grabbing;
+          user-select: none;
         }
         .tabs-scroll::-webkit-scrollbar {
           display: none;
@@ -606,6 +614,13 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
                     activeCampusId
                   ).toUpperCase()}</span
                 >
+                <span
+                  id="totals-badge"
+                  class="text-xs font-medium opacity-70 whitespace-nowrap tabular-nums"
+                  style="display:none"
+                  data-tip="Total taken / Total seats"
+                  data-tip-size="14px"
+                ></span>
               </button>
               <div
                 id="campus-menu"
@@ -656,94 +671,72 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
                 style="display:none;position:absolute;top:0;right:0;bottom:0;width:2rem;pointer-events:none;background:linear-gradient(to left, var(--color-base-100), transparent);"
               ></div>
             </div>
-            <details
-              class="dropdown dropdown-end"
-              id="more-tabs-dropdown"
-              style="display:none;flex-shrink:0;"
-            >
-              <summary
-                class="btn btn-sm btn-ghost"
-                id="more-tabs-btn"
-                data-tip="More clusters"
-                data-tip-size="14px"
-              >
-                ⋯
-              </summary>
-              <ul
-                id="more-tabs-menu"
-                class="menu dropdown-content bg-base-100 rounded-box z-50 max-h-72 w-96 overflow-y-auto p-2 shadow"
-                style="display:grid;grid-template-columns:repeat(2,1fr);gap:2px;"
-              >
-                ${clusters.map(
-                  (c) =>
-                    html`<li>
-                      <a
-                        class="flex justify-between gap-2 whitespace-nowrap ${c.id ===
-                        cluster.id
-                          ? "menu-active"
-                          : ""}"
-                        data-cluster-id="${c.id}"
-                        data-cluster-name="${clusterLabel(c)}"
-                      >
-                        ${clusterLabel(c)}
-                      </a>
-                    </li>`,
-                )}
-              </ul>
-            </details>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <div
-              id="totals-badge"
-              class="flex items-center gap-1 whitespace-nowrap text-xs tabular-nums font-medium bg-accent text-accent-content rounded-lg px-2 h-8 border border-accent"
-              data-tip="Total taken / Total seats"
-              data-tip-size="14px"
-            >
-              - / -
-            </div>
-            <select
-              class="select select-accent select-sm max-w-32"
-              id="default-cluster-select"
-              data-tip="Default cluster"
-              data-tip-size="14px"
-            >
-              ${[...clusters, { id: "active", name: "Active" }]
-                .filter(
-                  (c, i, arr) => arr.findIndex((x) => x.id === c.id) === i,
-                )
-                .map(
-                  (c) =>
-                    html`<option
-                      value="${c.id}"
-                      ?selected="${c.id === defaultId}"
-                    >
-                      ${c.name.toUpperCase()}
-                    </option>`,
-                )}
-            </select>
-            <button
-              class="btn btn-sm ${showMarkers ? "btn-accent" : "btn-ghost"}"
-              style="${showMarkers ? "border-color: var(--color-accent)" : ""}"
-              id="markers-btn"
-              data-tip="Toggle screen markers"
-              data-tip-size="14px"
-            >
-              Show Markers
-            </button>
-            <button
-              id="updated-badge"
-              class="btn btn-accent btn-sm border border-base-content/20"
-              style="display:none;width:80px;justify-content:flex-start"
-              data-tip="Reload occupancy"
-              data-tip-size="14px"
-            >
-              <span
-                id="reload-icon"
-                class="size-4 flex items-center justify-center"
-                >${unsafeHTML(RELOAD_SVG)}</span
+            <div style="position:relative;">
+              <button
+                type="button"
+                id="settings-btn"
+                class="btn btn-circle btn-ghost btn-sm"
+                data-tip="Settings"
+                data-tip-size="14px"
               >
-              <span id="badge-text" style="flex:1;text-align:center"></span>
-            </button>
+                ${unsafeHTML(
+                  SETTINGS_SVG.replace(
+                    "<svg",
+                    '<svg width="16" height="16"',
+                  ).replace('stroke="#fff"', 'stroke="currentColor"'),
+                )}
+              </button>
+              <div
+                id="settings-menu"
+                style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:50;width:15rem;border-radius:8px;background:var(--color-base-100);border:1px solid var(--color-base-300);box-shadow:0 6px 16px rgba(0,0,0,.28);padding:10px 8px;"
+              >
+                <div id="default-cluster-row">
+                  <span
+                    class="text-xs font-semibold uppercase tracking-wide opacity-60 block mb-1"
+                    >Default cluster</span
+                  >
+                  <select
+                    class="select select-accent select-sm w-full"
+                    id="default-cluster-select"
+                    data-tip="Default cluster"
+                    data-tip-size="14px"
+                  >
+                    ${[...clusters, { id: "active", name: "Active" }]
+                      .filter(
+                        (c, i, arr) =>
+                          arr.findIndex((x) => x.id === c.id) === i,
+                      )
+                      .map(
+                        (c) =>
+                          html`<option
+                            value="${c.id}"
+                            ?selected="${c.id === defaultId}"
+                          >
+                            ${c.name.toUpperCase()}
+                          </option>`,
+                      )}
+                  </select>
+                </div>
+                <button
+                  class="btn btn-sm w-full mt-2 justify-between ${showMarkers
+                    ? "btn-accent"
+                    : "btn-ghost"}"
+                  style="${showMarkers
+                    ? "border-color: var(--color-accent)"
+                    : ""}"
+                  id="markers-btn"
+                  data-tip="Toggle screen markers"
+                  data-tip-size="14px"
+                >
+                  <span>Show Markers</span>
+                  <span class="text-xs opacity-50"
+                    >${showMarkers ? "ON" : "OFF"}</span
+                  >
+                </button>
+              </div>
+            </div>
             <button
               class="btn btn-circle btn-ghost btn-sm"
               id="maximize-btn"
@@ -771,6 +764,20 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         </div>
         <div class="relative flex-1 min-h-0 mx-3 mb-3 mt-2">
           <div id="map-area" class="rounded-lg h-full"></div>
+          <button
+            id="updated-badge"
+            class="btn btn-accent btn-sm border border-base-content/20 absolute bottom-3 right-3 z-20"
+            style="display:none;width:80px;justify-content:flex-start"
+            data-tip="Reload occupancy"
+            data-tip-size="14px"
+          >
+            <span
+              id="reload-icon"
+              class="size-4 flex items-center justify-center"
+              >${unsafeHTML(RELOAD_SVG)}</span
+            >
+            <span id="badge-text" style="flex:1;text-align:center"></span>
+          </button>
           <div
             id="top-left-badges"
             class="absolute top-2 left-2 z-20 flex items-center gap-2"
@@ -872,6 +879,20 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
 
   const wiredTabs = new WeakSet<Element>();
 
+  let dragSuppressClick: ((ce: MouseEvent) => void) | null = null;
+  let dragSuppressTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const cleanupDragSuppress = () => {
+    if (dragSuppressClick) {
+      document.removeEventListener("click", dragSuppressClick, true);
+      dragSuppressClick = null;
+    }
+    if (dragSuppressTimer !== null) {
+      clearTimeout(dragSuppressTimer);
+      dragSuppressTimer = null;
+    }
+  };
+
   const wireTabs = () => {
     const el = shadow.querySelector<HTMLElement>(".tabs-scroll");
     if (!el || wiredTabs.has(el)) return;
@@ -882,20 +903,55 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       const hasMore = el.scrollWidth - el.clientWidth - el.scrollLeft > 8;
       fade.style.display = hasMore ? "" : "none";
     });
+
+    let dragging = false;
+    let startX = 0;
+    let startScroll = 0;
+
+    el.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      dragging = false;
+      startX = e.clientX;
+      startScroll = el.scrollLeft;
+    });
+
+    el.addEventListener("pointermove", (e) => {
+      const dx = e.clientX - startX;
+      if (dx === 0 || dragging) return;
+      if (!el.hasPointerCapture(e.pointerId)) {
+        el.setPointerCapture(e.pointerId);
+        el.classList.add("dragging");
+      }
+      dragging = true;
+      el.scrollLeft = startScroll - dx;
+    });
+
+    const endDrag = () => {
+      el.classList.remove("dragging");
+      if (dragging) {
+        cleanupDragSuppress();
+        dragSuppressClick = (ce: MouseEvent) => {
+          ce.preventDefault();
+          ce.stopPropagation();
+          cleanupDragSuppress();
+        };
+        document.addEventListener("click", dragSuppressClick, true);
+        dragSuppressTimer = setTimeout(cleanupDragSuppress, 250);
+        dragging = false;
+      }
+    };
+
+    el.addEventListener("pointerup", endDrag);
+    el.addEventListener("pointercancel", endDrag);
   };
 
   const updateTabsOverflow = () => {
     requestAnimationFrame(() => {
       const el = shadow.querySelector<HTMLElement>(".tabs-scroll");
       const fade = shadow.getElementById("tabs-fade");
-      const more = shadow.getElementById(
-        "more-tabs-dropdown",
-      ) as HTMLElement | null;
       if (!el) return;
-      const hasOverflow = el.scrollWidth > el.clientWidth + 1;
       const hasMore = el.scrollWidth - el.clientWidth - el.scrollLeft > 8;
       if (fade) fade.style.display = hasMore ? "" : "none";
-      if (more) more.style.display = hasOverflow ? "" : "none";
     });
   };
 
@@ -912,12 +968,19 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     const campusTrigger = shadow.getElementById(
       "campus-trigger",
     ) as HTMLElement | null;
+    const settingsMenu = shadow.getElementById(
+      "settings-menu",
+    ) as HTMLElement | null;
+    const settingsBtn = shadow.getElementById(
+      "settings-btn",
+    ) as HTMLElement | null;
 
     const campusOption = path.find(
       (el) => el instanceof HTMLElement && el.hasAttribute("data-campus-id"),
     ) as HTMLElement | undefined;
     if (campusOption && campusOption.dataset.campusId) {
       if (campusMenu) campusMenu.style.display = "none";
+      if (settingsMenu) settingsMenu.style.display = "none";
       loadCampus(campusOption.dataset.campusId);
       return;
     }
@@ -926,6 +989,15 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         campusMenu.style.display =
           campusMenu.style.display === "none" ? "block" : "none";
       }
+      if (settingsMenu) settingsMenu.style.display = "none";
+      return;
+    }
+    if (settingsBtn && path.includes(settingsBtn)) {
+      if (settingsMenu) {
+        settingsMenu.style.display =
+          settingsMenu.style.display === "none" ? "block" : "none";
+      }
+      if (campusMenu) campusMenu.style.display = "none";
       return;
     }
     if (
@@ -935,6 +1007,13 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     ) {
       campusMenu.style.display = "none";
     }
+    if (
+      settingsMenu &&
+      settingsMenu.style.display !== "none" &&
+      !path.includes(settingsMenu)
+    ) {
+      settingsMenu.style.display = "none";
+    }
     const btn = path.find(
       (el) => el instanceof HTMLElement && el.hasAttribute("data-cluster-id"),
     ) as HTMLElement | undefined;
@@ -942,10 +1021,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       const id = btn.dataset.clusterId;
       const cluster = clusters.find((c) => c.id === id);
       if (cluster) loadCluster(cluster);
-      const moreDetails = shadow.getElementById(
-        "more-tabs-dropdown",
-      ) as HTMLDetailsElement | null;
-      if (moreDetails) moreDetails.removeAttribute("open");
+      if (settingsMenu) settingsMenu.style.display = "none";
       return;
     }
     const reloadBtn = path.find(
@@ -966,6 +1042,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         mBtn.classList.toggle("btn-accent", showMarkers);
         mBtn.classList.toggle("btn-ghost", !showMarkers);
         mBtn.style.borderColor = showMarkers ? "var(--color-accent)" : "";
+        const state = mBtn.lastElementChild as HTMLElement | null;
+        if (state) state.textContent = showMarkers ? "ON" : "OFF";
       }
       const mapEl = shadow.getElementById("map-area");
       if (mapEl) {
@@ -1169,9 +1247,15 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       if (activeCluster.id === "active") {
         totalsBadge.textContent = `${activeUsers.length} active`;
         totalsBadge.title = "Users currently connected";
+        totalsBadge.style.display = activeUsers.length > 0 ? "" : "none";
       } else {
         totalsBadge.textContent = `${sumTaken} / ${sumTotal}`;
         totalsBadge.title = "Total taken / Total seats";
+        if (sumTotal > 0 || sumTaken > 0) {
+          totalsBadge.style.display = "";
+        } else {
+          totalsBadge.style.display = "none";
+        }
       }
     }
     startCountdown();
@@ -1382,34 +1466,17 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         }),
       );
     }
-    const menu = shadow.getElementById("more-tabs-menu");
-    if (menu) {
-      menu.replaceChildren(
-        ...clusters.map((c) => {
-          const li = document.createElement("li");
-          const a = document.createElement("a");
-          a.className = `flex justify-between gap-2 whitespace-nowrap ${
-            c.id === activeCluster.id ? "menu-active" : ""
-          }`;
-          a.dataset.clusterId = c.id;
-          a.dataset.clusterName = clusterLabel(c);
-          a.textContent = clusterLabel(c);
-          li.appendChild(a);
-          return li;
-        }),
-      );
-    }
     wireTabs();
     updateTabsOverflow();
   };
 
   const updateDefaultSelect = () => {
-    const sel = shadow.getElementById(
-      "default-cluster-select",
+    const row = shadow.getElementById(
+      "default-cluster-row",
     ) as HTMLElement | null;
-    if (!sel) return;
+    if (!row) return;
     const ownCampus = !detectedCampus || activeCampusId === detectedCampus;
-    sel.style.display = ownCampus ? "" : "none";
+    row.style.display = ownCampus ? "" : "none";
   };
 
   const updateCampusTime = () => {
