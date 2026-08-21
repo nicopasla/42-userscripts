@@ -9,8 +9,11 @@ import {
 } from "../profile/theme/theme-manager.ts";
 import { getCampusFlag } from "../profile/campus-flags.ts";
 import { bindTooltips } from "../../utils/tooltip.ts";
+import { makeResizable } from "../../utils/resizable-dialog.ts";
 import RELOAD_SVG from "../../assets/svg/reload.svg?raw";
 import CLOCK_SVG from "../../assets/svg/clock.svg?raw";
+import MAXIMIZE_SVG from "../../assets/svg/maximize.svg?raw";
+import MINIMIZE_SVG from "../../assets/svg/minimize.svg?raw";
 import RESET_SVG from "../../assets/svg/reset.svg?raw";
 import SORT_AZ_SVG from "../../assets/svg/sort-az.svg?raw";
 import SORT_ZA_SVG from "../../assets/svg/sort-za.svg?raw";
@@ -340,6 +343,29 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
 
   const shadow = wrapper.attachShadow({ mode: "closed" });
 
+  let isMaximized = false;
+
+  const applyMaximizeIcon = (maximized: boolean) => {
+    const btn = shadow.getElementById("maximize-btn");
+    if (btn) btn.classList.toggle("is-maximized", maximized);
+  };
+
+  const cleanupResize = makeResizable(dialog, {
+    minWidth: 640,
+    minHeight: 480,
+    onResizeStart: () => {
+      if (isMaximized) {
+        isMaximized = false;
+        dialog.style.margin = "1.5rem auto auto auto";
+        const btn = shadow.getElementById("maximize-btn");
+        if (btn) {
+          applyMaximizeIcon(false);
+          btn.dataset.tip = "Maximize";
+        }
+      }
+    },
+  });
+
   bindTooltips(shadow, getIsLight);
 
   const abortController = new AbortController();
@@ -354,6 +380,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   dialog.addEventListener("close", () => {
     cleanup();
     if (resizeObserver) resizeObserver.disconnect();
+    cleanupResize();
     dialog.remove();
   });
 
@@ -368,6 +395,21 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
           display: block;
           height: 100%;
           overflow: hidden;
+        }
+        #maximize-btn .maximize-icon,
+        #maximize-btn .minimize-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        #maximize-btn .minimize-icon {
+          display: none;
+        }
+        #maximize-btn.is-maximized .maximize-icon {
+          display: none;
+        }
+        #maximize-btn.is-maximized .minimize-icon {
+          display: inline-flex;
         }
         ${sharedCSS} #map-area {
           position: relative;
@@ -703,6 +745,23 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
               <span id="badge-text" style="flex:1;text-align:center"></span>
             </button>
             <button
+              class="btn btn-circle btn-ghost btn-sm"
+              id="maximize-btn"
+              data-tip="Maximize"
+              data-tip-size="14px"
+            >
+              <span class="maximize-icon">
+                ${unsafeHTML(
+                  MAXIMIZE_SVG.replace("<svg", '<svg width="16" height="16"'),
+                )}
+              </span>
+              <span class="minimize-icon">
+                ${unsafeHTML(
+                  MINIMIZE_SVG.replace("<svg", '<svg width="16" height="16"'),
+                )}
+              </span>
+            </button>
+            <button
               class="btn btn-circle btn-ghost btn-sm text-xl"
               id="close-btn"
             >
@@ -959,6 +1018,27 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     );
     if (wifiToggle) {
       toggleActiveWifi();
+      return;
+    }
+    const maximizeBtn = path.find(
+      (el) => el instanceof HTMLElement && el.id === "maximize-btn",
+    ) as HTMLElement | undefined;
+    if (maximizeBtn) {
+      isMaximized = !isMaximized;
+      if (isMaximized) {
+        dialog.dataset.prevWidth = dialog.style.width;
+        dialog.dataset.prevHeight = dialog.style.height;
+        dialog.dataset.prevMargin = dialog.style.margin;
+        dialog.style.width = "calc(100dvw - 2rem)";
+        dialog.style.height = "calc(100dvh - 2rem)";
+        dialog.style.margin = "1rem auto";
+      } else {
+        dialog.style.width = dialog.dataset.prevWidth || "";
+        dialog.style.height = dialog.dataset.prevHeight || "";
+        dialog.style.margin = dialog.dataset.prevMargin || "";
+      }
+      maximizeBtn.dataset.tip = isMaximized ? "Restore size" : "Maximize";
+      applyMaximizeIcon(isMaximized);
       return;
     }
     const closeBtn = path.find(

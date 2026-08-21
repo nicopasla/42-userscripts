@@ -16,6 +16,8 @@ import FILTER_SVG from "../../../assets/svg/filter.svg?raw";
 import FILTER_CLEAR_SVG from "../../../assets/svg/filter-clear.svg?raw";
 import CHECK_SVG from "../../../assets/svg/check.svg?raw";
 import FORTY_TWO_SVG from "../../../assets/svg/42_Logo.svg?raw";
+import MAXIMIZE_SVG from "../../../assets/svg/maximize.svg?raw";
+import MINIMIZE_SVG from "../../../assets/svg/minimize.svg?raw";
 import {
   formatAlumniDate,
   formatBlackholeDate,
@@ -66,6 +68,7 @@ export interface StudentsTemplateState {
   visibleCount: number;
   currentYear: number;
   copiedLogin: string | null;
+  isMaximized: boolean;
 }
 
 export interface StudentsTemplateHandlers {
@@ -82,6 +85,7 @@ export interface StudentsTemplateHandlers {
   onClearFilters: () => void;
   onCopyLogin: (login: string) => void;
   onConnect: () => void;
+  onToggleMaximize: () => void;
 }
 
 const STATUS_FILTERS: Array<{
@@ -234,6 +238,7 @@ export function renderStudentsDialogTemplate(
     visibleCount,
     currentYear,
     copiedLogin,
+    isMaximized,
   } = state;
 
   const hasActiveFilters =
@@ -632,7 +637,7 @@ export function renderStudentsDialogTemplate(
       }
       .grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 0.5rem;
       }
       .grid .piscine-card {
@@ -740,6 +745,18 @@ export function renderStudentsDialogTemplate(
                 >Updated ${ago === "now" ? ago : ago + " ago"}</span
               >`
             : ""}
+          <button
+            class="btn btn-circle btn-ghost btn-sm"
+            data-tip="${isMaximized ? "Restore size" : "Maximize"}"
+            @click="${handlers.onToggleMaximize}"
+          >
+            ${unsafeHTML(
+              (isMaximized ? MINIMIZE_SVG : MAXIMIZE_SVG).replace(
+                "<svg",
+                '<svg width="16" height="16"',
+              ),
+            )}
+          </button>
           <button
             class="btn btn-circle btn-ghost btn-sm text-xl ml-auto"
             @click="${handlers.onClose}"

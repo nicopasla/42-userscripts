@@ -6,6 +6,7 @@ import {
   hideFloatingTooltip,
   showFloatingTooltip,
 } from "../../../utils/tooltip.ts";
+import { makeResizable } from "../../../utils/resizable-dialog.ts";
 import { getEffectiveTheme } from "../theme/theme-manager.ts";
 import {
   INITIAL_VISIBLE_COUNT,
@@ -124,6 +125,7 @@ export async function openStudentsDialog() {
   let copiedLogin: string | null = null;
   let copiedLoginTimeout: number | null = null;
   let sentinelObserver: IntersectionObserver | null = null;
+  let isMaximized = false;
 
   const dialog = Object.assign(document.createElement("dialog"), {
     id: "students-dialog",
@@ -147,6 +149,18 @@ export async function openStudentsDialog() {
 
   const shadow = wrapper.attachShadow({ mode: "closed" });
 
+  const cleanupResize = makeResizable(dialog, {
+    minWidth: 480,
+    minHeight: 360,
+    onResizeStart: () => {
+      if (isMaximized) {
+        isMaximized = false;
+        dialog.style.margin = "auto";
+        rerender();
+      }
+    },
+  });
+
   const close = () => {
     hideFloatingTooltip();
     if (tooltipShowTimer !== null) window.clearTimeout(tooltipShowTimer);
@@ -156,6 +170,7 @@ export async function openStudentsDialog() {
     }
     if (searchTimeout !== null) window.clearTimeout(searchTimeout);
     if (copiedLoginTimeout !== null) window.clearTimeout(copiedLoginTimeout);
+    cleanupResize();
     dialog.close();
     dialog.remove();
   };
@@ -283,6 +298,22 @@ export async function openStudentsDialog() {
     onSetSort: setSort,
     onToggleFilter: toggleFilter,
     onClose: close,
+    onToggleMaximize: () => {
+      isMaximized = !isMaximized;
+      if (isMaximized) {
+        dialog.dataset.prevWidth = dialog.style.width;
+        dialog.dataset.prevHeight = dialog.style.height;
+        dialog.dataset.prevMargin = dialog.style.margin;
+        dialog.style.width = "calc(100dvw - 2rem)";
+        dialog.style.height = "calc(100dvh - 2rem)";
+        dialog.style.margin = "1rem auto";
+      } else {
+        dialog.style.width = dialog.dataset.prevWidth || "";
+        dialog.style.height = dialog.dataset.prevHeight || "";
+        dialog.style.margin = dialog.dataset.prevMargin || "";
+      }
+      rerender();
+    },
     onSearchInput: (value) => {
       query = value;
       visibleCount = INITIAL_VISIBLE_COUNT;
@@ -361,6 +392,7 @@ export async function openStudentsDialog() {
     visibleCount,
     currentYear,
     copiedLogin,
+    isMaximized,
   });
 
   const rerender = () => {
