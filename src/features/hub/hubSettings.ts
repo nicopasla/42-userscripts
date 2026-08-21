@@ -3,9 +3,12 @@ import { FeatureId } from "./hubSettings.data.ts";
 import { getConfig } from "../../config.ts";
 import GEAR_SVG from "../../assets/svg/settings_gear.svg?raw";
 import USERS_SVG from "../../assets/svg/users.svg?raw";
+import GLOBE_OUTLINE_SVG from "../../assets/svg/globe-outline.svg?raw";
+import { getIsLight } from "../profile/theme/theme-manager.ts";
 import { getActiveFeatures } from "./hubSettings.storage.ts";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { openStudentsDialog } from "../profile/students/index.ts";
+import { openClusterDialog } from "../clusters/map-dialog.ts";
 import { isPisciner } from "../../utils/intrapy.ts";
 
 function findSidebarMainGroup(): HTMLDivElement | null {
@@ -56,6 +59,30 @@ function renderStudentsButton(
   </a>`;
 }
 
+function renderClustersButton(
+  onClick: (e: Event) => void,
+  color: string,
+): ReturnType<typeof html> {
+  return html`<a
+    id="ft-clusters-btn"
+    class="py-5 w-full flex justify-center hover:opacity-100 opacity-40"
+    href="#"
+    data-tip="Clusters"
+    data-tip-pos="right"
+    @click="${(e: Event) => {
+      e.preventDefault();
+      onClick(e);
+    }}"
+  >
+    ${unsafeHTML(
+      GLOBE_OUTLINE_SVG.replace(
+        "<svg",
+        `<svg width="25" height="25" stroke="${color}"`,
+      ),
+    )}
+  </a>`;
+}
+
 export function mountGearButton(): void {
   const open = async () => {
     const { openHubModal } = await import("./hubSettings.ui.ts");
@@ -78,11 +105,17 @@ export function mountGearButton(): void {
     } catch (err) {}
   };
 
-  void (async () => {
-    if (document.getElementById("ft-students-btn")) return;
-    if ((await getConfig("CLUSTERS_CAMPUS")) !== "12") return;
+  const openClusters = () => {
+    try {
+      openClusterDialog();
+    } catch (err) {}
+  };
 
-    if (sidebar) {
+  void (async () => {
+    if ((await getConfig("CLUSTERS_CAMPUS")) !== "12") return;
+    if (!sidebar) return;
+
+    if (!document.getElementById("ft-students-btn")) {
       const container = document.createElement("div");
       render(renderStudentsButton(openStudents), container);
       const anchor = sidebar.children[1] ?? sidebar.firstElementChild;
@@ -91,6 +124,15 @@ export function mountGearButton(): void {
       } else {
         sidebar.appendChild(container.firstElementChild!);
       }
+    }
+
+    const studentsBtn = document.getElementById("ft-students-btn");
+    if (studentsBtn && !document.getElementById("ft-clusters-btn")) {
+      const isLight = await getIsLight();
+      const color = isLight ? "#1a1d24" : "#fff";
+      const container = document.createElement("div");
+      render(renderClustersButton(openClusters, color), container);
+      studentsBtn.after(container.firstElementChild!);
     }
   })();
 
