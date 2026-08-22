@@ -1217,7 +1217,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     if (badge) {
       const total = positions?.size ?? 0;
       const taken = positions
-        ? [...workCopy.keys()].filter((h) => positions.has(h)).length
+        ? [...workCopy.keys()].filter((h) => positions.has(normalizeSeatId(h)))
+            .length
         : 0;
       if (total > 0) {
         const free = total - taken;
@@ -1232,7 +1233,9 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     for (const [key, seats] of seatPosCache) {
       if (!key.startsWith(campusPrefix)) continue;
       const clusterId = key.slice(campusPrefix.length);
-      const taken = [...workCopy.keys()].filter((h) => seats.has(h)).length;
+      const taken = [...workCopy.keys()].filter((h) =>
+        seats.has(normalizeSeatId(h)),
+      ).length;
       clusterCounts.set(clusterId, { taken, total: seats.size });
     }
     for (const tab of shadow.querySelectorAll<HTMLElement>(
