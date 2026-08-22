@@ -576,6 +576,9 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
           white-space: nowrap;
           flex-shrink: 0;
         }
+        #top-left-badges.active-tab #seat-count-badge {
+          padding: 5px 12px;
+        }
         #top-left-badges.active-tab #campus-time {
           font-size: 14px;
           padding: 5px 12px;
@@ -586,13 +589,13 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         }
         #top-left-badges.active-tab #active-sort {
           gap: 2px;
-          padding: 4px 6px;
+          padding: 2px 6px;
         }
         #top-left-badges.active-tab #active-sort .btn {
-          min-height: 2rem;
-          height: 2rem;
-          font-size: 13px;
-          padding: 0 10px;
+          min-height: 1.375rem;
+          height: 1.375rem;
+          font-size: 12px;
+          padding: 0 8px;
           border-radius: 6px;
         }
         #top-left-badges.active-tab #active-sort .sort-icon {
