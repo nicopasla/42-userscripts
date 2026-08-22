@@ -413,19 +413,46 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
         #maximize-btn.is-maximized .minimize-icon {
           display: inline-flex;
         }
+        ${sharedCSS} #map-area-clip {
+          background: var(--color-base-300);
+        }
         ${sharedCSS} #map-area {
           position: relative;
-          background: var(--color-base-300);
           flex: 1;
           min-height: 0;
           overflow: auto;
+          scrollbar-width: thin;
+          scrollbar-color: color-mix(
+              in oklch,
+              var(--color-base-content) 35%,
+              transparent
+            )
+            transparent;
         }
         #map-area::-webkit-scrollbar {
           width: 6px;
+          height: 6px;
+        }
+        #map-area::-webkit-scrollbar-corner {
+          background: transparent;
+        }
+        #map-area::-webkit-scrollbar-track {
+          background: transparent;
         }
         #map-area::-webkit-scrollbar-thumb {
-          background: var(--color-base-content, #888);
+          background: color-mix(
+            in oklch,
+            var(--color-base-content) 35%,
+            transparent
+          );
           border-radius: 3px;
+        }
+        #map-area::-webkit-scrollbar-thumb:hover {
+          background: color-mix(
+            in oklch,
+            var(--color-base-content) 55%,
+            transparent
+          );
         }
         #map-area svg {
           width: 100%;
@@ -763,7 +790,9 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
           </div>
         </div>
         <div class="relative flex-1 min-h-0 mx-3 mb-3 mt-2">
-          <div id="map-area" class="rounded-lg h-full"></div>
+          <div id="map-area-clip" class="rounded-lg overflow-hidden h-full">
+            <div id="map-area" class="h-full"></div>
+          </div>
           <button
             id="updated-badge"
             class="btn btn-accent btn-sm border border-base-content/20 absolute bottom-3 right-3 z-20"
