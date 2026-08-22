@@ -1,4 +1,5 @@
 import { SeatPos } from "./crop";
+import { normalizeSeatId } from "./seats";
 
 const PROFILE_BASE = "https://profile.intra.42.fr/users";
 
@@ -69,7 +70,8 @@ export function renderSeatOverlays(
 
   const svgById = new Map<string, Element>();
   for (const el of svgEl.querySelectorAll("[id]")) {
-    svgById.set(el.getAttribute("id")!, el);
+    const key = normalizeSeatId(el.getAttribute("id")!);
+    if (!svgById.has(key)) svgById.set(key, el);
   }
 
   interface OverlayEntry {
@@ -85,13 +87,14 @@ export function renderSeatOverlays(
   const entries: OverlayEntry[] = [];
 
   for (const [host, seat] of occupancy) {
-    const pos = seatPosCache.get(host);
+    const hostKey = normalizeSeatId(host);
+    const pos = seatPosCache.get(hostKey);
     if (!pos) continue;
 
     let left: number, top: number, width: number, height: number;
     let rotationDeg = 0;
     let round = false;
-    const svgSeat = svgById.get(host);
+    const svgSeat = svgById.get(hostKey);
     if (svgSeat) {
       round =
         svgSeat.tagName.toLowerCase() === "circle" ||
@@ -120,7 +123,16 @@ export function renderSeatOverlays(
       width = pos.w * scaleX;
       height = pos.h * scaleY;
     }
-    entries.push({ host, seat, left, top, width, height, rotationDeg, round });
+    entries.push({
+      host: hostKey,
+      seat,
+      left,
+      top,
+      width,
+      height,
+      rotationDeg,
+      round,
+    });
   }
 
   const overlay = document.createElement("div");

@@ -25,6 +25,7 @@ import {
   sanitizeAndParseSeats,
   applyMarkers,
   getSvgTitle,
+  normalizeSeatId,
 } from "./map-dialog/seats.ts";
 import {
   getCachedCluster,
@@ -104,10 +105,11 @@ export function findClusterForSeat(
   clusters: { id: string; name: string }[],
   seatId: string,
 ): { id: string; name: string } | undefined {
-  const seat = seatId.toLowerCase();
-  return clusters.find(
-    (c) => c.name.trim() && seat.startsWith(c.name.trim().toLowerCase()),
-  );
+  const seat = normalizeSeatId(seatId);
+  return clusters.find((c) => {
+    const name = normalizeSeatId(c.name.trim());
+    return name && seat.startsWith(name);
+  });
 }
 
 export async function openClusterDialog(opts?: { seatId?: string }) {
@@ -1628,17 +1630,18 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   };
 
   const getSeatGlowTarget = (seatId: string): Element | null => {
-    const overlayLink = shadow.querySelector<HTMLElement>(
-      `#seat-overlay .seat-link[data-host="${CSS.escape(seatId)}"]`,
-    );
+    const key = normalizeSeatId(seatId);
+    const overlayLink = Array.from(
+      shadow.querySelectorAll<HTMLElement>("#seat-overlay .seat-link"),
+    ).find((el) => normalizeSeatId(el.dataset.host || "") === key);
     if (overlayLink) return overlayLink;
     const mapArea = shadow.getElementById("map-area");
     const svg = mapArea?.querySelector("svg");
     if (!svg) return null;
-    const matches = svg.querySelectorAll(
-      `[id="${CSS.escape(seatId)}"], [id="shi-${CSS.escape(seatId)}"]`,
-    );
-    return matches.length > 0 ? matches[0] : null;
+    for (const el of svg.querySelectorAll<Element>("[id]")) {
+      if (normalizeSeatId(el.getAttribute("id") || "") === key) return el;
+    }
+    return null;
   };
 
   const clearSeatGlow = () => {
@@ -1666,14 +1669,20 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       flashingSeat = null;
       return;
     }
-    const overlayLink = shadow.querySelector<HTMLElement>(
-      `#seat-overlay .seat-link[data-host="${CSS.escape(seatId)}"]`,
-    );
-    const scrollTarget =
-      overlayLink ||
-      svg.querySelector(
-        `[id="${CSS.escape(seatId)}"], [id="shi-${CSS.escape(seatId)}"]`,
-      );
+    const key = normalizeSeatId(seatId);
+    const overlayLink =
+      Array.from(
+        shadow.querySelectorAll<HTMLElement>("#seat-overlay .seat-link"),
+      ).find((el) => normalizeSeatId(el.dataset.host || "") === key) || null;
+    let scrollTarget: Element | null = overlayLink;
+    if (!scrollTarget) {
+      for (const el of svg.querySelectorAll<Element>("[id]")) {
+        if (normalizeSeatId(el.getAttribute("id") || "") === key) {
+          scrollTarget = el;
+          break;
+        }
+      }
+    }
     scrollTarget?.scrollIntoView({
       behavior: "smooth",
       block: "center",

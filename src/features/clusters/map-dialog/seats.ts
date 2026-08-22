@@ -4,6 +4,10 @@ import { SCREENS } from "../clusters.data.ts";
 const SEAT_ID_PATTERN = /[a-z]\d+[-_ ]?[ps]\d+$/i;
 const DANGEROUS_ATTR = /^on/i;
 
+export function normalizeSeatId(id: string): string {
+  return id.toLowerCase().replace(/[-\s_]/g, "");
+}
+
 export function getSvgTitle(svgDoc: Document): string {
   return svgDoc.querySelector("svg > title")?.textContent?.trim() || "";
 }
@@ -36,15 +40,18 @@ export function sanitizeAndParseSeats(svgDoc: Document): Map<string, SeatPos> {
 
   const seatIds = new Set<string>();
   for (const img of svgDoc.querySelectorAll("image[id]")) {
-    seatIds.add(img.getAttribute("id")!);
+    seatIds.add(normalizeSeatId(img.getAttribute("id")!));
   }
 
   const seatMap = new Map<string, SeatPos>();
   for (const el of svgDoc.querySelectorAll("[id]")) {
     const id = el.getAttribute("id")!;
-    if (!seatIds.has(id) && !SEAT_ID_PATTERN.test(id)) continue;
-    if (seatMap.has(id)) continue;
-    seatMap.set(id, {
+    if (!seatIds.has(normalizeSeatId(id)) && !SEAT_ID_PATTERN.test(id)) {
+      continue;
+    }
+    const key = normalizeSeatId(id);
+    if (seatMap.has(key)) continue;
+    seatMap.set(key, {
       x: parseFloat(el.getAttribute("x") || "0"),
       y: parseFloat(el.getAttribute("y") || "0"),
       w: parseFloat(el.getAttribute("width") || "30"),
@@ -55,8 +62,14 @@ export function sanitizeAndParseSeats(svgDoc: Document): Map<string, SeatPos> {
 }
 
 export function applyMarkers(container: HTMLElement, visible: boolean) {
+  const byNormalizedId = new Map<string, Element>();
+  for (const el of container.querySelectorAll("[id]")) {
+    const key = normalizeSeatId(el.getAttribute("id")!);
+    if (!byNormalizedId.has(key)) byNormalizedId.set(key, el);
+  }
+
   for (const [id, dir] of Object.entries(SCREENS)) {
-    const el = container.querySelector(`[id="${CSS.escape(id)}"]`);
+    const el = byNormalizedId.get(normalizeSeatId(id));
     if (!el?.parentNode) continue;
     if (el.parentNode.querySelector(`.custom-screen[data-for="${id}"]`))
       continue;

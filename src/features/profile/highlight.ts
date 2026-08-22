@@ -1,5 +1,6 @@
 import { CLUSTERS, getClusterData } from "../clusters/clusters.data.ts";
 import { openClusterDialog } from "../clusters/map-dialog.ts";
+import { normalizeSeatId } from "../clusters/map-dialog/seats.ts";
 import { getConfig } from "../../config.ts";
 
 /** The unique ID for the injected stylesheet. */
@@ -54,20 +55,24 @@ function clearExistingHighlight() {
 
 /**
  * Retrieves the SVG elements corresponding to a given seat identifier.
- * It checks for both standard and alternative (`shi-`) prefixes.
- * @param seatId The seat identifier (e.g., "e1r1p1").
- * @returns A NodeListOf<SVGGraphicsElement> containing the found elements.
+ * Matches regardless of campus seat-id formatting (dashes vs concatenated).
+ * @param seatId The seat identifier (e.g., "e1r1p1", "shi-r5-p6", "c1r17s2").
+ * @returns An array of matching SVG elements.
  */
-function getSeatElements(seatId: string): NodeListOf<SVGGraphicsElement> {
-  let elements = document.querySelectorAll<SVGGraphicsElement>(
+function getSeatElements(seatId: string): SVGGraphicsElement[] {
+  const exact = document.querySelectorAll<SVGGraphicsElement>(
     `[id="${seatId}"]`,
   );
-  if (elements.length === 0) {
-    elements = document.querySelectorAll<SVGGraphicsElement>(
-      `[id="shi-${seatId}"]`,
-    );
+  if (exact.length > 0) return Array.from(exact);
+
+  const key = normalizeSeatId(seatId);
+  const matches: SVGGraphicsElement[] = [];
+  for (const el of document.querySelectorAll<SVGGraphicsElement>("[id]")) {
+    if (normalizeSeatId(el.getAttribute("id") || "") === key) {
+      matches.push(el);
+    }
   }
-  return elements;
+  return matches;
 }
 
 /**
