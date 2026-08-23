@@ -24,7 +24,7 @@ import {
   toggleActiveWifi,
 } from "./map-dialog/active-sort.ts";
 import { flashSeat } from "./map-dialog/glow.ts";
-import { cleanupDragSuppress, rerender } from "./map-dialog/tabs.ts";
+import { rerender } from "./map-dialog/tabs.ts";
 import { updateCampusTime, updateDefaultSelect } from "./map-dialog/header.ts";
 import { findClusterForSeat } from "./map-dialog/helpers.ts";
 
@@ -147,8 +147,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     dialog,
     tabsState: {
       wired: new WeakSet(),
-      dragSuppressClick: null,
-      dragSuppressTimer: null,
+      overflowing: false,
+      resizeObserver: null,
     },
     timers: { poll: null, clock: null, countdown: null },
     campusOptions,
@@ -209,7 +209,10 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     if (state.timers.poll) clearInterval(state.timers.poll);
     if (state.timers.countdown) clearInterval(state.timers.countdown);
     if (state.timers.clock) clearInterval(state.timers.clock);
-    cleanupDragSuppress(state);
+    if (state.tabsState.resizeObserver) {
+      state.tabsState.resizeObserver.disconnect();
+      state.tabsState.resizeObserver = null;
+    }
     abortController.abort();
   };
 
@@ -288,6 +291,8 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       const cluster = state.clusters.find((c) => c.id === id);
       if (cluster) loadCluster(state, cluster, abortController.signal);
       if (settingsMenu) settingsMenu.style.display = "none";
+      const dd = btn.closest<HTMLDetailsElement>("details.dropdown");
+      if (dd) dd.open = false;
       return;
     }
     const reloadBtn = path.find(
@@ -389,6 +394,16 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
       (el) => el instanceof HTMLElement && el.id === "close-btn",
     );
     if (closeBtn) dialog.close();
+    const inDropdown = path.some(
+      (el) =>
+        el instanceof HTMLElement &&
+        el.tagName === "DETAILS" &&
+        el.classList.contains("dropdown"),
+    );
+    const openDropdown = shadow.querySelector<HTMLDetailsElement>(
+      "details.dropdown[open]",
+    );
+    if (openDropdown && !inDropdown) openDropdown.open = false;
   });
 
   shadow.addEventListener("change", (e) => {

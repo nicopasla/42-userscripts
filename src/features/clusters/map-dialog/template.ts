@@ -2,7 +2,7 @@ import { html, TemplateResult } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { sharedCSS } from "../../../assets/shared-styles.ts";
 import { getCampusFlag } from "../../profile/campus-flags.ts";
-import { clusterLabel, type DialogState } from "./context";
+import { type DialogState } from "./context";
 import RELOAD_SVG from "../../../assets/svg/reload.svg?raw";
 import CLOCK_SVG from "../../../assets/svg/clock.svg?raw";
 import MAXIMIZE_SVG from "../../../assets/svg/maximize.svg?raw";
@@ -11,7 +11,6 @@ import SETTINGS_SVG from "../../../assets/svg/settings_gear.svg?raw";
 import RESET_SVG from "../../../assets/svg/reset.svg?raw";
 
 export function renderTemplate(state: DialogState): TemplateResult {
-  const cluster = state.activeCluster;
   const {
     currentTheme,
     campusOptions,
@@ -188,12 +187,6 @@ export function renderTemplate(state: DialogState): TemplateResult {
         overflow-x: auto;
         flex-wrap: nowrap;
         scrollbar-width: none;
-        cursor: grab;
-        touch-action: pan-x;
-      }
-      .tabs-scroll.dragging {
-        cursor: grabbing;
-        user-select: none;
       }
       .tabs-scroll::-webkit-scrollbar {
         display: none;
@@ -201,6 +194,12 @@ export function renderTemplate(state: DialogState): TemplateResult {
       .tabs-scroll .tab {
         white-space: nowrap;
         flex-shrink: 0;
+      }
+      .clusters-nav-summary .clusters-nav-chevron {
+        transition: transform 0.2s ease;
+      }
+      .clusters-tabs-host details.dropdown[open] .clusters-nav-chevron {
+        transform: rotate(180deg);
       }
       #top-left-badges.active-tab #seat-count-badge {
         padding: 5px 12px;
@@ -299,31 +298,9 @@ export function renderTemplate(state: DialogState): TemplateResult {
             </div>
           </div>
           <div
+            class="clusters-tabs-host"
             style="position:relative;flex:1 1 auto;min-width:0;display:flex;align-items:center;"
-          >
-            <div
-              class="tabs tabs-border border-accent tabs-scroll"
-              style="flex:1 1 auto;min-width:0;"
-            >
-              ${clusters.map(
-                (c) =>
-                  html`<button
-                    class="tab font-bold text-xs px-4 whitespace-nowrap ${c.id ===
-                    cluster.id
-                      ? "tab-active"
-                      : ""}"
-                    data-cluster-id="${c.id}"
-                    data-cluster-name="${clusterLabel(c)}"
-                  >
-                    ${clusterLabel(c)}
-                  </button>`,
-              )}
-            </div>
-            <div
-              id="tabs-fade"
-              style="display:none;position:absolute;top:0;right:0;bottom:0;width:2rem;pointer-events:none;background:linear-gradient(to left, var(--color-base-100), transparent);"
-            ></div>
-          </div>
+          ></div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <div style="position:relative;">

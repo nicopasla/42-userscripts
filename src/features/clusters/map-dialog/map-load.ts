@@ -1,5 +1,5 @@
 import type { ClusterInfo, DialogState } from "./context";
-import { WORKER_URL, SEAT_TARGET_PX, keyOf } from "./context";
+import { WORKER_URL, SEAT_TARGET_PX, keyOf, clusterLabel } from "./context";
 import { getClusterData } from "../clusters.data.ts";
 import {
   getCachedCluster,
@@ -141,6 +141,11 @@ export async function loadCluster(
     (el as HTMLElement).classList.toggle("tab-active", active);
     (el as HTMLElement).classList.toggle("menu-active", active);
   });
+
+  const summaryLabel = state.shadow.querySelector<HTMLElement>(
+    ".clusters-nav-summary-label",
+  );
+  if (summaryLabel) summaryLabel.textContent = clusterLabel(cluster);
 
   const tabsRow = state.shadow.querySelector<HTMLElement>(".tabs-scroll");
   const activeTab = tabsRow?.querySelector<HTMLElement>(

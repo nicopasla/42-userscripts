@@ -15,8 +15,8 @@ export const SEAT_TARGET_PX = 60;
 
 export interface DialogTabsState {
   wired: WeakSet<Element>;
-  dragSuppressClick: ((ce: MouseEvent) => void) | null;
-  dragSuppressTimer: ReturnType<typeof setTimeout> | null;
+  overflowing: boolean;
+  resizeObserver: ResizeObserver | null;
 }
 
 export interface DialogTimers {

@@ -1,38 +1,24 @@
 import type { DialogState } from "./context";
 import { clusterLabel } from "./context";
 import { formatCampusClock } from "./helpers";
-import { updateTabsOverflow, wireTabs } from "./tabs";
+import { renderTabsRegion, updateTabsOverflow, wireTabs } from "./tabs";
 
 export function rebuildHeader(state: DialogState) {
-  const { shadow, clusters, activeCluster } = state;
-  const tabsHost = shadow.querySelector(".tabs");
-  if (tabsHost) {
-    tabsHost.replaceChildren(
-      ...clusters.map((c) => {
-        const btn = document.createElement("button");
-        btn.className = `tab font-bold text-xs px-4 whitespace-nowrap ${
-          c.id === activeCluster.id ? "tab-active" : ""
-        }`;
-        btn.dataset.clusterId = c.id;
-        btn.dataset.clusterName = clusterLabel(c);
-        btn.textContent = clusterLabel(c);
-        return btn;
-      }),
-    );
-  }
+  const { shadow } = state;
+  renderTabsRegion(state);
   const defSel = shadow.getElementById(
     "default-cluster-select",
   ) as HTMLSelectElement | null;
   if (defSel) {
-    const options = clusters.some((c) => c.id === "active")
-      ? clusters
-      : [...clusters, { id: "active", name: "Active" }];
+    const options = state.clusters.some((c) => c.id === "active")
+      ? state.clusters
+      : [...state.clusters, { id: "active", name: "Active" }];
     defSel.replaceChildren(
       ...options.map((c) => {
         const opt = document.createElement("option");
         opt.value = c.id;
         opt.textContent = clusterLabel(c);
-        opt.selected = c.id === activeCluster.id;
+        opt.selected = c.id === state.activeCluster.id;
         return opt;
       }),
     );
