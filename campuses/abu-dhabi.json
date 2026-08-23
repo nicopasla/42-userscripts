@@ -1,0 +1,7 @@
+{
+  "clusters": [
+    { "id": "71", "name": "lab1" },
+    { "id": "72", "name": "lab2" },
+    { "id": "73", "name": "lab3" }
+  ]
+}
