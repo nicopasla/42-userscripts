@@ -234,6 +234,9 @@ export function renderTemplate(state: DialogState): TemplateResult {
       #top-left-badges.active-tab #active-sort .w-px {
         height: 1.25rem;
       }
+      #campus-trigger {
+        border: 1px solid var(--color-base-300);
+      }
     </style>
     <div
       data-theme="${currentTheme}"
@@ -356,10 +359,10 @@ export function renderTemplate(state: DialogState): TemplateResult {
                   ? "border-color: var(--color-accent)"
                   : ""}"
                 id="markers-btn"
-                data-tip="Toggle screen markers"
+                data-tip="Toggle chair markers"
                 data-tip-size="14px"
               >
-                <span>Show Markers</span>
+                <span>Show chair markers</span>
                 <span class="text-xs opacity-50"
                   >${showMarkers ? "ON" : "OFF"}</span
                 >

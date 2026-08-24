@@ -63,7 +63,7 @@ export function renderClusterPicker(
           : "btn-ghost"}"
         @click="${onMarkerToggle}"
       >
-        Show markers
+        Show chair markers
       </button>
     </div>
   `;
