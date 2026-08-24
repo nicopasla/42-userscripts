@@ -32,7 +32,10 @@ function renderPanel(el: Element | undefined) {
 
     render(
       html`
-        <div class="card bg-base-200 shadow-sm w-full">
+        <div
+          class="card bg-base-200 shadow-sm w-full"
+          style="border: 2px solid var(--color-info)"
+        >
           <div class="card-body p-4 sm:p-6 gap-4">
             <h3 class="card-title text-lg">Calendar Sync</h3>
             <p class="text-sm opacity-70">
@@ -43,7 +46,8 @@ function renderPanel(el: Element | undefined) {
             ${token
               ? html`
                   <div
-                    class="bg-base-300 rounded-lg p-3 flex items-center gap-2"
+                    class="bg-base-100 rounded-lg p-3 flex items-center gap-2"
+                    style="border: 2px solid var(--color-info)"
                   >
                     <code class="text-xs flex-1 break-all select-all"
                       >${calUrl(token)}</code
@@ -62,15 +66,26 @@ function renderPanel(el: Element | undefined) {
                   </div>
 
                   <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                    <div class="bg-base-300 rounded-lg p-2.5">
+                    <div
+                      class="bg-base-100 rounded-lg p-2.5"
+                      style="border: 2px solid var(--color-info)"
+                    >
                       <span class="font-semibold">Apple Calendar</span>
-                      <p class="opacity-60 mt-0.5">Scan the QR code or File → New</p>
+                      <p class="opacity-60 mt-0.5">
+                        Scan the QR code or File → New
+                      </p>
                     </div>
-                    <div class="bg-base-300 rounded-lg p-2.5">
+                    <div
+                      class="bg-base-100 rounded-lg p-2.5"
+                      style="border: 2px solid var(--color-info)"
+                    >
                       <span class="font-semibold">Google Calendar</span>
                       <p class="opacity-60 mt-0.5">Settings → Add → From URL</p>
                     </div>
-                    <div class="bg-base-300 rounded-lg p-2.5">
+                    <div
+                      class="bg-base-100 rounded-lg p-2.5"
+                      style="border: 2px solid var(--color-info)"
+                    >
                       <span class="font-semibold">Outlook</span>
                       <p class="opacity-60 mt-0.5">Add calendar → Subscribe</p>
                     </div>
@@ -87,7 +102,11 @@ function renderPanel(el: Element | undefined) {
                   </div>
 
                   <div class="flex flex-wrap items-center gap-2">
-                    <button class="btn btn-sm" @click="${handleGenerate}">
+                    <button
+                      class="btn btn-sm"
+                      style="border: 2px solid var(--color-info)"
+                      @click="${handleGenerate}"
+                    >
                       <span class="size-4 flex items-center justify-center"
                         >${unsafeHTML(CALENDAR_PLUS_SVG)}</span
                       >

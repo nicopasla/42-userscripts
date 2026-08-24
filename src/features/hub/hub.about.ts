@@ -215,7 +215,7 @@ export function renderAboutPanel(): ReturnType<typeof html> {
                                 (c) => html`
                                   <span
                                     class="badge badge-lg font-mono gap-2 px-4 py-4 bg-base-100"
-                                    style="border: 2px solid #00babc"
+                                    style="border: 2px solid var(--color-info)"
                                     data-tip="${countryName(c.country)}"
                                   >
                                     <span class="text-2xl"
