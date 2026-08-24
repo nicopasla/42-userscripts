@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-08-24
+
+### Features 🎉
+
+- feat(hub): add community stats ([22042e9](https://github.com/nicopasla/better-intra/commit/22042e9))
+- feat(campuses): add multiple campuses with cluster data ([96d6b27](https://github.com/nicopasla/better-intra/commit/96d6b27))
+- feat(map-dialog): add settings button and enhance UI for cluster dialog ([f0c5603](https://github.com/nicopasla/better-intra/commit/f0c5603))
+- feat(clusters): add clusters button to the sidebar ([1cbd766](https://github.com/nicopasla/better-intra/commit/1cbd766))
+- feat(dialogs): add resizable functionality and maximize/minimize buttons ([34fef82](https://github.com/nicopasla/better-intra/commit/34fef82))
+
+### Bug fixes 🐛
+
+- fix(calendar): update border color to use var(--color-info) for consistency ([619767c](https://github.com/nicopasla/better-intra/commit/619767c))
+- fix(luanda): update cluster IDs to match new data ([82cadc9](https://github.com/nicopasla/better-intra/commit/82cadc9))
+- fix(map-dialog): add dropdown when tabs overflow ([1111206](https://github.com/nicopasla/better-intra/commit/1111206))
+- fix(map-dialog): update seat ID handling to use normalizeSeatId function ([3d51ca6](https://github.com/nicopasla/better-intra/commit/3d51ca6))
+- fix(belgium): correct cluster IDs ([dd49105](https://github.com/nicopasla/better-intra/commit/dd49105))
+- fix(map-dialog): adjust padding and font sizes for active tab elements ([39bf898](https://github.com/nicopasla/better-intra/commit/39bf898))
+- fix(map-dialog): enhance scrollbar styling ([b291e19](https://github.com/nicopasla/better-intra/commit/b291e19))
+
+### Other Changes 🔄
+
+- refactor(clusters): split map-dialog ([f2ba5cd](https://github.com/nicopasla/better-intra/commit/f2ba5cd))
+- refactor(seats): implement normalizeSeatId function and update seat ID handling ([8dce219](https://github.com/nicopasla/better-intra/commit/8dce219))
+
 ## [1.8.1] - 2026-08-18
 
 ### Features 🎉
@@ -1075,7 +1100,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.1...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.2...HEAD
+[1.8.2]: https://github.com/nicopasla/better-intra/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/nicopasla/better-intra/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/nicopasla/better-intra/compare/v1.7.2...v1.8.0
 [1.7.2]: https://github.com/nicopasla/better-intra/compare/v1.7.1...v1.7.2

@@ -3,6 +3,10 @@
     "better-intra@nicopasla.42": {
       "updates": [
         {
+          "version": "1.8.2",
+          "update_link": "https://github.com/nicopasla/better-intra/releases/download/v1.8.2/better-intra.xpi"
+        },
+        {
           "version": "1.8.1",
           "update_link": "https://github.com/nicopasla/better-intra/releases/download/v1.8.1/better-intra.xpi"
         },
