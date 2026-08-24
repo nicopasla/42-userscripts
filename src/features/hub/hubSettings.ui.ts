@@ -33,7 +33,12 @@ import LINK_SVG from "../../assets/svg/link.svg?raw";
 import { renderAboutPanel } from "./hub.about.ts";
 import { renderDiscordPanel } from "../discord/discord.ui.ts";
 import { renderCalendarPanel } from "../calendar/calendar.ui.ts";
-import { THEMES, getEffectiveTheme } from "../profile/theme/theme-manager.ts";
+import {
+  THEMES,
+  getEffectiveTheme,
+  getIsLight,
+} from "../profile/theme/theme-manager.ts";
+import { bindTooltips } from "../../utils/tooltip.ts";
 
 async function saveSetting(key: string, value: unknown): Promise<void> {
   await chrome.storage.local.set({ [key]: value });
@@ -1139,6 +1144,8 @@ async function createModal(active: FeatureId[]): Promise<void> {
     </div>`;
 
   render(modalTemplate, shadow);
+
+  bindTooltips(shadow, getIsLight);
 
   const themeToggle = shadow.querySelector(
     "#hub-theme-toggle",

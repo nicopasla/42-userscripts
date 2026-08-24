@@ -11,45 +11,6 @@ import PERSON_FOLLOW_SVG from "../../assets/svg/person-follow.svg?raw";
 import PR_SVG from "../../assets/svg/pr.svg?raw";
 import STAR_SVG from "../../assets/svg/star.svg?raw";
 
-const ABOUT_STACK = [
-  {
-    name: "TypeScript",
-    version: __TS_VERSION__,
-    color: "bg-primary text-primary-content",
-    url: "https://github.com/microsoft/TypeScript",
-  },
-  {
-    name: "Lit",
-    version: __LIT_VERSION__,
-    color: "bg-secondary text-secondary-content",
-    url: "https://github.com/lit/lit",
-  },
-  {
-    name: "Tailwind",
-    version: __TW_VERSION__,
-    color: "bg-accent text-accent-content",
-    url: "https://github.com/tailwindlabs/tailwindcss",
-  },
-  {
-    name: "DaisyUI",
-    version: __DAISY_VERSION__,
-    color: "bg-info text-info-content",
-    url: "https://github.com/saadeghi/daisyui",
-  },
-  {
-    name: "Vite",
-    version: __VITE_VERSION__,
-    color: "bg-warning text-warning-content",
-    url: "https://github.com/vitejs/vite",
-  },
-  {
-    name: "web-ext",
-    version: __WEB_EXT_VERSION__,
-    color: "bg-success text-success-content",
-    url: "https://github.com/mozilla/web-ext",
-  },
-];
-
 const QUICK_LINKS = [
   {
     href: HUB_INFO.github,
@@ -80,6 +41,44 @@ const followerCount = fetch("https://api.github.com/users/nicopasla")
   .then((r) => r.json())
   .then((d) => d.followers as number)
   .catch(() => null);
+
+type Stats = {
+  total: number;
+  newLast30Days: number;
+  newLast14Days: number;
+  newLast7Days: number;
+  countries: { country: string; count: number }[];
+};
+
+const communityStats = fetch("https://api.betterintra.com/api/v1/public/stats")
+  .then((r) => r.json())
+  .then((d) => d as Stats)
+  .catch(() => null);
+
+function countryFlag(code: string): string {
+  if (!code || code.length !== 2) return "🌍";
+  const upper = code.toUpperCase();
+  return String.fromCodePoint(
+    ...[...upper].map((c) => 127397 + c.charCodeAt(0)),
+  );
+}
+
+let countryNames: Intl.DisplayNames | null = null;
+try {
+  countryNames = new Intl.DisplayNames(["en"], { type: "region" });
+} catch {
+  countryNames = null;
+}
+
+function countryName(code: string): string {
+  if (!code || code.length !== 2) return "Unknown";
+  if (!countryNames) return code;
+  try {
+    return countryNames.of(code.toUpperCase()) || code;
+  } catch {
+    return code;
+  }
+}
 
 export function renderAboutPanel(): ReturnType<typeof html> {
   return html`
@@ -124,13 +123,16 @@ export function renderAboutPanel(): ReturnType<typeof html> {
                   </span>
                   <span>Star</span>
                   ${until(
-                    starCount.then(
-                      (c) =>
-                        c != null
-                          ? html`<span class="badge badge-sm font-mono">${c}</span>`
-                          : "",
+                    starCount.then((c) =>
+                      c != null
+                        ? html`<span class="badge badge-sm font-mono"
+                            >${c}</span
+                          >`
+                        : "",
                     ),
-                    html`<span class="loading loading-spinner loading-xs"></span>`,
+                    html`<span
+                      class="loading loading-spinner loading-xs"
+                    ></span>`,
                   )}
                 </a>
               </div>
@@ -142,31 +144,98 @@ export function renderAboutPanel(): ReturnType<typeof html> {
           </p>
         </div>
 
-        <!-- Built With -->
+        <!-- Community -->
         <div class="flex flex-col gap-2 shrink-0">
           <div class="flex items-center gap-2">
             <h2 class="text-xs font-semibold uppercase tracking-widest">
-              Built With
+              Community
             </h2>
             <div class="flex-1 h-px bg-base-300/40"></div>
           </div>
-          <div class="join w-full">
-            ${ABOUT_STACK.map(
-              (tech) => html`
-                <a
-                  href="${tech.url}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="join-item btn btn-xs flex-1 flex-col gap-0 h-auto py-1.5 leading-tight font-normal border-none ${tech.color} transition-all hover:scale-[1.02] active:scale-95"
-                >
-                  <span class="text-xs font-semibold">${tech.name}</span>
-                  <span class="text-[10px] opacity-70 font-mono font-semibold"
-                    >${tech.version}</span
-                  >
-                </a>
-              `,
-            )}
-          </div>
+          ${until(
+            communityStats.then((s) =>
+              s && s.total > 0
+                ? html`
+                    <div
+                      class="flex flex-col gap-3 p-4 bg-base-200 rounded-xl border border-base-300"
+                    >
+                      <div class="flex items-start justify-between gap-4">
+                        <div
+                          class="flex flex-col items-center rounded-xl bg-base-100 px-6 py-3"
+                          style="border: 2px solid #00babc"
+                        >
+                          <span
+                            class="text-4xl font-bold font-mono leading-none"
+                            >${s.total}</span
+                          >
+                          <span class="text-sm opacity-60 font-semibold"
+                            >users</span
+                          >
+                        </div>
+                        <div class="flex items-start justify-end gap-6">
+                          ${[
+                            {
+                              label: "in 30 days",
+                              value: s.newLast30Days,
+                              color: "#38bdf8",
+                            },
+                            {
+                              label: "in 14 days",
+                              value: s.newLast14Days,
+                              color: "#4ade80",
+                            },
+                            {
+                              label: "in 7 days",
+                              value: s.newLast7Days,
+                              color: "#fb923c",
+                            },
+                          ].map(
+                            (w) => html`
+                              <div
+                                class="flex flex-col items-center rounded-xl bg-base-100 px-6 py-3"
+                                style="border: 2px solid ${w.color}"
+                              >
+                                <span
+                                  class="text-3xl font-bold font-mono leading-none"
+                                  >+${w.value}</span
+                                >
+                                <span
+                                  class="text-sm text-center opacity-60 font-semibold"
+                                  >${w.label}</span
+                                >
+                              </div>
+                            `,
+                          )}
+                        </div>
+                      </div>
+                      ${s.countries.length > 0
+                        ? html`
+                            <div class="flex flex-wrap gap-1 justify-center">
+                              ${s.countries.map(
+                                (c) => html`
+                                  <span
+                                    class="badge badge-lg font-mono gap-2 px-4 py-4 bg-base-100"
+                                    style="border: 2px solid #00babc"
+                                    data-tip="${countryName(c.country)}"
+                                  >
+                                    <span class="text-2xl"
+                                      >${countryFlag(c.country)}</span
+                                    >
+                                    <span class="text-xl font-bold"
+                                      >${c.count}</span
+                                    >
+                                  </span>
+                                `,
+                              )}
+                            </div>
+                          `
+                        : ""}
+                    </div>
+                  `
+                : "",
+            ),
+            html`<div class="loading loading-spinner loading-sm"></div>`,
+          )}
         </div>
 
         <!-- Quick Links -->
@@ -220,11 +289,10 @@ export function renderAboutPanel(): ReturnType<typeof html> {
               </span>
               <span>Follow</span>
               ${until(
-                followerCount.then(
-                  (c) =>
-                    c != null
-                      ? html`<span class="badge badge-sm font-mono">${c}</span>`
-                      : "",
+                followerCount.then((c) =>
+                  c != null
+                    ? html`<span class="badge badge-sm font-mono">${c}</span>`
+                    : "",
                 ),
                 html`<span class="loading loading-spinner loading-xs"></span>`,
               )}
