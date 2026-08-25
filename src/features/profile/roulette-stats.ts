@@ -459,7 +459,7 @@ function buildEvalStatsSkeleton(): HTMLElement {
   return section;
 }
 
-function ensureCard(): HTMLElement | null {
+function ensureCard(force: boolean): HTMLElement | null {
   const existing = document.getElementById(CARD_ID);
   if (existing) return existing;
 
@@ -467,6 +467,10 @@ function ensureCard(): HTMLElement | null {
     document.querySelector(".dash-main") ||
     document.querySelector(".bg-white.md\\:h-96")?.parentElement;
   if (!grid) return null;
+
+  // Waiting for intra to have rendered at least one of its own cards keeps our
+  // card from sitting alone on an otherwise empty dashboard for a few frames.
+  if (!force && grid.querySelector(".bg-white.md\\:h-96") === null) return null;
 
   const card = document.createElement("div");
   card.id = CARD_ID;
@@ -499,7 +503,11 @@ function renderCard(
   topSection.style.cssText =
     "flex: 1; min-height: 0; overflow-y: scroll; padding: 24px 24px 12px 24px;";
 
+  // The layout manager reads the card title from the first element carrying an
+  // "uppercase" class, so the title has to be one — otherwise the card cannot
+  // be matched against the user's dashboard card order.
   const rouletteTitle = document.createElement("div");
+  rouletteTitle.className = "font-bold uppercase text-sm";
   rouletteTitle.style.cssText =
     "font-weight: 700; text-transform: uppercase; font-size: 14px; margin-bottom: 8px;";
   rouletteTitle.textContent = "Thursday Roulette";
@@ -577,13 +585,16 @@ export async function initRouletteStats() {
 
   let attempts = 0;
   const poll = () => {
-    if (++attempts > 30) {
-      rouletteStatsPolling = false;
-      return;
-    }
+    // Past the grace period the card is mounted regardless, so it is never
+    // dropped on a dashboard where every other card is hidden.
+    const lastAttempt = ++attempts > 30;
 
-    const card = ensureCard();
+    const card = ensureCard(lastAttempt);
     if (!card) {
+      if (lastAttempt) {
+        rouletteStatsPolling = false;
+        return;
+      }
       requestAnimationFrame(poll);
       return;
     }

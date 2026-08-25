@@ -25,7 +25,9 @@ const nextFrame = () =>
 
 describe("roulette card", () => {
   beforeEach(() => {
-    document.body.innerHTML = '<div class="dash-main"></div>';
+    document.body.innerHTML =
+      '<div class="dash-main"><div class="bg-white md:h-96">' +
+      '<span class="font-bold uppercase text-sm">Agenda</span></div></div>';
   });
 
   it("mounts the card with placeholders, then fills it in place", async () => {

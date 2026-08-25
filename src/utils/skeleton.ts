@@ -1,16 +1,37 @@
+import { getConfig } from "../config.ts";
+
 const STYLE_ID = "ft-skeleton-style";
 
+/**
+ * Placeholders are drawn from `currentColor`, so they pick up the surrounding
+ * text color: a soft grey on the light theme, a soft light tint on the dark
+ * one, and the accent color inside colored pills. Only a small percentage of
+ * that color is used, so the bar reads as an empty slot, never as a solid
+ * block.
+ */
 function ensureSkeletonStyle(): void {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement("style");
   style.id = STYLE_ID;
   style.textContent = [
-    "@keyframes ft-skeleton-pulse{0%,100%{opacity:.45}50%{opacity:.85}}",
-    ".ft-skeleton{display:inline-block;border-radius:6px;",
-    "background:currentColor;opacity:.45;animation:ft-skeleton-pulse 1.4s ease-in-out infinite}",
-    "@media (prefers-reduced-motion: reduce){.ft-skeleton{animation:none}}",
+    "@keyframes ft-skeleton-sweep{from{transform:translateX(-100%)}to{transform:translateX(100%)}}",
+    ".ft-skeleton{position:relative;display:inline-block;overflow:hidden;",
+    "border-radius:6px;vertical-align:middle;",
+    "background:color-mix(in srgb, currentColor 11%, transparent)}",
+    ".ft-skeleton::after{content:'';position:absolute;inset:0;",
+    "background:linear-gradient(90deg, transparent, ",
+    "color-mix(in srgb, currentColor 13%, transparent), transparent);",
+    "animation:ft-skeleton-sweep 1.6s ease-in-out infinite}",
+    "@media (prefers-reduced-motion: reduce){.ft-skeleton::after{display:none}}",
+    ".ft-skeleton-static .ft-skeleton::after,",
+    ".ft-skeleton-static.ft-skeleton::after{display:none}",
   ].join("");
   document.head.appendChild(style);
+
+  // The sweep follows the extension-wide animation switch.
+  void getConfig("DISABLE_ANIMATIONS").then((disabled) => {
+    if (disabled) document.documentElement.classList.add("ft-skeleton-static");
+  });
 }
 
 export interface SkeletonOptions {
@@ -20,8 +41,7 @@ export interface SkeletonOptions {
 }
 
 /**
- * A placeholder bar drawn in the current text color, used to hold the space of
- * a value that is still being fetched.
+ * A placeholder bar holding the space of a value that is still being fetched.
  */
 export function createSkeleton(options: SkeletonOptions): HTMLElement {
   ensureSkeletonStyle();
