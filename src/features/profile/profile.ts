@@ -15,6 +15,7 @@ import { initProjectBadges } from "./project-badges.ts";
 import { initProjectsSort } from "./projects-sort.ts";
 import { initRouletteStats } from "./roulette-stats.ts";
 import { initEvaluations } from "./evaluations.ts";
+import { initFlashCollapse } from "./flash-collapse.ts";
 import { initBadges } from "./badges.ts";
 import { initTranscript } from "./transcript.ts";
 import { initPace } from "./pace.ts";
@@ -68,6 +69,7 @@ export async function initProfile() {
           initProjectsSort(),
           initRouletteStats(),
           initEvaluations(),
+          initFlashCollapse(),
           findSlotsButton(),
           injectEventsSelect(),
           updateEventFilters(),
