@@ -17,6 +17,17 @@
   touch-action: pan-x;
 }
 
+.log-slider-fixed.is-carousel {
+  overflow-x: hidden !important;
+  cursor: default;
+  touch-action: auto;
+}
+
+.log-slider-fixed.is-carousel .grid-centering-container {
+  width: 100%;
+  justify-content: center;
+}
+
 .grid-centering-container {
   display: flex;
   gap: 16px;
@@ -25,28 +36,44 @@
 }
 
 .month-card {
-  transition: opacity 0.2s ease;
-  border: 0.5px solid var(--border-color);
-  border-radius: 16px;
-  padding: 10px;
+  transition:
+    opacity 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
+  border: 1px solid var(--card-hairline);
+  border-radius: 18px;
+  padding: 14px 14px 12px;
   width: 280px;
   flex-shrink: 0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  background: var(--card-surface);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 10px 24px -18px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
 }
 
 .month-card.current-month {
-  border: 3px solid var(--calendar-color) !important;
-  box-shadow: 0 0 15px var(--calendar-color) 33 !important;
+  background: var(--card-surface-strong);
+  border-color: var(--card-hairline-strong);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 16px 34px -20px rgba(0, 0, 0, 0.45);
   opacity: 1 !important;
 }
 
+.month-card .badge-outline {
+  border-width: 1px;
+  font-weight: 600;
+}
+
 .day-cell {
-  transition: transform 0.1s ease;
+  transition:
+    filter 0.15s ease,
+    box-shadow 0.15s ease;
   cursor: pointer;
   position: relative;
-  border: 0.5px solid color-mix(in srgb, var(--color-base-content) 10%, transparent);
+  border: 1px solid transparent;
 }
 
 .day-cell:hover {
@@ -57,9 +84,7 @@
 }
 
 .today-highlight {
-  box-shadow:
-    0 0 0 2px rgba(239, 68, 68, 0.65),
-    0 0 12px rgba(239, 68, 68, 0.45);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.55);
   border: none !important;
   z-index: 10;
 }
@@ -75,7 +100,19 @@
 }
 
 .badge-rainbow {
-  background: linear-gradient(90deg, #ff0000, #ff7f00, #ffeb3b, #4caf50, #00bcd4, #2196f3, #3f51b5, #9c27b0, #e91e63, #ff0000);
+  background: linear-gradient(
+    90deg,
+    #ff0000,
+    #ff7f00,
+    #ffeb3b,
+    #4caf50,
+    #00bcd4,
+    #2196f3,
+    #3f51b5,
+    #9c27b0,
+    #e91e63,
+    #ff0000
+  );
   background-size: 200% 100% !important;
   animation: rainbow-shift 5s linear infinite !important;
   border: none !important;
@@ -116,7 +153,7 @@
 }
 
 .compact-divider {
-  border-top: 2px solid var(--border-color);
+  border-top: 1px solid var(--card-hairline);
 }
 
 .heatmap-card {
@@ -131,9 +168,56 @@
 
 .heatmap-cell {
   border-radius: 3px;
-  border: 1px solid color-mix(in srgb, var(--color-base-content) 15%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--color-base-content) 15%, transparent);
 }
 
 .compact-month .day-cell {
   font-size: inherit;
 }
+
+.lt-carousel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.lt-carousel-arrow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--card-hairline);
+  background: var(--card-surface);
+  color: var(--color-base-content);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.15s ease;
+}
+
+.lt-carousel-arrow:hover:not(:disabled) {
+  background: var(--card-surface-strong);
+  transform: scale(1.06);
+}
+
+.lt-carousel-arrow:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.lt-carousel-stage {
+  display: flex;
+  align-items: center;
+}
+
+.lt-carousel .month-card {
+  opacity: 1 !important;
+}
+
