@@ -3,7 +3,11 @@ import { initClusters } from "./features/clusters/clusters.ts";
 import { initProfile } from "./features/profile/profile.ts";
 import { initHubSettings } from "./features/hub/hubSettings.ts";
 import { initShortcuts } from "./features/shortcuts/shortcuts.ts";
-import { initThemeManager, getIsLight } from "./features/profile/theme/theme-manager.ts";
+import { initSubjectTracker } from "./features/subjects/tracker.ts";
+import {
+  initThemeManager,
+  getIsLight,
+} from "./features/profile/theme/theme-manager.ts";
 import { maybePromptRestore } from "./features/account/account.ts";
 import { initGlobalTooltips } from "./utils/tooltip.ts";
 import { ensureCampusData } from "./features/campus/campus.ts";
@@ -179,6 +183,10 @@ const featureInitializers: { [key: string]: () => Promise<void> } = {
 
     if (target) {
       try {
+        // The subject tracker always runs: badges/data are local. Sharing
+        // with the collaborative registry is an opt-in setting instead.
+        void initSubjectTracker();
+
         // Hub settings are always initialized for the settings page.
         // initHubSettings returns the active feature list.
         const activeScripts = await initHubSettings();

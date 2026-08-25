@@ -334,6 +334,48 @@ function renderSettingControl(def: HubSettingDef, enabled: boolean) {
         : (def.defaultValue ?? "");
 
       switch (def.kind) {
+        case "feature-cards": {
+          const cards = [];
+          for (const opt of def.options ?? []) {
+            const key = opt.value ?? "";
+            cards.push({
+              opt,
+              value: key ? ((await getConfig(key as never)) ?? false) : false,
+            });
+          }
+          return html`<div class="grid grid-cols-2 gap-4 w-full col-span-full">
+            ${cards.map(
+              ({ opt, value }) => html`
+                <div
+                  class="card bg-base-200 shadow-sm p-4 grid grid-cols-[1fr_auto] items-center gap-3 border border-t-4"
+                  style="border-top-color: ${opt.color === "warning"
+                    ? "var(--color-warning)"
+                    : "var(--color-primary)"}"
+                >
+                  <div class="flex flex-col gap-1">
+                    <h3 class="font-bold text-base">${opt.label}</h3>
+                    ${opt.desc
+                      ? html`<p class="text-xs opacity-70">${opt.desc}</p>`
+                      : ""}
+                  </div>
+                  <input
+                    type="checkbox"
+                    class="toggle toggle-lg toggle-accent"
+                    data-setting-key="${opt.value}"
+                    ?checked="${Boolean(value)}"
+                    ?disabled="${!enabled}"
+                    @change="${(e: Event) =>
+                      saveSetting(
+                        opt.value!,
+                        (e.target as HTMLInputElement).checked,
+                      )}"
+                  />
+                </div>
+              `,
+            )}
+          </div>`;
+        }
+
         case "toggle":
           return html`<input
             type="checkbox"
@@ -695,7 +737,8 @@ function renderSetting(def: HubSettingDef, enabled: boolean, hidden?: boolean) {
   if (
     def.kind === "discord-panel" ||
     def.kind === "about" ||
-    def.kind === "calendar-panel"
+    def.kind === "calendar-panel" ||
+    def.kind === "feature-cards"
   ) {
     return renderSettingControl(def, enabled);
   }
@@ -751,7 +794,8 @@ function renderTabsContent(
       f.id === "about" ||
       f.id === "discord" ||
       f.id === "calendar" ||
-      f.id === "advanced";
+      f.id === "advanced" ||
+      f.id === "plugins";
     const enabled = active.includes(f.id) || isAlwaysEnabled;
     const cloudDisabled =
       "requiresCloud" in f &&

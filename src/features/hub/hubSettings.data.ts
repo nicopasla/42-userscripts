@@ -6,6 +6,7 @@ import SHORTCUT from "../../assets/svg/shortcut.svg?raw";
 import ABOUT from "../../assets/svg/about.svg?raw";
 import DISCORD_SVG from "../../assets/svg/discord.svg?raw";
 import ADVANCED_SVG from "../../assets/svg/advanced.svg?raw";
+import GRID_SVG from "../../assets/svg/grid.svg?raw";
 import { CONFIG_DEFAULT, ConfigKey } from "../../config.ts";
 import { CLUSTERS as CLUSTER_OPTIONS } from "../clusters/clusters.data.ts";
 
@@ -54,6 +55,13 @@ export const FEATURE_DEFS = [
     desc: "Get evaluation reminders via Discord DM.",
   },
   {
+    id: "plugins",
+    name: "Plugins",
+    icon: GRID_SVG,
+    desc: "Enable or disable optional add-ons. More can be added later.",
+    cols: 3,
+  },
+  {
     id: "calendar",
     name: "Calendar",
     icon: CALENDAR,
@@ -96,7 +104,8 @@ export type SettingKind =
   | "discord-panel"
   | "calendar-panel"
   | "theme-preset"
-  | "campus-info";
+  | "campus-info"
+  | "feature-cards";
 
 export { INTRA_FONT } from "../logtime/constants.ts";
 
@@ -112,6 +121,7 @@ export type HubSettingDef = {
     label?: string;
     value?: string;
     color?: string;
+    desc?: string;
     divider?: boolean;
   }[];
   grid?: boolean;
@@ -588,6 +598,22 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
       desc: "Notifications and account connection.",
       kind: "discord-panel",
       fullWidth: true,
+    },
+  ],
+  plugins: [
+    {
+      feature: "plugins",
+      label: "",
+      kind: "feature-cards",
+      fullWidth: true,
+      options: [
+        {
+          label: "Subject tracker",
+          value: "SUBJECT_TRACKER_ENABLED",
+          color: "warning",
+          desc: "Shows a badge on project pages when a subject has been updated, comparing the subject link with the shared registry.",
+        },
+      ],
     },
   ],
   calendar: [
