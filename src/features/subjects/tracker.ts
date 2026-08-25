@@ -157,9 +157,10 @@ export async function initSubjectTracker(): Promise<void> {
   }
 
   const client = await cloudClient();
+  const sendData = await getConfig("SUBJECT_TRACKER_SEND_DATA");
   let nextLocal: LocalSubjectState;
 
-  if (client) {
+  if (client && sendData) {
     const entry = await getWorkerState(slug, client);
     if (entry === null) {
       // Worker unreachable → fall back to latest local knowledge.

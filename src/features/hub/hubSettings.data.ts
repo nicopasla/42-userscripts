@@ -55,8 +55,8 @@ export const FEATURE_DEFS = [
     desc: "Get evaluation reminders via Discord DM.",
   },
   {
-    id: "plugins",
-    name: "Plugins",
+    id: "extras",
+    name: "Extras",
     icon: GRID_SVG,
     desc: "Enable or disable optional add-ons. More can be added later.",
     cols: 3,
@@ -109,6 +109,24 @@ export type SettingKind =
 
 export { INTRA_FONT } from "../logtime/constants.ts";
 
+export type FeatureCardOption = {
+  label?: string;
+  value?: string;
+  color?: string;
+  desc?: string;
+  divider?: boolean;
+  dependsOn?: ConfigKey;
+  requiresCloud?: boolean;
+  big?: boolean;
+  subToggle?: {
+    label: string;
+    value: string;
+    desc?: string;
+    requiresCloud?: boolean;
+    dependsOn?: ConfigKey;
+  };
+};
+
 export type HubSettingDef = {
   feature: FeatureId;
   label: string;
@@ -117,13 +135,7 @@ export type HubSettingDef = {
   kind: SettingKind;
   nullable?: boolean;
   defaultValue?: unknown;
-  options?: readonly {
-    label?: string;
-    value?: string;
-    color?: string;
-    desc?: string;
-    divider?: boolean;
-  }[];
+  options?: readonly FeatureCardOption[];
   grid?: boolean;
   colSpan?: number;
   fullWidth?: boolean;
@@ -474,34 +486,6 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
     },
     {
       feature: "profile",
-      label: "Thursday Roulette",
-      kind: "divider",
-    },
-    {
-      feature: "profile",
-      key: "PROFILE_SHOW_ROULETTE",
-      label: "Show Thursday Roulette card",
-      desc: "Adds a card with roulette wins, points, and next draw countdown.",
-      kind: "toggle",
-      defaultValue: CONFIG_DEFAULT.PROFILE_SHOW_ROULETTE,
-      grid: true,
-      colSpan: 1,
-      requiresCloud: true,
-    },
-    {
-      feature: "profile",
-      key: "PROFILE_SHOW_ROULETTE_HISTORY",
-      label: "Show roulette history",
-      desc: "Displays the full timeline of past roulette wins inside the card.",
-      kind: "toggle",
-      defaultValue: CONFIG_DEFAULT.PROFILE_SHOW_ROULETTE_HISTORY,
-      grid: true,
-      colSpan: 1,
-      dependsOn: "PROFILE_SHOW_ROULETTE",
-      requiresCloud: true,
-    },
-    {
-      feature: "profile",
       label: "Pending Evaluations",
       kind: "divider",
     },
@@ -600,9 +584,9 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
       fullWidth: true,
     },
   ],
-  plugins: [
+  extras: [
     {
-      feature: "plugins",
+      feature: "extras",
       label: "",
       kind: "feature-cards",
       fullWidth: true,
@@ -611,7 +595,29 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
           label: "Subject tracker",
           value: "SUBJECT_TRACKER_ENABLED",
           color: "warning",
-          desc: "Shows a badge on project pages when a subject has been updated, comparing the subject link with the shared registry.",
+          big: true,
+          desc: "Shows a badge on project pages when a subject has been updated, using update data shared by the community.",
+          subToggle: {
+            label: "Share with the community",
+            value: "SUBJECT_TRACKER_SEND_DATA",
+            requiresCloud: true,
+            desc: "Send subject links so everyone sees when subjects are updated - and you benefit from updates others have spotted.",
+          },
+        },
+        {
+          label: "Thursday Roulette",
+          value: "PROFILE_SHOW_ROULETTE",
+          color: "info",
+          big: true,
+          desc: "Adds a card with roulette wins, points, and next draw countdown.",
+          requiresCloud: true,
+          subToggle: {
+            label: "Show roulette history",
+            value: "PROFILE_SHOW_ROULETTE_HISTORY",
+            desc: "Displays the full timeline of past roulette wins inside the card.",
+            dependsOn: "PROFILE_SHOW_ROULETTE",
+            requiresCloud: true,
+          },
         },
       ],
     },

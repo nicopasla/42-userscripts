@@ -107,9 +107,9 @@ export interface BetterIntraConfig {
   CALENDAR_EVENTS_HASH: string;
   ADVANCED_OPEN_LINKS_NEW_TAB: boolean;
 
-  // Subject Tracker (a pluggable feature, turned on by default)
+  // Subject Tracker
   SUBJECT_TRACKER_ENABLED: boolean;
-  // Subject Tracker per-user state (not cloud-synced; stays local to the device)
+  SUBJECT_TRACKER_SEND_DATA: boolean;
   SUBJECT_TRACKER_STATE: Record<
     string,
     {
@@ -215,6 +215,7 @@ export const CONFIG_DEFAULT: BetterIntraConfig = {
 
   SUBJECT_TRACKER_STATE: {},
   SUBJECT_TRACKER_ENABLED: true,
+  SUBJECT_TRACKER_SEND_DATA: true,
 };
 
 /**
