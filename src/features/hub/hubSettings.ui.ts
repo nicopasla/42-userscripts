@@ -9,6 +9,7 @@ import {
   INTRA_FONT,
   HUB_SETTING_DEFS,
   type HubSettingDef,
+  type FeatureCardOption,
 } from "./hubSettings.data.ts";
 import {
   getStoredLinks,
@@ -45,7 +46,12 @@ async function saveSetting(key: string, value: unknown): Promise<void> {
 }
 
 import { fetchCampusList, fetchEventTypes } from "../clusters/clusters.data.ts";
-import { CLUSTERS, ensureCampusData } from "../campus/campus.ts";
+import {
+  CLUSTERS,
+  ensureCampusData,
+  clearCampusConfigCache,
+  loadCampusData,
+} from "../campus/campus.ts";
 
 let dynamicCampusOptions: { label: string; value: string }[] = [];
 let dynamicEventTypeOptions: { label: string; value: string }[] = [];
@@ -70,6 +76,86 @@ export async function openHubModal(active: FeatureId[]) {
     },
     { once: true },
   );
+}
+
+const FEATURE_CARD_COLORS: Record<string, string> = {
+  warning: "var(--color-warning)",
+  info: "var(--color-info)",
+  success: "var(--color-success)",
+  error: "var(--color-error)",
+  primary: "var(--color-primary)",
+};
+
+function renderFeatureCard(params: {
+  opt: FeatureCardOption;
+  value: boolean;
+  subValue: boolean;
+  disabled: boolean;
+  subDisabled: boolean;
+  enabled: boolean;
+}): ReturnType<typeof html> {
+  const { opt, value, subValue, disabled, subDisabled, enabled } = params;
+  return html`
+    <div
+      class="card bg-base-200 shadow-sm p-4 flex flex-col gap-3 border border-t-4 ${disabled
+        ? "opacity-40 grayscale"
+        : ""}"
+      style="border-top-color: ${FEATURE_CARD_COLORS[opt.color ?? ""] ??
+      "var(--color-primary)"}"
+    >
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex flex-col gap-1">
+          <h3 class="font-bold text-base">${opt.label}</h3>
+          ${opt.desc ? html`<p class="text-xs opacity-70">${opt.desc}</p>` : ""}
+        </div>
+        <input
+          type="checkbox"
+          class="toggle ${opt.big
+            ? "toggle-xl toggle-primary"
+            : "toggle-lg toggle-accent"}"
+          data-setting-key="${opt.value}"
+          ?checked="${Boolean(value)}"
+          ?disabled="${!enabled || disabled}"
+          @change="${(e: Event) =>
+            saveSetting(opt.value!, (e.target as HTMLInputElement).checked)}"
+        />
+      </div>
+      ${opt.subToggle
+        ? html`<div class="divider gap-0" style="margin-top:auto"></div>
+            <div
+              class="flex items-center justify-between gap-2 ${subDisabled
+                ? "opacity-40 grayscale"
+                : ""}"
+            >
+              <div
+                class="flex flex-col justify-center gap-1"
+                style="min-height: 3.5rem"
+              >
+                <span class="text-sm font-semibold leading-5"
+                  >${opt.subToggle.label}</span
+                >
+                ${opt.subToggle.desc
+                  ? html`<p class="text-xs opacity-70 leading-4 line-clamp-2">
+                      ${opt.subToggle.desc}
+                    </p>`
+                  : ""}
+              </div>
+              <input
+                type="checkbox"
+                class="toggle toggle-accent"
+                data-setting-key="${opt.subToggle.value}"
+                ?checked="${Boolean(subValue)}"
+                ?disabled="${!enabled || disabled || subDisabled}"
+                @change="${(e: Event) =>
+                  saveSetting(
+                    opt.subToggle!.value,
+                    (e.target as HTMLInputElement).checked,
+                  )}"
+              />
+            </div>`
+        : ""}
+    </div>
+  `;
 }
 
 function renderSettingControl(def: HubSettingDef, enabled: boolean) {
@@ -334,6 +420,33 @@ function renderSettingControl(def: HubSettingDef, enabled: boolean) {
         : (def.defaultValue ?? "");
 
       switch (def.kind) {
+        case "feature-cards": {
+          const cloudToken = await getConfig("CLOUD_TOKEN");
+          const cards = [];
+          for (const opt of def.options ?? []) {
+            const key = opt.value ?? "";
+            cards.push({
+              opt,
+              value: key ? ((await getConfig(key as never)) ?? false) : false,
+              subValue: opt.subToggle
+                ? ((await getConfig(opt.subToggle.value as never)) ?? false)
+                : false,
+              disabled: !!(
+                (opt.dependsOn && !(await getConfig(opt.dependsOn as never))) ||
+                (opt.requiresCloud && !cloudToken)
+              ),
+              subDisabled: !!(
+                (opt.subToggle?.requiresCloud && !cloudToken) ||
+                (opt.subToggle?.dependsOn &&
+                  !(await getConfig(opt.subToggle.dependsOn as never)))
+              ),
+            });
+          }
+          return html`<div class="grid grid-cols-2 gap-4 w-full col-span-full">
+            ${cards.map((c) => renderFeatureCard({ ...c, enabled }))}
+          </div>`;
+        }
+
         case "toggle":
           return html`<input
             type="checkbox"
@@ -635,6 +748,24 @@ function renderSettingControl(def: HubSettingDef, enabled: boolean) {
             </div>`;
           }
 
+          if (actionType === "reload-campus") {
+            return html`<button
+              type="button"
+              class="btn btn-sm btn-primary font-bold"
+              @click="${() => {
+                void (async () => {
+                  const campusId = (await getConfig("CLUSTERS_CAMPUS")) || "";
+                  await clearCampusConfigCache(campusId);
+                  await fetchCampusList(true);
+                  if (campusId) await loadCampusData(campusId, true);
+                  location.reload();
+                })();
+              }}"
+            >
+              ${actionLabel || "Reload"}
+            </button>`;
+          }
+
           return html`<button
             type="button"
             class="btn btn-sm btn-error font-bold"
@@ -695,7 +826,8 @@ function renderSetting(def: HubSettingDef, enabled: boolean, hidden?: boolean) {
   if (
     def.kind === "discord-panel" ||
     def.kind === "about" ||
-    def.kind === "calendar-panel"
+    def.kind === "calendar-panel" ||
+    def.kind === "feature-cards"
   ) {
     return renderSettingControl(def, enabled);
   }
@@ -751,7 +883,8 @@ function renderTabsContent(
       f.id === "about" ||
       f.id === "discord" ||
       f.id === "calendar" ||
-      f.id === "advanced";
+      f.id === "advanced" ||
+      f.id === "extras";
     const enabled = active.includes(f.id) || isAlwaysEnabled;
     const cloudDisabled =
       "requiresCloud" in f &&

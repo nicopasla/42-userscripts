@@ -1,6 +1,13 @@
 import type { OccupancyEntry, ActiveSortMode } from "./render";
 import type { SeatPos } from "./crop";
 import { getSvgSlug } from "./cache";
+import type { ExitConfig } from "../../campus/campus.ts";
+
+export type {
+  ExitConfig,
+  ExitSign,
+  ExitArrowDir,
+} from "../../campus/campus.ts";
 
 export interface ClusterInfo {
   id: string;
@@ -39,6 +46,7 @@ export interface DialogState {
   clusters: ClusterInfo[];
   activeCluster: ClusterInfo;
   defaultId: string;
+  campusExits: ExitConfig | null;
 
   zoomLevel: number;
   defaultZoomLevel: number;

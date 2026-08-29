@@ -5,10 +5,24 @@ export interface TranscriptEntry {
   records: { label: string; sr_id: number }[];
 }
 
+export type ExitArrowDir = "up" | "right" | "down" | "left";
+
+export interface ExitSign {
+  x: number | string;
+  y: number | string;
+  w?: number | string;
+  h?: number | string;
+  dir?: ExitArrowDir;
+  label?: string;
+}
+
+export type ExitConfig = Record<string, ExitSign[]>;
+
 interface ClusterDataFile {
   clusters: { id: string; name: string; svg?: string }[];
   transcripts?: TranscriptEntry[];
   definitions: Record<string, unknown>;
+  exits?: ExitConfig;
   badgeBaseUrl?: string;
   badges?: Record<string, string>;
 }
@@ -25,19 +39,27 @@ const MANIFEST_CACHE_KEY = "CAMPUS_MANIFEST_V2";
 const CACHE_TTL = 60 * 60 * 1000;
 const inFlightLoads = new Map<string, Promise<ClusterDataFile>>();
 
-async function resolveCampusFolder(campusId: string): Promise<string> {
-  const manifest = await fetchCampusList();
+async function resolveCampusFolder(
+  campusId: string,
+  force?: boolean,
+): Promise<string> {
+  const manifest = await fetchCampusList(force);
   const campus = manifest.campuses.find((c) => c.id === campusId);
   if (!campus) return campusId;
   return campus.name.toLowerCase().replace(/\s+/g, "-");
 }
 
-async function resolveCampusId(campusId: string): Promise<string> {
+async function resolveCampusId(
+  campusId: string,
+  force?: boolean,
+): Promise<string> {
   if (campusId) return campusId;
-  const manifest = await fetchCampusList();
+  const manifest = await fetchCampusList(force);
   for (const campus of manifest.campuses) {
     const prefix = campus.name.toLowerCase().replace(/\s+/g, "-");
-    const res = await fetch(`${CAMPUS_BASE}/${prefix}.json`);
+    const res = await fetch(`${CAMPUS_BASE}/${prefix}.json`, {
+      cache: force ? "no-store" : undefined,
+    });
     if (res.ok) return campus.id;
   }
   return "";
@@ -64,15 +86,19 @@ function installCampusDetectedListener(): void {
   });
 }
 
-export async function fetchCampusList(): Promise<CampusManifest> {
+export async function fetchCampusList(
+  force?: boolean,
+): Promise<CampusManifest> {
   const cached = await chrome.storage.local.get(MANIFEST_CACHE_KEY);
   const cachedData = cached[MANIFEST_CACHE_KEY] as
     | { manifest: CampusManifest; timestamp: number }
     | undefined;
-  if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
+  if (!force && cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
     return cachedData.manifest;
   }
-  const res = await fetch(`${CAMPUS_BASE}/campuses.json`);
+  const res = await fetch(`${CAMPUS_BASE}/campuses.json`, {
+    cache: force ? "no-store" : undefined,
+  });
   if (!res.ok) throw new Error("Failed to fetch campus list");
   const manifest = (await res.json()) as CampusManifest;
   await chrome.storage.local.set({
@@ -85,7 +111,7 @@ export async function loadCampusData(
   campusId: string,
   force?: boolean,
 ): Promise<ClusterDataFile> {
-  const resolvedId = await resolveCampusId(campusId);
+  const resolvedId = await resolveCampusId(campusId, force);
   if (!resolvedId) throw new Error("No campus data available");
   const cacheKey = `${CACHE_PREFIX}${resolvedId}`;
   if (!force) {
@@ -97,22 +123,32 @@ export async function loadCampusData(
       return cachedData.data;
     }
   }
-  const existing = inFlightLoads.get(cacheKey);
+  const existing = force ? undefined : inFlightLoads.get(cacheKey);
   if (existing) return existing;
   const load = (async () => {
-    const prefix = await resolveCampusFolder(resolvedId);
-    const res = await fetch(`${CAMPUS_BASE}/${prefix}.json`);
-    if (!res.ok) throw new Error(`Failed to fetch campus data for ${resolvedId}`);
+    const prefix = await resolveCampusFolder(resolvedId, force);
+    const res = await fetch(`${CAMPUS_BASE}/${prefix}.json`, {
+      cache: force ? "no-store" : undefined,
+    });
+    if (!res.ok)
+      throw new Error(`Failed to fetch campus data for ${resolvedId}`);
     const data = (await res.json()) as ClusterDataFile;
     await chrome.storage.local.set({
       [cacheKey]: { data, timestamp: Date.now() },
     });
     return data;
   })().finally(() => {
-    inFlightLoads.delete(cacheKey);
+    if (!force) inFlightLoads.delete(cacheKey);
   });
-  inFlightLoads.set(cacheKey, load);
-  return load;
+  if (!force) inFlightLoads.set(cacheKey, load);
+  return force ? await load : load;
+}
+
+export async function clearCampusConfigCache(campusId: string): Promise<void> {
+  await chrome.storage.local.remove([
+    `${CACHE_PREFIX}${campusId}`,
+    MANIFEST_CACHE_KEY,
+  ]);
 }
 
 export async function ensureCampusData(): Promise<void> {

@@ -6,6 +6,7 @@ import SHORTCUT from "../../assets/svg/shortcut.svg?raw";
 import ABOUT from "../../assets/svg/about.svg?raw";
 import DISCORD_SVG from "../../assets/svg/discord.svg?raw";
 import ADVANCED_SVG from "../../assets/svg/advanced.svg?raw";
+import GRID_SVG from "../../assets/svg/grid.svg?raw";
 import { CONFIG_DEFAULT, ConfigKey } from "../../config.ts";
 import { CLUSTERS as CLUSTER_OPTIONS } from "../clusters/clusters.data.ts";
 
@@ -25,6 +26,13 @@ export const FEATURE_DEFS = [
     icon: USER,
     desc: "Improves readability and allows local profile/background image customization.",
     cols: 2,
+  },
+  {
+    id: "extras",
+    name: "Extras",
+    icon: GRID_SVG,
+    desc: "Enable or disable optional add-ons. More can be added later.",
+    cols: 3,
   },
   {
     id: "clusters",
@@ -96,9 +104,28 @@ export type SettingKind =
   | "discord-panel"
   | "calendar-panel"
   | "theme-preset"
-  | "campus-info";
+  | "campus-info"
+  | "feature-cards";
 
 export { INTRA_FONT } from "../logtime/constants.ts";
+
+export type FeatureCardOption = {
+  label?: string;
+  value?: string;
+  color?: string;
+  desc?: string;
+  divider?: boolean;
+  dependsOn?: ConfigKey;
+  requiresCloud?: boolean;
+  big?: boolean;
+  subToggle?: {
+    label: string;
+    value: string;
+    desc?: string;
+    requiresCloud?: boolean;
+    dependsOn?: ConfigKey;
+  };
+};
 
 export type HubSettingDef = {
   feature: FeatureId;
@@ -108,12 +135,7 @@ export type HubSettingDef = {
   kind: SettingKind;
   nullable?: boolean;
   defaultValue?: unknown;
-  options?: readonly {
-    label?: string;
-    value?: string;
-    color?: string;
-    divider?: boolean;
-  }[];
+  options?: readonly FeatureCardOption[];
   grid?: boolean;
   colSpan?: number;
   fullWidth?: boolean;
@@ -124,7 +146,7 @@ export type HubSettingDef = {
   step?: number;
   placeholder?: string;
   actionLabel?: string;
-  actionType?: "export" | "import" | "reset" | "backup";
+  actionType?: "export" | "import" | "reset" | "backup" | "reload-campus";
 };
 
 export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
@@ -464,49 +486,6 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
     },
     {
       feature: "profile",
-      label: "Thursday Roulette",
-      kind: "divider",
-    },
-    {
-      feature: "profile",
-      key: "PROFILE_SHOW_ROULETTE",
-      label: "Show Thursday Roulette card",
-      desc: "Adds a card with roulette wins, points, and next draw countdown.",
-      kind: "toggle",
-      defaultValue: CONFIG_DEFAULT.PROFILE_SHOW_ROULETTE,
-      grid: true,
-      colSpan: 1,
-      requiresCloud: true,
-    },
-    {
-      feature: "profile",
-      key: "PROFILE_SHOW_ROULETTE_HISTORY",
-      label: "Show roulette history",
-      desc: "Displays the full timeline of past roulette wins inside the card.",
-      kind: "toggle",
-      defaultValue: CONFIG_DEFAULT.PROFILE_SHOW_ROULETTE_HISTORY,
-      grid: true,
-      colSpan: 1,
-      dependsOn: "PROFILE_SHOW_ROULETTE",
-      requiresCloud: true,
-    },
-    {
-      feature: "profile",
-      label: "Pending Evaluations",
-      kind: "divider",
-    },
-    {
-      feature: "profile",
-      key: "PROFILE_SHOW_EVALUATIONS",
-      label: "Sort pending evaluations",
-      desc: "Organizes the pending evaluations card into Evaluator and Evaluated sections.",
-      kind: "toggle",
-      defaultValue: CONFIG_DEFAULT.PROFILE_SHOW_EVALUATIONS,
-      grid: true,
-      colSpan: 1,
-    },
-    {
-      feature: "profile",
       label: "Events",
       kind: "divider",
     },
@@ -518,32 +497,6 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
       kind: "radio-group",
       defaultValue: CONFIG_DEFAULT.PROFILE_EVENT_TYPE_FILTER,
       options: [],
-    },
-    {
-      feature: "profile",
-      label: "Friends",
-      kind: "divider",
-    },
-    {
-      feature: "profile",
-      key: "SHOW_FRIENDS_WIDGET",
-      label: "Show friends widget",
-      desc: "Hides the friends button and widget entirely from the profile page.",
-      kind: "toggle",
-      defaultValue: CONFIG_DEFAULT.SHOW_FRIENDS_WIDGET,
-      grid: true,
-      colSpan: 1,
-    },
-    {
-      feature: "profile",
-      key: "SHOW_CUSTOM_AVATARS_IN_FRIENDS",
-      label: "Show custom avatars in friends",
-      desc: "When available, displays friends' custom profile pictures instead of 42-generated avatars.",
-      kind: "toggle",
-      defaultValue: CONFIG_DEFAULT.SHOW_CUSTOM_AVATARS_IN_FRIENDS,
-      grid: true,
-      colSpan: 1,
-      dependsOn: "SHOW_FRIENDS_WIDGET",
     },
   ],
   shortcuts: [
@@ -588,6 +541,64 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
       desc: "Notifications and account connection.",
       kind: "discord-panel",
       fullWidth: true,
+    },
+  ],
+  extras: [
+    {
+      feature: "extras",
+      label: "",
+      kind: "feature-cards",
+      fullWidth: true,
+      options: [
+        {
+          label: "Subject tracker",
+          value: "SUBJECT_TRACKER_ENABLED",
+          color: "warning",
+          big: true,
+          desc: "Shows a badge on project pages when a subject has been updated, using update data shared by the community.",
+          subToggle: {
+            label: "Share with the community",
+            value: "SUBJECT_TRACKER_SEND_DATA",
+            requiresCloud: true,
+            desc: "Send subject links so everyone sees when subjects are updated - and you benefit from updates others have spotted.",
+          },
+        },
+        {
+          label: "Friends widget",
+          value: "SHOW_FRIENDS_WIDGET",
+          color: "success",
+          big: true,
+          desc: "Adds the friends button and widget to your profile page.",
+          subToggle: {
+            label: "Show custom avatars in friends",
+            value: "SHOW_CUSTOM_AVATARS_IN_FRIENDS",
+            desc: "When available, displays friends custom profile pictures instead of 42 avatars.",
+            dependsOn: "SHOW_FRIENDS_WIDGET",
+          },
+        },
+        {
+          label: "Pending evaluations",
+          value: "PROFILE_SHOW_EVALUATIONS",
+          color: "primary",
+          big: true,
+          desc: "Organizes the pending evaluations card into Evaluator and Evaluated sections.",
+        },
+        {
+          label: "Thursday Roulette",
+          value: "PROFILE_SHOW_ROULETTE",
+          color: "info",
+          big: true,
+          desc: "Adds a card with roulette wins, points, and next draw countdown.",
+          requiresCloud: true,
+          subToggle: {
+            label: "Show roulette history",
+            value: "PROFILE_SHOW_ROULETTE_HISTORY",
+            desc: "Displays the full timeline of past roulette wins inside the card.",
+            dependsOn: "PROFILE_SHOW_ROULETTE",
+            requiresCloud: true,
+          },
+        },
+      ],
     },
   ],
   calendar: [
@@ -644,6 +655,16 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
       kind: "action",
       actionType: "backup",
       actionLabel: "Backup",
+      grid: true,
+      colSpan: 1,
+    },
+    {
+      feature: "advanced",
+      label: "Reload campus config",
+      desc: "Clears the cached campus/cluster configuration and re-fetches it.",
+      kind: "action",
+      actionType: "reload-campus",
+      actionLabel: "Reload",
       grid: true,
       colSpan: 1,
     },

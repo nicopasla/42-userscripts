@@ -116,6 +116,20 @@ export function renderTemplate(state: DialogState): TemplateResult {
       #map-area svg tspan {
         fill: var(--color-base-content) !important;
       }
+      .ft-exit-sign {
+        pointer-events: none;
+        user-select: none;
+      }
+      .ft-exit-sign path {
+        fill: var(--color-base-content);
+      }
+      #map-area .ft-exit-sign text {
+        fill: var(--color-base-content) !important;
+        font-weight: 700;
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        letter-spacing: 0.08em;
+        dominant-baseline: middle;
+      }
       .spinning {
         animation: btn-spin 0.8s linear infinite;
       }
