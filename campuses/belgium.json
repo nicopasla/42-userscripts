@@ -24,6 +24,22 @@
       ]
     }
   ],
+  "exits": {
+    "shi": [
+      { "x": "22%", "y": "6%", "dir": "left", "label": "CHILLZONE" },
+      { "x": "22%", "y": "60%", "dir": "left", "label": "CHILLZONE" }
+    ],
+    "fu": [
+      { "x": "80%", "y": "15%", "dir": "right", "label": "CHILLZONE" },
+      { "x": "80%", "y": "56%", "dir": "right", "label": "CHILLZONE" },
+      { "x": "90%", "y": "10%", "dir": "up", "label": "MI" }
+    ],
+    "mi": [
+      { "x": "80%", "y": "8%", "dir": "up", "label": "CHILLZONE" },
+      { "x": "74%", "y": "39%", "dir": "right", "label": "EXIT" },
+      { "x": "69%", "y": "70%", "dir": "down", "label": "CHILLZONE" }
+    ]
+  },
   "definitions": {
     "shi": {
       "rows": [

@@ -8,12 +8,14 @@ import {
   showFloatingTooltip,
 } from "../../utils/tooltip.ts";
 import { getIsLight } from "./theme/theme-manager.ts";
+import { createSkeleton, createSkeletonLines } from "../../utils/skeleton.ts";
 
 const WORKER_URL = "https://api.betterintra.com";
 const CARD_ID = "ft-roulette-card";
 
 let rouletteStatsInitialized = false;
 let rouletteStatsPolling = false;
+let countdownInterval: number | null = null;
 
 interface RouletteEntry {
   historic_id: number;
@@ -134,6 +136,7 @@ async function fetchProfileStats(targetLogin: string): Promise<{
 function buildRouletteSection(
   entries: RouletteEntry[],
   showHistory: boolean,
+  loading: boolean,
 ): HTMLElement {
   const section = document.createElement("div");
 
@@ -156,7 +159,11 @@ function buildRouletteSection(
   const winValue = document.createElement("span");
   winValue.style.cssText =
     "font-size: 26px; font-weight: 700; margin-left: 6px;";
-  winValue.textContent = String(wins);
+  if (loading) {
+    winValue.appendChild(createSkeleton({ width: "28px", height: "20px" }));
+  } else {
+    winValue.textContent = String(wins);
+  }
   winCol.appendChild(winValue);
   counters.appendChild(winCol);
 
@@ -171,7 +178,11 @@ function buildRouletteSection(
   const ptsValue = document.createElement("span");
   ptsValue.style.cssText =
     "font-size: 26px; font-weight: 700; margin-left: 6px;";
-  ptsValue.textContent = String(points);
+  if (loading) {
+    ptsValue.appendChild(createSkeleton({ width: "36px", height: "20px" }));
+  } else {
+    ptsValue.textContent = String(points);
+  }
   ptsCol.appendChild(ptsValue);
   counters.appendChild(ptsCol);
 
@@ -196,7 +207,23 @@ function buildRouletteSection(
 
   section.appendChild(counters);
 
-  if (showHistory && entries.length > 0) {
+  if (showHistory && loading) {
+    const divider = document.createElement("div");
+    divider.style.cssText =
+      "border-top: 1px solid hsl(var(--border)); margin: 8px 0;";
+    section.appendChild(divider);
+
+    const list = document.createElement("div");
+    list.style.cssText = "display: flex; flex-wrap: wrap; gap: 6px;";
+    for (const width of ["120px", "104px", "112px"]) {
+      list.appendChild(
+        createSkeleton({ width, height: "30px", radius: "999px" }),
+      );
+    }
+    section.appendChild(list);
+  }
+
+  if (showHistory && !loading && entries.length > 0) {
     const divider = document.createElement("div");
     divider.style.cssText =
       "border-top: 1px solid hsl(var(--border)); margin: 8px 0;";
@@ -402,37 +429,97 @@ function buildEvalStatsSection(data: EvalStatsData): HTMLElement {
   return section;
 }
 
-function buildCombinedCard(
-  rouletteEntries: RouletteEntry[],
-  evalStats: EvalStatsData | null,
-  showRouletteHistory: boolean,
-) {
+function buildEvalStatsSkeleton(): HTMLElement {
+  const section = document.createElement("div");
+
+  const titleRow = document.createElement("div");
+  titleRow.style.cssText =
+    "display: flex; align-items: center; gap: 8px; margin-bottom: 8px;";
+
+  const title = document.createElement("span");
+  title.className = "font-bold uppercase text-sm";
+  title.textContent = "Evaluations as Corrector";
+  titleRow.appendChild(title);
+
+  const badgesWrap = document.createElement("div");
+  badgesWrap.style.cssText =
+    "display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;";
+  for (const width of ["74px", "96px", "104px"]) {
+    badgesWrap.appendChild(
+      createSkeleton({ width, height: "42px", radius: "10px" }),
+    );
+  }
+  titleRow.appendChild(badgesWrap);
+  section.appendChild(titleRow);
+
+  section.appendChild(
+    createSkeletonLines(4, { width: "100%", height: "18px" }),
+  );
+
+  return section;
+}
+
+function ensureCard(force: boolean): HTMLElement | null {
   const existing = document.getElementById(CARD_ID);
-  if (existing) existing.remove();
+  if (existing) return existing;
+
+  const grid =
+    document.querySelector(".dash-main") ||
+    document.querySelector(".bg-white.md\\:h-96")?.parentElement;
+  if (!grid) return null;
+
+  // Waiting for intra to have rendered at least one of its own cards keeps our
+  // card from sitting alone on an otherwise empty dashboard for a few frames.
+  if (!force && grid.querySelector(".bg-white.md\\:h-96") === null) return null;
 
   const card = document.createElement("div");
   card.id = CARD_ID;
   card.className = "bg-white md:h-96 md:drop-shadow-md md:rounded-lg";
   card.style.cssText =
     "overflow: hidden; display: flex; flex-direction: column; height: 384px;";
+  grid.appendChild(card);
+  return card;
+}
+
+/**
+ * Fills the card in place. Called once with `loading` while the worker request
+ * is in flight, so the card holds its slot in the grid from the first frame,
+ * then again with the data once it lands.
+ */
+function renderCard(
+  card: HTMLElement,
+  rouletteEntries: RouletteEntry[],
+  evalStats: EvalStatsData | null,
+  showRouletteHistory: boolean,
+  loading: boolean,
+) {
+  if (countdownInterval !== null) {
+    clearInterval(countdownInterval);
+    countdownInterval = null;
+  }
+  card.textContent = "";
 
   const topSection = document.createElement("div");
   topSection.style.cssText =
     "flex: 1; min-height: 0; overflow-y: scroll; padding: 24px 24px 12px 24px;";
 
+  // The layout manager reads the card title from the first element carrying an
+  // "uppercase" class, so the title has to be one — otherwise the card cannot
+  // be matched against the user's dashboard card order.
   const rouletteTitle = document.createElement("div");
+  rouletteTitle.className = "font-bold uppercase text-sm";
   rouletteTitle.style.cssText =
     "font-weight: 700; text-transform: uppercase; font-size: 14px; margin-bottom: 8px;";
   rouletteTitle.textContent = "Thursday Roulette";
   topSection.appendChild(rouletteTitle);
 
   topSection.appendChild(
-    buildRouletteSection(rouletteEntries, showRouletteHistory),
+    buildRouletteSection(rouletteEntries, showRouletteHistory, loading),
   );
 
   card.appendChild(topSection);
 
-  if (evalStats) {
+  if (loading || evalStats) {
     const divider = document.createElement("div");
     divider.style.cssText =
       "border-top: 1px solid hsl(var(--primary) / 0.2); flex-shrink: 0; margin: 0 24px;";
@@ -441,25 +528,24 @@ function buildCombinedCard(
     const bottomSection = document.createElement("div");
     bottomSection.style.cssText =
       "flex: 1; min-height: 0; overflow-y: scroll; padding: 12px 24px 24px 24px;";
-    bottomSection.appendChild(buildEvalStatsSection(evalStats));
+    bottomSection.appendChild(
+      evalStats ? buildEvalStatsSection(evalStats) : buildEvalStatsSkeleton(),
+    );
     card.appendChild(bottomSection);
   }
 
-  const grid =
-    document.querySelector(".dash-main") ||
-    document.querySelector(".bg-white.md\\:h-96")?.parentElement;
-  if (grid) grid.appendChild(card);
-
-  const countdownInterval = setInterval(() => {
+  countdownInterval = window.setInterval(() => {
     const host = document.getElementById("ft-roulette-countdown");
     if (!host?.shadowRoot) {
-      clearInterval(countdownInterval);
+      if (countdownInterval !== null) clearInterval(countdownInterval);
+      countdownInterval = null;
       return;
     }
     const segs =
       host.shadowRoot.querySelectorAll<HTMLSpanElement>(".countdown > span");
     if (segs.length === 0) {
-      clearInterval(countdownInterval);
+      if (countdownInterval !== null) clearInterval(countdownInterval);
+      countdownInterval = null;
       return;
     }
     const parts = getCountdownParts();
@@ -490,23 +576,37 @@ export async function initRouletteStats() {
 
   rouletteStatsPolling = true;
 
+  // Fire the worker request right away: it must not wait for the intra grid to
+  // be in the DOM, otherwise the card can only be filled after both are done.
+  const statsPromise = fetchProfileStats(targetLogin).catch(() => ({
+    roulette: [] as RouletteEntry[],
+    evalStats: null as EvalStatsData | null,
+  }));
+
   let attempts = 0;
   const poll = () => {
-    if (++attempts > 30) return;
+    // Past the grace period the card is mounted regardless, so it is never
+    // dropped on a dashboard where every other card is hidden.
+    const lastAttempt = ++attempts > 30;
 
-    const grid =
-      document.querySelector(".dash-main") ||
-      document.querySelector(".bg-white.md\\:h-96")?.parentElement;
-
-    if (!grid) {
+    const card = ensureCard(lastAttempt);
+    if (!card) {
+      if (lastAttempt) {
+        rouletteStatsPolling = false;
+        return;
+      }
       requestAnimationFrame(poll);
       return;
     }
 
-    fetchProfileStats(targetLogin).then(({ roulette, evalStats }) => {
+    // The card takes its slot in the grid immediately, with placeholders where
+    // the worker values go, so nothing pops in once the request resolves.
+    renderCard(card, [], null, showHistory, true);
+
+    statsPromise.then(({ roulette, evalStats }) => {
       rouletteStatsInitialized = true;
       rouletteStatsPolling = false;
-      buildCombinedCard(roulette, evalStats, showHistory);
+      renderCard(card, roulette, evalStats, showHistory, false);
     });
   };
   requestAnimationFrame(poll);

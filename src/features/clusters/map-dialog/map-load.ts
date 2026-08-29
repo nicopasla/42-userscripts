@@ -1,12 +1,13 @@
 import type { ClusterInfo, DialogState } from "./context";
 import { WORKER_URL, SEAT_TARGET_PX, keyOf, clusterLabel } from "./context";
-import { getClusterData } from "../clusters.data.ts";
+import { getClusterData, getCampusExits } from "../clusters.data.ts";
 import {
   getCachedCluster,
   setCachedCluster,
   scrapeCampusSVGUrls,
 } from "./cache";
 import { sanitizeAndParseSeats, getSvgTitle, applyMarkers } from "./seats";
+import { applyExitSigns } from "./exit-markers";
 import { renderActiveList } from "./render";
 import { loadOccupancy, reapplyOccupancy } from "./occupancy";
 import { updateActiveSortControls } from "./active-sort";
@@ -202,6 +203,7 @@ export async function loadCluster(
     mapArea.scrollTop = 0;
     mapArea.scrollLeft = 0;
     applyMarkers(mapArea, state.showMarkers);
+    applyExitSigns(state);
 
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
@@ -262,6 +264,7 @@ export async function loadCampus(
   state.activeCampusId = campusId;
   state.zoomLevel = 1.0;
   state.loadId++;
+  state.campusExits = (await getCampusExits(campusId)) ?? null;
   state.clusters = await buildClusters(campusId);
   if (!state.clusters.some((c) => c.svg)) {
     const mapArea = shadow.getElementById("map-area");

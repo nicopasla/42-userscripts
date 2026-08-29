@@ -106,6 +106,19 @@ export interface BetterIntraConfig {
   CALENDAR_SYNC_TOKEN: string;
   CALENDAR_EVENTS_HASH: string;
   ADVANCED_OPEN_LINKS_NEW_TAB: boolean;
+
+  // Subject Tracker
+  SUBJECT_TRACKER_ENABLED: boolean;
+  SUBJECT_TRACKER_SEND_DATA: boolean;
+  SUBJECT_TRACKER_STATE: Record<
+    string,
+    {
+      lastUrl?: string;
+      versionDate?: number;
+      changedAt?: number;
+      checkedAt?: number;
+    }
+  >;
 }
 
 /**
@@ -199,6 +212,10 @@ export const CONFIG_DEFAULT: BetterIntraConfig = {
   CALENDAR_SYNC_TOKEN: "",
   CALENDAR_EVENTS_HASH: "",
   ADVANCED_OPEN_LINKS_NEW_TAB: true,
+
+  SUBJECT_TRACKER_STATE: {},
+  SUBJECT_TRACKER_ENABLED: true,
+  SUBJECT_TRACKER_SEND_DATA: true,
 };
 
 /**

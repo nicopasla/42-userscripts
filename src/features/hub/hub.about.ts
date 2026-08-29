@@ -44,6 +44,7 @@ const followerCount = fetch("https://api.github.com/users/nicopasla")
 
 type Stats = {
   total: number;
+  newToday: number;
   newLast30Days: number;
   newLast14Days: number;
   newLast7Days: number;
@@ -175,9 +176,14 @@ export function renderAboutPanel(): ReturnType<typeof html> {
                         <div class="flex items-start justify-end gap-6">
                           ${[
                             {
-                              label: "in 30 days",
-                              value: s.newLast30Days,
-                              color: "#38bdf8",
+                              label: "today",
+                              value: s.newToday ?? 0,
+                              color: "#a78bfa",
+                            },
+                            {
+                              label: "in 7 days",
+                              value: s.newLast7Days,
+                              color: "#fb923c",
                             },
                             {
                               label: "in 14 days",
@@ -185,9 +191,9 @@ export function renderAboutPanel(): ReturnType<typeof html> {
                               color: "#4ade80",
                             },
                             {
-                              label: "in 7 days",
-                              value: s.newLast7Days,
-                              color: "#fb923c",
+                              label: "in 30 days",
+                              value: s.newLast30Days,
+                              color: "#38bdf8",
                             },
                           ].map(
                             (w) => html`
