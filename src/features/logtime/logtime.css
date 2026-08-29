@@ -86,19 +86,17 @@
 }
 
 .badge-rainbow {
-  background: linear-gradient(
-    90deg,
-    #ff0000,
-    #ff7f00,
-    #ffeb3b,
-    #4caf50,
-    #00bcd4,
-    #2196f3,
-    #3f51b5,
-    #9c27b0,
-    #e91e63,
-    #ff0000
-  );
+  background: linear-gradient(90deg,
+      #ff0000,
+      #ff7f00,
+      #ffeb3b,
+      #4caf50,
+      #00bcd4,
+      #2196f3,
+      #3f51b5,
+      #9c27b0,
+      #e91e63,
+      #ff0000);
   background-size: 200% 100% !important;
   animation: rainbow-shift 5s linear infinite !important;
   border: none !important;
@@ -154,8 +152,7 @@
 
 .heatmap-cell {
   border-radius: 3px;
-  border: 1px solid
-    color-mix(in srgb, var(--color-base-content) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-base-content) 15%, transparent);
 }
 
 .compact-month .day-cell {
@@ -207,3 +204,42 @@
   opacity: 1 !important;
 }
 
+.lt-view-switcher {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.lt-header {
+  flex-wrap: nowrap;
+}
+
+.lt-header .lt-title,
+.lt-header .badge,
+.lt-header .lt-view-switcher {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.lt-view-switcher .lt-view-join {
+  display: flex;
+}
+
+.lt-view-dropdown {
+  display: none;
+}
+
+.lt-view-switcher.collapsed .lt-view-join {
+  position: absolute;
+  left: -9999px;
+  visibility: hidden;
+  display: flex;
+}
+
+.lt-view-switcher.collapsed .lt-view-dropdown {
+  display: inline-flex;
+}
+
+.lt-view-dropdown summary {
+  cursor: pointer;
+}

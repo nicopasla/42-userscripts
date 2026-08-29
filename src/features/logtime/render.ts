@@ -18,6 +18,20 @@ import VIEW_HEATMAP_SVG from "../../assets/svg/view-heatmap.svg?raw";
 import VIEW_CAROUSEL_SVG from "../../assets/svg/view-carousel.svg?raw";
 import CHEVRON_LEFT_SVG from "../../assets/svg/chevron-left.svg?raw";
 import CHEVRON_RIGHT_SVG from "../../assets/svg/chevron-right.svg?raw";
+import CHEVRON_DOWN_SVG from "../../assets/svg/chevron-down.svg?raw";
+
+export type CalendarViewId = "normal" | "compact" | "heatmap" | "carousel";
+
+export const CALENDAR_VIEWS: {
+  id: CalendarViewId;
+  label: string;
+  icon: string;
+}[] = [
+  { id: "normal", label: "Normal", icon: VIEW_NORMAL_SVG },
+  { id: "compact", label: "Compact", icon: VIEW_COMPACT_SVG },
+  { id: "heatmap", label: "Heatmap", icon: VIEW_HEATMAP_SVG },
+  { id: "carousel", label: "Carousel", icon: VIEW_CAROUSEL_SVG },
+];
 
 function buildDayTooltipHtml(
   secs: number,
@@ -346,6 +360,7 @@ export function renderHeaderContent(
   onViewChange: (value: string) => void,
   primaryColor: string,
   primaryContent: string,
+  collapsed = false,
 ) {
   let totalCappedEarnings = 0;
 
@@ -360,50 +375,94 @@ export function renderHeaderContent(
 
   const totalTacos = Math.floor(totalCappedEarnings / config.divisor);
 
-  const views: {
-    id: "normal" | "compact" | "heatmap" | "carousel";
-    label: string;
-    icon: string;
-  }[] = [
-    { id: "normal", label: "Normal", icon: VIEW_NORMAL_SVG },
-    { id: "compact", label: "Compact", icon: VIEW_COMPACT_SVG },
-    { id: "heatmap", label: "Heatmap", icon: VIEW_HEATMAP_SVG },
-    { id: "carousel", label: "Carousel", icon: VIEW_CAROUSEL_SVG },
-  ];
+  const views = CALENDAR_VIEWS;
+
+  const activeView = views.find((v) => v.id === calendarView) ?? views[0];
 
   return html`<div class="flex items-center justify-between pb-3">
     <div
-      class="font-bold uppercase text-sm tracking-tight flex items-center w-full"
+      class="lt-header font-bold uppercase text-sm tracking-tight flex items-center w-full"
     >
-      Logtime
+      <span class="lt-title">Logtime</span>
       ${config.show_tacos
         ? html`<span
-            class="badge badge-dash badge-success badge-lg font-bold ml-2"
+            class="badge badge-dash badge-success badge-lg font-bold ml-2 lt-tacos-badge"
             >${totalTacos} ${config.emoji}</span
           >`
         : ""}
-      <div class="join ml-2">
-        ${views.map(
-          (v) =>
-            html`<button
-              type="button"
-              class="btn btn-sm join-item"
-              style="height:1.5rem;min-width:2.25rem;padding-left:0.75rem;padding-right:0.75rem;${calendarView ===
-              v.id
-                ? `background-color:${primaryColor};border-color:${primaryColor};color:${primaryContent};`
-                : "background-color:transparent;border-color:color-mix(in oklab, var(--color-base-content) 20%, transparent);color:var(--color-base-content);"}"
-              data-tip="${v.label}"
-              @click="${() => onViewChange(v.id)}"
+      <div class="lt-view-switcher ml-2 ${collapsed ? "collapsed" : ""}">
+        <div class="join lt-view-join">
+          ${views.map(
+            (v) =>
+              html`<button
+                type="button"
+                class="btn btn-sm join-item"
+                style="height:1.5rem;min-width:2.25rem;padding-left:0.75rem;padding-right:0.75rem;${calendarView ===
+                v.id
+                  ? `background-color:${primaryColor};border-color:${primaryColor};color:${primaryContent};`
+                  : "background-color:transparent;border-color:color-mix(in oklab, var(--color-base-content) 20%, transparent);color:var(--color-base-content);"}"
+                data-tip="${v.label}"
+                @click="${() => onViewChange(v.id)}"
+              >
+                ${unsafeHTML(
+                  v.icon.replace("<svg", '<svg width="16" height="16"'),
+                )}
+              </button>`,
+          )}
+        </div>
+        <details class="dropdown dropdown-end lt-view-dropdown">
+          <summary
+            class="btn btn-sm list-none"
+            style="height:1.5rem;min-width:2.25rem;padding-left:0.75rem;padding-right:0.75rem;background-color:${primaryColor};border-color:${primaryColor};color:${primaryContent};"
+            data-tip="${activeView.label}"
+          >
+            ${unsafeHTML(
+              activeView.icon.replace("<svg", '<svg width="16" height="16"'),
+            )}
+            <span
+              class="lt-view-dropdown-chevron size-3 flex-shrink-0 flex items-center justify-center"
+              >${unsafeHTML(
+                CHEVRON_DOWN_SVG.replace("<svg", '<svg width="12" height="12"'),
+              )}</span
             >
-              ${unsafeHTML(
-                v.icon.replace("<svg", '<svg width="16" height="16"'),
-              )}
-            </button>`,
-        )}
+          </summary>
+          <ul
+            class="menu menu-sm dropdown-content z-20 mt-2 rounded-box bg-base-100 p-1 shadow-xl"
+            style="width:max-content;min-width:11rem;"
+          >
+            ${views.map(
+              (v) =>
+                html`<li>
+                  <button
+                    type="button"
+                    class="whitespace-nowrap ${calendarView === v.id
+                      ? "menu-active"
+                      : ""}"
+                    style="${calendarView === v.id
+                      ? `background-color:${primaryColor};border-color:${primaryColor};color:${primaryContent};`
+                      : ""}"
+                    @click="${(e: Event) => {
+                      onViewChange(v.id);
+                      (e.currentTarget as HTMLElement)
+                        .closest("details")
+                        ?.removeAttribute("open");
+                    }}"
+                  >
+                    <span class="flex items-center justify-center"
+                      >${unsafeHTML(
+                        v.icon.replace("<svg", '<svg width="16" height="16"'),
+                      )}</span
+                    >
+                    <span>${v.label}</span>
+                  </button>
+                </li>`,
+            )}
+          </ul>
+        </details>
       </div>
       ${lastSeenValue !== "N/A"
         ? html`<span
-            class="ml-auto badge badge-success font-bold tracking-tight"
+            class="ml-auto badge badge-success font-bold tracking-tight lt-active-badge"
             >Active ${lastSeenValue}</span
           >`
         : ""}

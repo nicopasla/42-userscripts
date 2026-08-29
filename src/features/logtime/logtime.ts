@@ -17,7 +17,11 @@ import {
 import { renderCompactMonthGroup, MonthEntry, chunkMonths } from "./compact.ts";
 import { renderHeatmapCard } from "./heatmap.ts";
 import { getLastSeenFormatted, limit } from "./utils.ts";
-import { getEffectiveTheme, getIsLight, THEMES } from "../profile/theme/theme-manager.ts";
+import {
+  getEffectiveTheme,
+  getIsLight,
+  THEMES,
+} from "../profile/theme/theme-manager.ts";
 import { bindTooltips } from "../../utils/tooltip.ts";
 import { syncCalendarIcs } from "../calendar/calendar-sync.ts";
 
@@ -45,6 +49,8 @@ let loadMoreLoading = false;
 let restoreScrollLeft = -1;
 let skipScroll = false;
 let carouselYm: string | null = null;
+let viewOverflow = false;
+let headerResizeObserver: ResizeObserver | null = null;
 
 function extractLoginFromPath(): string | null {
   const m = location.pathname.match(/^\/users\/([^/]+)/);
@@ -180,6 +186,44 @@ async function fetchEvents(): Promise<Record<string, CalendarEvent[]>> {
   }
 }
 
+const HEADER_OVERFLOW_TOLERANCE = 2;
+
+export function measureHeaderOverflow(root: ShadowRoot): boolean {
+  const header = root.querySelector<HTMLElement>(".lt-header");
+  if (!header || header.clientWidth === 0) return false;
+
+  const widthOf = (el: Element | null | undefined): number =>
+    el?.getBoundingClientRect().width ?? 0;
+
+  const titleWidth = widthOf(header.querySelector(".lt-title"));
+  const tacosWidth = widthOf(header.querySelector(".lt-tacos-badge"));
+  const joinWidth = widthOf(header.querySelector(".lt-view-join"));
+  const activeWidth = widthOf(header.querySelector(".lt-active-badge"));
+  const gaps = 24;
+  const needed = titleWidth + tacosWidth + joinWidth + activeWidth + gaps;
+  return needed - header.clientWidth > HEADER_OVERFLOW_TOLERANCE;
+}
+
+function wireHeaderOverflow(shadowHost: HTMLElement) {
+  if (headerResizeObserver) {
+    headerResizeObserver.disconnect();
+    headerResizeObserver = null;
+  }
+  const root = shadowHost.shadowRoot;
+  const header = root?.querySelector<HTMLElement>(".lt-header");
+  if (!root || !header) return;
+
+  headerResizeObserver = new ResizeObserver(() => {
+    requestAnimationFrame(() => {
+      const overflowing = measureHeaderOverflow(root);
+      if (overflowing === viewOverflow) return;
+      viewOverflow = overflowing;
+      if (lastStats) renderLogtime(lastStats);
+    });
+  });
+  headerResizeObserver.observe(header);
+}
+
 function makeLoadOlderHandler(
   login: string,
   before: string | undefined,
@@ -293,7 +337,8 @@ function renderLogtime(
           prevLabel: index > 0 ? "Previous month" : "Load older months",
           nextLabel: "Next month",
           loading: loadMoreLoading && index === 0,
-          onPrev: () => (index > 0 ? goTo(monthKeys[index - 1]) : loadOlder?.()),
+          onPrev: () =>
+            index > 0 ? goTo(monthKeys[index - 1]) : loadOlder?.(),
           onNext: () => goTo(monthKeys[index + 1]),
         },
       ),
@@ -414,6 +459,7 @@ function renderLogtime(
     handleViewChange,
     primaryColor,
     primaryContent,
+    viewOverflow,
   );
 
   let shadowHost = document.getElementById("logtime-shadow-wrapper");
@@ -431,6 +477,7 @@ function renderLogtime(
     renderContainer(header, monthCards, currentTheme, CONFIG),
     shadowHost.shadowRoot!,
   );
+  wireHeaderOverflow(shadowHost);
 
   const scrollWrapper = shadowHost.shadowRoot!.querySelector(
     ".log-slider-fixed",
