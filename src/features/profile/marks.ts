@@ -9,6 +9,7 @@ import { getEffectiveTheme } from "./theme/theme-manager.ts";
 import CHECK_SVG from "../../assets/svg/check.svg?raw";
 import X_SVG from "../../assets/svg/x.svg?raw";
 import CHEVRON_DOWN_SVG from "../../assets/svg/chevron-down.svg?raw";
+import { createSkeleton } from "../../utils/skeleton.ts";
 
 const WORKER_URL = "https://api.betterintra.com";
 
@@ -35,6 +36,7 @@ interface MarkedProject {
 }
 
 const INJECTED_ID = "ft-marks-injected";
+const SKELETON_ID = "ft-marks-skeleton";
 
 const dateObservers = new WeakMap<HTMLElement, MutationObserver>();
 const sidebarObservers: MutationObserver[] = [];
@@ -355,7 +357,56 @@ async function waitForCard(
   return null;
 }
 
+function removeMarksSkeleton() {
+  document.getElementById(SKELETON_ID)?.remove();
+}
+
+/**
+ * Holds the space of the finished-projects list inside the PROJECTS card while
+ * the intra API request is in flight, so the rows do not pop in afterwards.
+ */
+function showMarksSkeleton(card: HTMLElement) {
+  if (document.getElementById(SKELETON_ID)) return;
+  if (document.getElementById(INJECTED_ID)) return;
+
+  const inner = card.querySelector<HTMLElement>(".flex.flex-col.w-full.h-full");
+  if (!inner) return;
+
+  const hFull = inner.querySelector<HTMLElement>(".h-full");
+  const hasBadges = hFull?.querySelector("ul")?.style.display === "none";
+
+  const container = document.createElement("div");
+  container.id = SKELETON_ID;
+  container.style.cssText = `${hasBadges ? "border-top: 1px solid hsl(var(--primary) / 0.2); " : ""}padding: 0.5rem 8px 0.5rem 0; font-family: ${INTRA_FONT};`;
+
+  const widths = ["58%", "44%", "66%", "38%", "52%", "48%"];
+  for (const width of widths) {
+    const row = document.createElement("div");
+    row.className = "flex flex-row justify-between items-center py-1 px-2";
+    row.appendChild(createSkeleton({ width, height: "12px" }));
+
+    const right = document.createElement("div");
+    right.className = "flex flex-row items-center gap-2";
+    right.appendChild(
+      createSkeleton({ width: DATE_COLUMN_WIDTH, height: "12px" }),
+    );
+    right.appendChild(
+      createSkeleton({ width: SCORE_COLUMN_WIDTH, height: "12px" }),
+    );
+    row.appendChild(right);
+
+    container.appendChild(row);
+  }
+
+  if (hFull) {
+    inner.insertBefore(container, hFull.nextSibling);
+  } else {
+    inner.appendChild(container);
+  }
+}
+
 function injectFinishedProjects(card: HTMLElement, marks: MarkedProject[]) {
+  removeMarksSkeleton();
   document.getElementById(INJECTED_ID)?.remove();
 
   if (marks.length === 0) return;
@@ -521,12 +572,16 @@ async function handleCursusSwitch(cursusId: string) {
   const token = cachedToken;
   if (!login || !token) return;
 
+  const cardPromise = waitForCard("PROJECTS");
   if (!marksCache[cursusId]) {
+    void cardPromise.then((card) => card && showMarksSkeleton(card));
     marksCache[cursusId] = await fetchMarks(login, token, cursusId);
   }
-  const card = await waitForCard("PROJECTS");
+  const card = await cardPromise;
   if (card) {
     injectFinishedProjects(card, marksCache[cursusId]);
+  } else {
+    removeMarksSkeleton();
   }
 }
 
@@ -931,8 +986,14 @@ export async function initMarks() {
       return;
     }
 
+    // The card is claimed before the requests start: as soon as intra has
+    // rendered it, the placeholder rows take the space the marks will occupy.
+    const cardPromise = waitForCard("PROJECTS");
+    void cardPromise.then((card) => card && showMarksSkeleton(card));
+
     const token = await waitForToken(15000);
     if (!token) {
+      removeMarksSkeleton();
       ownProfileLoading = false;
       return;
     }
@@ -951,9 +1012,11 @@ export async function initMarks() {
       marksCache[cursusId] = await fetchMarks(profileLogin, token, cursusId);
     }
 
-    const card = await waitForCard("PROJECTS");
+    const card = await cardPromise;
     if (card) {
       injectFinishedProjects(card, marksCache[cursusId]);
+    } else {
+      removeMarksSkeleton();
     }
 
     marksInitialized = true;

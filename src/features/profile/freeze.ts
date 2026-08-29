@@ -117,6 +117,113 @@ window.addEventListener(
   { once: true },
 );
 
+const FREEZE_CACHE_KEY = "FREEZE_CACHE";
+
+async function readFreezeCache(login: string): Promise<string | null> {
+  try {
+    const stored = await chrome.storage.local.get(FREEZE_CACHE_KEY);
+    const raw = stored[FREEZE_CACHE_KEY];
+    const map = (typeof raw === "string" ? JSON.parse(raw) : raw) || {};
+    const until = map[login];
+    return typeof until === "string" && new Date(until).getTime() > Date.now()
+      ? until
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeFreezeCache(login: string, until: string | null) {
+  try {
+    const stored = await chrome.storage.local.get(FREEZE_CACHE_KEY);
+    const raw = stored[FREEZE_CACHE_KEY];
+    const map = (typeof raw === "string" ? JSON.parse(raw) : raw) || {};
+    if (until) {
+      map[login] = until;
+    } else {
+      delete map[login];
+    }
+    await chrome.storage.local.set({
+      [FREEZE_CACHE_KEY]: JSON.stringify(map),
+    });
+  } catch {
+    /* the card still works without the cache */
+  }
+}
+
+function removeFreezeCard() {
+  document.getElementById(INJECTED_ID)?.remove();
+  if (_intervalId !== null) {
+    clearInterval(_intervalId);
+    _intervalId = null;
+  }
+}
+
+function waitForProfileCard(): Promise<HTMLElement | null> {
+  return new Promise((resolve) => {
+    let attempts = 0;
+    const poll = () => {
+      const flexRow = document.querySelector<HTMLElement>(
+        ".flex.flex-col.lg\\:flex-row.gap-6.md\\:gap-8",
+      );
+      const profileCard = flexRow?.firstElementChild as HTMLElement | null;
+      if (profileCard) {
+        resolve(profileCard);
+        return;
+      }
+      if (++attempts > 60) {
+        resolve(null);
+        return;
+      }
+      requestAnimationFrame(poll);
+    };
+    requestAnimationFrame(poll);
+  });
+}
+
+function buildFreezeCard(profileCard: HTMLElement, freezeUntil: string) {
+  const color =
+    getComputedStyle(profileCard).getPropertyValue("--user-color").trim() ||
+    "#00babc";
+
+  const card = document.createElement("div");
+  card.id = INJECTED_ID;
+  card.dataset.freezeUntil = freezeUntil;
+  card.className =
+    "border border-ft-gray-border bg-ft-gray/50 rounded-xl flex flex-col items-center justify-center gap-2 w-full";
+  card.style.cssText = `min-height: 200px;`;
+
+  const iconWrap = document.createElement("div");
+  iconWrap.style.cssText = `width: 2.5rem; height: 2.5rem; color: #fff; animation: ft-freeze-spin 8s linear infinite;`;
+  if (!document.getElementById("ft-freeze-spin-style")) {
+    const style = document.createElement("style");
+    style.id = "ft-freeze-spin-style";
+    style.textContent = `@keyframes ft-freeze-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
+    document.head.appendChild(style);
+  }
+  render(unsafeHTML(FREEZE_SVG), iconWrap);
+
+  const title = document.createElement("div");
+  title.style.cssText = `font-size: 1.25rem; font-weight: 700; color: ${color};`;
+  title.textContent = "Freeze";
+
+  const until = document.createElement("div");
+  until.style.cssText = `font-size: 1rem; font-weight: 700; opacity: 0.7;`;
+  until.textContent = `Until ${formatDate(freezeUntil)}`;
+
+  const countdownContainer = document.createElement("div");
+  startCountdown(countdownContainer, freezeUntil, color);
+
+  card.appendChild(iconWrap);
+  card.appendChild(title);
+  card.appendChild(until);
+  card.appendChild(countdownContainer);
+
+  const infoHost = document.getElementById("profile-badges-shadow");
+  const target = infoHost ?? profileCard;
+  target.insertAdjacentElement("afterend", card);
+}
+
 export async function initFreezeCard() {
   if (_running) return;
   _running = true;
@@ -130,6 +237,18 @@ export async function initFreezeCard() {
 
     const targetLogin = pathParts[1];
 
+    // A freeze that was still running on the last visit is drawn right away,
+    // so the card does not push the page down once the intra API answers. The
+    // cached date is only trusted while it is in the future, and the response
+    // below either confirms it or drops the card.
+    const cached = await readFreezeCache(targetLogin);
+    if (cached && !document.getElementById(INJECTED_ID)) {
+      const profileCard = await waitForProfileCard();
+      if (profileCard && !document.getElementById(INJECTED_ID)) {
+        buildFreezeCard(profileCard, cached);
+      }
+    }
+
     const token = await waitForToken(20000);
     if (!token) return;
 
@@ -140,55 +259,21 @@ export async function initFreezeCard() {
       (c: any) =>
         c.freeze_until && new Date(c.freeze_until).getTime() > Date.now(),
     );
-    if (!frozen) return;
+    const freezeUntil: string | null = frozen?.freeze_until ?? null;
+    await writeFreezeCache(targetLogin, freezeUntil);
 
-    const flexRow = document.querySelector<HTMLElement>(
-      ".flex.flex-col.lg\\:flex-row.gap-6.md\\:gap-8",
-    );
-    if (!flexRow) return;
-
-    const profileCard = flexRow.firstElementChild;
-    if (!profileCard) return;
-
-    const color =
-      getComputedStyle(profileCard).getPropertyValue("--user-color").trim() ||
-      "#00babc";
-
-    const card = document.createElement("div");
-    card.id = INJECTED_ID;
-    card.className =
-      "border border-ft-gray-border bg-ft-gray/50 rounded-xl flex flex-col items-center justify-center gap-2 w-full";
-    card.style.cssText = `min-height: 200px;`;
-
-    const iconWrap = document.createElement("div");
-    iconWrap.style.cssText = `width: 2.5rem; height: 2.5rem; color: #fff; animation: ft-freeze-spin 8s linear infinite;`;
-    if (!document.getElementById("ft-freeze-spin-style")) {
-      const style = document.createElement("style");
-      style.id = "ft-freeze-spin-style";
-      style.textContent = `@keyframes ft-freeze-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`;
-      document.head.appendChild(style);
+    if (!freezeUntil) {
+      removeFreezeCard();
+      return;
     }
-    render(unsafeHTML(FREEZE_SVG), iconWrap);
 
-    const title = document.createElement("div");
-    title.style.cssText = `font-size: 1.25rem; font-weight: 700; color: ${color};`;
-    title.textContent = "Freeze";
+    const shown = document.getElementById(INJECTED_ID);
+    if (shown?.dataset.freezeUntil === freezeUntil) return;
 
-    const until = document.createElement("div");
-    until.style.cssText = `font-size: 1rem; font-weight: 700; opacity: 0.7;`;
-    until.textContent = `Until ${formatDate(frozen.freeze_until)}`;
-
-    const countdownContainer = document.createElement("div");
-    startCountdown(countdownContainer, frozen.freeze_until, color);
-
-    card.appendChild(iconWrap);
-    card.appendChild(title);
-    card.appendChild(until);
-    card.appendChild(countdownContainer);
-
-    const infoHost = document.getElementById("profile-badges-shadow");
-    const target = infoHost ?? profileCard;
-    target.insertAdjacentElement("afterend", card);
+    removeFreezeCard();
+    const profileCard = await waitForProfileCard();
+    if (!profileCard) return;
+    buildFreezeCard(profileCard, freezeUntil);
   } finally {
     if (!document.getElementById(INJECTED_ID)) _running = false;
   }
