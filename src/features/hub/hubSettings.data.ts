@@ -291,6 +291,7 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
         { label: "Normal", value: "normal" },
         { label: "Compact", value: "compact" },
         { label: "Heatmap", value: "heatmap" },
+        { label: "Carousel", value: "carousel" },
       ],
       grid: true,
       colSpan: 1,

@@ -15,6 +15,9 @@ import LOGTIME_CSS from "./logtime.css?inline";
 import VIEW_NORMAL_SVG from "../../assets/svg/view-normal.svg?raw";
 import VIEW_COMPACT_SVG from "../../assets/svg/view-compact.svg?raw";
 import VIEW_HEATMAP_SVG from "../../assets/svg/view-heatmap.svg?raw";
+import VIEW_CAROUSEL_SVG from "../../assets/svg/view-carousel.svg?raw";
+import CHEVRON_LEFT_SVG from "../../assets/svg/chevron-left.svg?raw";
+import CHEVRON_RIGHT_SVG from "../../assets/svg/chevron-right.svg?raw";
 
 function buildDayTooltipHtml(
   secs: number,
@@ -257,6 +260,49 @@ export function renderMonthCard(
   </div>`;
 }
 
+export function renderCarouselView(
+  monthCard: ReturnType<typeof html>,
+  opts: {
+    canPrev: boolean;
+    canNext: boolean;
+    prevLabel: string;
+    nextLabel: string;
+    loading: boolean;
+    onPrev: () => void;
+    onNext: () => void;
+  },
+) {
+  return html`<div class="lt-carousel">
+    <button
+      type="button"
+      class="lt-carousel-arrow"
+      aria-label="Previous month"
+      ?disabled=${!opts.canPrev}
+      data-tip="${opts.canPrev ? opts.prevLabel : ""}"
+      @click=${opts.canPrev ? opts.onPrev : undefined}
+    >
+      ${opts.loading
+        ? html`<span class="loading loading-spinner loading-xs"></span>`
+        : unsafeHTML(
+            CHEVRON_LEFT_SVG.replace("<svg", '<svg width="16" height="16"'),
+          )}
+    </button>
+    <div class="lt-carousel-stage">${monthCard}</div>
+    <button
+      type="button"
+      class="lt-carousel-arrow"
+      aria-label="Next month"
+      ?disabled=${!opts.canNext}
+      data-tip="${opts.canNext ? opts.nextLabel : ""}"
+      @click=${opts.canNext ? opts.onNext : undefined}
+    >
+      ${unsafeHTML(
+        CHEVRON_RIGHT_SVG.replace("<svg", '<svg width="16" height="16"'),
+      )}
+    </button>
+  </div>`;
+}
+
 export function renderLoadMoreCard(onClick: () => void, loading = false) {
   return html`<div
     class="month-card"
@@ -315,13 +361,14 @@ export function renderHeaderContent(
   const totalTacos = Math.floor(totalCappedEarnings / config.divisor);
 
   const views: {
-    id: "normal" | "compact" | "heatmap";
+    id: "normal" | "compact" | "heatmap" | "carousel";
     label: string;
     icon: string;
   }[] = [
     { id: "normal", label: "Normal", icon: VIEW_NORMAL_SVG },
     { id: "compact", label: "Compact", icon: VIEW_COMPACT_SVG },
     { id: "heatmap", label: "Heatmap", icon: VIEW_HEATMAP_SVG },
+    { id: "carousel", label: "Carousel", icon: VIEW_CAROUSEL_SVG },
   ];
 
   return html`<div class="flex items-center justify-between pb-3">
@@ -388,6 +435,10 @@ export function renderContainer(
         --labels-color: ${adjustedLabelsColor};
         --muted: color-mix(in srgb, var(--color-base-300) 70%, transparent);
         --muted-foreground: var(--color-base-content);
+        --card-surface: color-mix(in srgb, var(--color-base-content) 3%, transparent);
+        --card-surface-strong: color-mix(in srgb, var(--color-base-content) 6%, transparent);
+        --card-hairline: color-mix(in srgb, var(--color-base-content) 8%, transparent);
+        --card-hairline-strong: color-mix(in srgb, var(--color-base-content) 16%, transparent);
         display: block;
         width: 100%;
       }
@@ -398,7 +449,11 @@ export function renderContainer(
         class="md:h-96 overflow-y-hidden md:drop-shadow-md md:rounded-lg pt-4 px-6 pb-6 transition-all lt-box-container"
       >
         ${header}
-        <div class="log-slider-fixed">
+        <div
+          class="log-slider-fixed ${config.calendar_view === "carousel"
+            ? "is-carousel"
+            : ""}"
+        >
           <div class="grid-centering-container">${monthCards}</div>
         </div>
       </div>

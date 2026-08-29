@@ -12,6 +12,7 @@ import {
   renderMonthCard,
   renderLoadMoreCard,
   renderYearLabel,
+  renderCarouselView,
 } from "./render.ts";
 import { renderCompactMonthGroup, MonthEntry, chunkMonths } from "./compact.ts";
 import { renderHeatmapCard } from "./heatmap.ts";
@@ -43,6 +44,7 @@ let loadMoreBefore: string | undefined;
 let loadMoreLoading = false;
 let restoreScrollLeft = -1;
 let skipScroll = false;
+let carouselYm: string | null = null;
 
 function extractLoginFromPath(): string | null {
   const m = location.pathname.match(/^\/users\/([^/]+)/);
@@ -178,6 +180,59 @@ async function fetchEvents(): Promise<Record<string, CalendarEvent[]>> {
   }
 }
 
+function makeLoadOlderHandler(
+  login: string,
+  before: string | undefined,
+  stats: Record<string, string>,
+  eventsByDate?: EventsByDate,
+): () => Promise<void> {
+  return async () => {
+    loadMoreLoading = true;
+    const host = document.getElementById("logtime-shadow-wrapper");
+    const root = host?.shadowRoot;
+    const sw = root?.querySelector(".log-slider-fixed") as HTMLElement | null;
+    const hookMonth = before?.slice(0, 7);
+    let anchor = hookMonth
+      ? (root?.querySelector(
+          `[data-month="${hookMonth}"]`,
+        ) as HTMLElement | null)
+      : null;
+    if (anchor && !anchor.classList.contains("month-card")) {
+      anchor = anchor.closest(".month-card") as HTMLElement | null;
+    }
+    const anchorOffset = anchor ? anchor.offsetLeft : 0;
+    const savedScroll = sw ? sw.scrollLeft : 0;
+
+    restoreScrollLeft = savedScroll;
+    renderLogtime(stats, eventsByDate);
+
+    await fetchHistoricalLogtime(login, before);
+    loadMoreLogin = null;
+    loadMoreBefore = undefined;
+    loadMoreLoading = false;
+
+    const merged = mergeHistoryWithHook(stats, login);
+    skipScroll = true;
+    renderLogtime(merged, eventsByDate);
+
+    let newAnchor = root?.querySelector(
+      `[data-month="${hookMonth}"]`,
+    ) as HTMLElement | null;
+    if (newAnchor && !newAnchor.classList.contains("month-card")) {
+      newAnchor = newAnchor.closest(".month-card") as HTMLElement | null;
+    }
+    const shift = (newAnchor?.offsetLeft ?? anchorOffset) - anchorOffset;
+    const newSw = root?.querySelector(
+      ".log-slider-fixed",
+    ) as HTMLElement | null;
+    if (newSw) {
+      requestAnimationFrame(() => {
+        newSw.scrollLeft = Math.max(0, savedScroll + shift);
+      });
+    }
+  };
+}
+
 function renderLogtime(
   stats: Record<string, string>,
   eventsByDate?: Record<string, CalendarEvent[]>,
@@ -198,6 +253,11 @@ function renderLogtime(
     });
 
   const monthKeys = Object.keys(byMonth).sort();
+
+  const loadOlder = loadMoreLogin
+    ? makeLoadOlderHandler(loadMoreLogin, loadMoreBefore, stats, eventsByDate)
+    : null;
+
   const monthCards: ReturnType<
     | typeof renderMonthCard
     | typeof renderYearLabel
@@ -207,6 +267,37 @@ function renderLogtime(
 
   if (CONFIG.calendar_view === "heatmap") {
     monthCards.push(renderHeatmapCard(stats, CONFIG));
+  } else if (CONFIG.calendar_view === "carousel" && monthKeys.length > 0) {
+    if (!carouselYm || !monthKeys.includes(carouselYm)) {
+      carouselYm = monthKeys[monthKeys.length - 1];
+    }
+    const index = monthKeys.indexOf(carouselYm);
+    const goTo = (ym: string) => {
+      carouselYm = ym;
+      skipScroll = true;
+      renderLogtime(stats, eventsByDate);
+    };
+
+    monthCards.push(
+      renderCarouselView(
+        renderMonthCard(
+          carouselYm,
+          byMonth[carouselYm],
+          index === monthKeys.length - 1,
+          CONFIG,
+          eventsByDate,
+        ),
+        {
+          canPrev: index > 0 || (!!loadOlder && !loadMoreLoading),
+          canNext: index < monthKeys.length - 1,
+          prevLabel: index > 0 ? "Previous month" : "Load older months",
+          nextLabel: "Next month",
+          loading: loadMoreLoading && index === 0,
+          onPrev: () => (index > 0 ? goTo(monthKeys[index - 1]) : loadOlder?.()),
+          onNext: () => goTo(monthKeys[index + 1]),
+        },
+      ),
+    );
   } else if (CONFIG.calendar_view === "compact" && monthKeys.length > 1) {
     const lastYm = monthKeys[monthKeys.length - 1];
     const pastMonthEntries: MonthEntry[] = monthKeys
@@ -301,58 +392,12 @@ function renderLogtime(
     }
   }
 
-  if (loadMoreLogin && monthCards.length > 0) {
-    const login = loadMoreLogin;
-    const before = loadMoreBefore;
-    monthCards.unshift(
-      renderLoadMoreCard(async () => {
-        loadMoreLoading = true;
-        const host = document.getElementById("logtime-shadow-wrapper");
-        const root = host?.shadowRoot;
-        const sw = root?.querySelector(
-          ".log-slider-fixed",
-        ) as HTMLElement | null;
-        const hookMonth = before?.slice(0, 7);
-        let anchor = hookMonth
-          ? (root?.querySelector(
-              `[data-month="${hookMonth}"]`,
-            ) as HTMLElement | null)
-          : null;
-        if (anchor && !anchor.classList.contains("month-card")) {
-          anchor = anchor.closest(".month-card") as HTMLElement | null;
-        }
-        const anchorOffset = anchor ? anchor.offsetLeft : 0;
-        const savedScroll = sw ? sw.scrollLeft : 0;
-
-        restoreScrollLeft = savedScroll;
-        renderLogtime(stats, eventsByDate);
-
-        await fetchHistoricalLogtime(login, before);
-        loadMoreLogin = null;
-        loadMoreBefore = undefined;
-        loadMoreLoading = false;
-
-        const merged = mergeHistoryWithHook(stats, login);
-        skipScroll = true;
-        renderLogtime(merged, eventsByDate);
-
-        let newAnchor = root?.querySelector(
-          `[data-month="${hookMonth}"]`,
-        ) as HTMLElement | null;
-        if (newAnchor && !newAnchor.classList.contains("month-card")) {
-          newAnchor = newAnchor.closest(".month-card") as HTMLElement | null;
-        }
-        const shift = (newAnchor?.offsetLeft ?? anchorOffset) - anchorOffset;
-        const newSw = root?.querySelector(
-          ".log-slider-fixed",
-        ) as HTMLElement | null;
-        if (newSw) {
-          requestAnimationFrame(() => {
-            newSw.scrollLeft = Math.max(0, savedScroll + shift);
-          });
-        }
-      }, loadMoreLoading),
-    );
+  if (
+    loadOlder &&
+    monthCards.length > 0 &&
+    CONFIG.calendar_view !== "carousel"
+  ) {
+    monthCards.unshift(renderLoadMoreCard(loadOlder, loadMoreLoading));
   }
 
   const lastSeenValue = getLastSeenFormatted(stats, CONFIG.show_days_mode);
@@ -390,7 +435,13 @@ function renderLogtime(
   const scrollWrapper = shadowHost.shadowRoot!.querySelector(
     ".log-slider-fixed",
   ) as HTMLElement;
-  if (scrollWrapper) {
+  if (scrollWrapper && CONFIG.calendar_view === "carousel") {
+    if (scrollHandlersCleanup) {
+      scrollHandlersCleanup();
+      scrollHandlersCleanup = null;
+    }
+    scrollWrapper.scrollLeft = 0;
+  } else if (scrollWrapper) {
     if (scrollHandlersCleanup) {
       scrollHandlersCleanup();
       scrollHandlersCleanup = null;

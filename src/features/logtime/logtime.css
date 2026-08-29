@@ -17,6 +17,17 @@
   touch-action: pan-x;
 }
 
+.log-slider-fixed.is-carousel {
+  overflow-x: hidden !important;
+  cursor: default;
+  touch-action: auto;
+}
+
+.log-slider-fixed.is-carousel .grid-centering-container {
+  width: 100%;
+  justify-content: center;
+}
+
 .grid-centering-container {
   display: flex;
   gap: 16px;
@@ -75,7 +86,19 @@
 }
 
 .badge-rainbow {
-  background: linear-gradient(90deg, #ff0000, #ff7f00, #ffeb3b, #4caf50, #00bcd4, #2196f3, #3f51b5, #9c27b0, #e91e63, #ff0000);
+  background: linear-gradient(
+    90deg,
+    #ff0000,
+    #ff7f00,
+    #ffeb3b,
+    #4caf50,
+    #00bcd4,
+    #2196f3,
+    #3f51b5,
+    #9c27b0,
+    #e91e63,
+    #ff0000
+  );
   background-size: 200% 100% !important;
   animation: rainbow-shift 5s linear infinite !important;
   border: none !important;
@@ -131,9 +154,56 @@
 
 .heatmap-cell {
   border-radius: 3px;
-  border: 1px solid color-mix(in srgb, var(--color-base-content) 15%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--color-base-content) 15%, transparent);
 }
 
 .compact-month .day-cell {
   font-size: inherit;
 }
+
+.lt-carousel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.lt-carousel-arrow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--card-hairline);
+  background: var(--card-surface);
+  color: var(--color-base-content);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.15s ease;
+}
+
+.lt-carousel-arrow:hover:not(:disabled) {
+  background: var(--card-surface-strong);
+  transform: scale(1.06);
+}
+
+.lt-carousel-arrow:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.lt-carousel-stage {
+  display: flex;
+  align-items: center;
+}
+
+.lt-carousel .month-card {
+  opacity: 1 !important;
+}
+
