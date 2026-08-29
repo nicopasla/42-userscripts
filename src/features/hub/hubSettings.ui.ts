@@ -46,7 +46,12 @@ async function saveSetting(key: string, value: unknown): Promise<void> {
 }
 
 import { fetchCampusList, fetchEventTypes } from "../clusters/clusters.data.ts";
-import { CLUSTERS, ensureCampusData } from "../campus/campus.ts";
+import {
+  CLUSTERS,
+  ensureCampusData,
+  clearCampusConfigCache,
+  loadCampusData,
+} from "../campus/campus.ts";
 
 let dynamicCampusOptions: { label: string; value: string }[] = [];
 let dynamicEventTypeOptions: { label: string; value: string }[] = [];
@@ -95,9 +100,8 @@ function renderFeatureCard(params: {
       class="card bg-base-200 shadow-sm p-4 flex flex-col gap-3 border border-t-4 ${disabled
         ? "opacity-40 grayscale"
         : ""}"
-      style="border-top-color: ${
-        FEATURE_CARD_COLORS[opt.color ?? ""] ?? "var(--color-primary)"
-      }"
+      style="border-top-color: ${FEATURE_CARD_COLORS[opt.color ?? ""] ??
+      "var(--color-primary)"}"
     >
       <div class="flex items-center justify-between gap-2">
         <div class="flex flex-col gap-1">
@@ -113,17 +117,11 @@ function renderFeatureCard(params: {
           ?checked="${Boolean(value)}"
           ?disabled="${!enabled || disabled}"
           @change="${(e: Event) =>
-            saveSetting(
-              opt.value!,
-              (e.target as HTMLInputElement).checked,
-            )}"
+            saveSetting(opt.value!, (e.target as HTMLInputElement).checked)}"
         />
       </div>
       ${opt.subToggle
-        ? html`<div
-              class="divider gap-0"
-              style="margin-top:auto"
-            ></div>
+        ? html`<div class="divider gap-0" style="margin-top:auto"></div>
             <div
               class="flex items-center justify-between gap-2 ${subDisabled
                 ? "opacity-40 grayscale"
@@ -137,9 +135,9 @@ function renderFeatureCard(params: {
                   >${opt.subToggle.label}</span
                 >
                 ${opt.subToggle.desc
-                  ? html`<p class="text-xs opacity-70 leading-4 line-clamp-2"
-                      >${opt.subToggle.desc}</p
-                    >`
+                  ? html`<p class="text-xs opacity-70 leading-4 line-clamp-2">
+                      ${opt.subToggle.desc}
+                    </p>`
                   : ""}
               </div>
               <input
@@ -434,8 +432,7 @@ function renderSettingControl(def: HubSettingDef, enabled: boolean) {
                 ? ((await getConfig(opt.subToggle.value as never)) ?? false)
                 : false,
               disabled: !!(
-                (opt.dependsOn &&
-                  !(await getConfig(opt.dependsOn as never))) ||
+                (opt.dependsOn && !(await getConfig(opt.dependsOn as never))) ||
                 (opt.requiresCloud && !cloudToken)
               ),
               subDisabled: !!(
@@ -446,9 +443,7 @@ function renderSettingControl(def: HubSettingDef, enabled: boolean) {
             });
           }
           return html`<div class="grid grid-cols-2 gap-4 w-full col-span-full">
-            ${cards.map((c) =>
-              renderFeatureCard({ ...c, enabled }),
-            )}
+            ${cards.map((c) => renderFeatureCard({ ...c, enabled }))}
           </div>`;
         }
 
@@ -751,6 +746,24 @@ function renderSettingControl(def: HubSettingDef, enabled: boolean) {
                 Import
               </button>
             </div>`;
+          }
+
+          if (actionType === "reload-campus") {
+            return html`<button
+              type="button"
+              class="btn btn-sm btn-primary font-bold"
+              @click="${() => {
+                void (async () => {
+                  const campusId = (await getConfig("CLUSTERS_CAMPUS")) || "";
+                  await clearCampusConfigCache(campusId);
+                  await fetchCampusList(true);
+                  if (campusId) await loadCampusData(campusId, true);
+                  location.reload();
+                })();
+              }}"
+            >
+              ${actionLabel || "Reload"}
+            </button>`;
           }
 
           return html`<button

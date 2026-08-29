@@ -146,7 +146,7 @@ export type HubSettingDef = {
   step?: number;
   placeholder?: string;
   actionLabel?: string;
-  actionType?: "export" | "import" | "reset" | "backup";
+  actionType?: "export" | "import" | "reset" | "backup" | "reload-campus";
 };
 
 export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
@@ -655,6 +655,16 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
       kind: "action",
       actionType: "backup",
       actionLabel: "Backup",
+      grid: true,
+      colSpan: 1,
+    },
+    {
+      feature: "advanced",
+      label: "Reload campus config",
+      desc: "Clears the cached campus/cluster configuration and re-fetches it.",
+      kind: "action",
+      actionType: "reload-campus",
+      actionLabel: "Reload",
       grid: true,
       colSpan: 1,
     },
