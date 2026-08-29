@@ -1,6 +1,16 @@
 export { fetchEventTypes } from "../profile/events/events.ts";
-export { ensureCampusData, fetchCampusList, CLUSTERS } from "../campus/campus.ts";
-import { loadCampusData, CLUSTERS as CAMPUS_CLUSTERS } from "../campus/campus.ts";
+export {
+  ensureCampusData,
+  fetchCampusList,
+  CLUSTERS,
+  type ExitConfig,
+  type ExitSign,
+} from "../campus/campus.ts";
+import type { ExitConfig as CampusExitConfig } from "../campus/campus.ts";
+import {
+  loadCampusData,
+  CLUSTERS as CAMPUS_CLUSTERS,
+} from "../campus/campus.ts";
 
 export type ScreenDirection = "UP" | "DOWN" | "LEFT" | "RIGHT" | "NONE";
 
@@ -107,4 +117,15 @@ export async function getClusterData(campusId: string): Promise<{
   CAMPUS_CLUSTERS.push(...data.clusters);
   SCREENS = buildScreens(definitions);
   return { clusters: data.clusters, screens: SCREENS };
+}
+
+export async function getCampusExits(
+  campusId: string,
+): Promise<CampusExitConfig | undefined> {
+  try {
+    const data = await loadCampusData(campusId);
+    return data.exits;
+  } catch {
+    return undefined;
+  }
 }

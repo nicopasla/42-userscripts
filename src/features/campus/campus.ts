@@ -5,10 +5,24 @@ export interface TranscriptEntry {
   records: { label: string; sr_id: number }[];
 }
 
+export type ExitArrowDir = "up" | "right" | "down" | "left";
+
+export interface ExitSign {
+  x: number | string;
+  y: number | string;
+  w?: number | string;
+  h?: number | string;
+  dir?: ExitArrowDir;
+  label?: string;
+}
+
+export type ExitConfig = Record<string, ExitSign[]>;
+
 interface ClusterDataFile {
   clusters: { id: string; name: string; svg?: string }[];
   transcripts?: TranscriptEntry[];
   definitions: Record<string, unknown>;
+  exits?: ExitConfig;
   badgeBaseUrl?: string;
   badges?: Record<string, string>;
 }
@@ -102,7 +116,8 @@ export async function loadCampusData(
   const load = (async () => {
     const prefix = await resolveCampusFolder(resolvedId);
     const res = await fetch(`${CAMPUS_BASE}/${prefix}.json`);
-    if (!res.ok) throw new Error(`Failed to fetch campus data for ${resolvedId}`);
+    if (!res.ok)
+      throw new Error(`Failed to fetch campus data for ${resolvedId}`);
     const data = (await res.json()) as ClusterDataFile;
     await chrome.storage.local.set({
       [cacheKey]: { data, timestamp: Date.now() },

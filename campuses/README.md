@@ -84,3 +84,11 @@ campuses/
   - `overrides` — per-seat direction overrides
     - Key format: `"{row}-p{pos}"` (e.g., `"r1-p2"`)
     - Value: same direction as above
+
+- `exits` *(optional)* — map of cluster name → exit sign markers for the cluster map
+  - Key: cluster `name`
+  - Each sign: `{ "x", "y", "dir", "label", "w"?, "h"? }`
+    - `x` / `y` — SVG units or percentages of the map viewBox (e.g., `"22%"`)
+    - `dir` — arrow direction: `"up"` | `"right"` | `"down"` | `"left"`
+    - `label` — text shown below the arrow (e.g., `"EXIT"`, `"CHILLZONE"`)
+    - `w` / `h` *(optional)* — override the default sign size

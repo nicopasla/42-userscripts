@@ -1,5 +1,5 @@
 import { getConfig } from "../../config.ts";
-import { fetchCampusList } from "./clusters.data.ts";
+import { fetchCampusList, getCampusExits } from "./clusters.data.ts";
 import {
   getEffectiveTheme,
   getIsLight,
@@ -106,6 +106,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
   }
 
   let clusters = await buildClusters(activeCampusId);
+  const campusExits = (await getCampusExits(activeCampusId)) ?? null;
 
   const currentTheme =
     presetKey !== "dark" && presetKey !== "light"
@@ -158,6 +159,7 @@ export async function openClusterDialog(opts?: { seatId?: string }) {
     clusters,
     activeCluster,
     defaultId,
+    campusExits,
     zoomLevel: 1.0,
     defaultZoomLevel: 1.0,
     showMarkers: showMarkersVal,
