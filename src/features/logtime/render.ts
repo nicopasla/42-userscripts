@@ -207,14 +207,7 @@ export function renderMonthCard(
     data-month="${ym}"
   >
     <div class="flex justify-between items-center mb-3">
-      <span class="text-lg font-semibold tracking-tight text-base-content"
-        >${monthName}
-        <span
-          class="text-xs font-medium"
-          style="color: var(--muted-foreground); opacity: 0.55;"
-          >${year}</span
-        ></span
-      >
+      <span class="text-xl font-bold text-base-content">${monthName}</span>
       <span
         class="badge badge-lg font-bold transition-all duration-200 ${isGoalMet
           ? "badge-rainbow"

@@ -36,44 +36,28 @@
 }
 
 .month-card {
-  transition:
-    opacity 0.25s ease,
-    box-shadow 0.25s ease,
-    background-color 0.25s ease;
-  border: 1px solid var(--card-hairline);
-  border-radius: 18px;
-  padding: 14px 14px 12px;
+  transition: opacity 0.2s ease;
+  border: 0.5px solid var(--border-color);
+  border-radius: 16px;
+  padding: 10px;
   width: 280px;
   flex-shrink: 0;
-  background: var(--card-surface);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 10px 24px -18px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
 }
 
 .month-card.current-month {
-  background: var(--card-surface-strong);
-  border-color: var(--card-hairline-strong);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.05),
-    0 16px 34px -20px rgba(0, 0, 0, 0.45);
+  border: 3px solid var(--calendar-color) !important;
+  box-shadow: 0 0 15px var(--calendar-color) 33 !important;
   opacity: 1 !important;
 }
 
-.month-card .badge-outline {
-  border-width: 1px;
-  font-weight: 600;
-}
-
 .day-cell {
-  transition:
-    filter 0.15s ease,
-    box-shadow 0.15s ease;
+  transition: transform 0.1s ease;
   cursor: pointer;
   position: relative;
-  border: 1px solid transparent;
+  border: 0.5px solid color-mix(in srgb, var(--color-base-content) 10%, transparent);
 }
 
 .day-cell:hover {
@@ -84,7 +68,9 @@
 }
 
 .today-highlight {
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.55);
+  box-shadow:
+    0 0 0 2px rgba(239, 68, 68, 0.65),
+    0 0 12px rgba(239, 68, 68, 0.45);
   border: none !important;
   z-index: 10;
 }
@@ -153,7 +139,7 @@
 }
 
 .compact-divider {
-  border-top: 1px solid var(--card-hairline);
+  border-top: 2px solid var(--border-color);
 }
 
 .heatmap-card {
