@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+## [1.8.3] - 2026-08-30
+
+### Features 🎉
+
+- feat(logtime): enhance header functionality with overflow measurement ([10e390e](https://github.com/nicopasla/better-intra/commit/10e390e))
+- feat(hub): add reload campus config action to settings ([c755e36](https://github.com/nicopasla/better-intra/commit/c755e36))
+- feat(campus): add exit sign functionality with SVG rendering and configuration ([f19802c](https://github.com/nicopasla/better-intra/commit/f19802c))
+- feat(hub): add newToday stat to follower count and update display labels ([6009a8b](https://github.com/nicopasla/better-intra/commit/6009a8b))
+- feat(hub): reorganize feature definitions and enhance profile settings ([2e0fef8](https://github.com/nicopasla/better-intra/commit/2e0fef8))
+- feat(hub): update feature card options and add community sharing for subject tracker ([157466e](https://github.com/nicopasla/better-intra/commit/157466e))
+- feat(subject-tracker): implement subject tracking feature ([9b5fefe](https://github.com/nicopasla/better-intra/commit/9b5fefe))
+- feat(logtime): clean month cards and add carousel view ([e706d18](https://github.com/nicopasla/better-intra/commit/e706d18))
+
+### Bug fixes 🐛
+
+- fix(profile): keep the roulette card orderable and soften the placeholders ([395d6c8](https://github.com/nicopasla/better-intra/commit/395d6c8))
+
+### Other Changes 🔄
+
+- Merge pull request #5 from Keke712:feat/logtime-carousel ([917ed9b](https://github.com/nicopasla/better-intra/commit/917ed9b))
+- Merge branch 'main' into feat/logtime-carousel ([33075c0](https://github.com/nicopasla/better-intra/commit/33075c0))
+- revert(logtime): restore month card styling, keep carousel view ([a949dfb](https://github.com/nicopasla/better-intra/commit/a949dfb))
+- Merge pull request #6 from Keke712:feat/profile-lazy-loading ([0d1d033](https://github.com/nicopasla/better-intra/commit/0d1d033))
+- Merge branch 'main' into feat/profile-lazy-loading ([03e39cf](https://github.com/nicopasla/better-intra/commit/03e39cf))
+- perf(profile): hold the marks and freeze slots while intra data loads ([56a6db5](https://github.com/nicopasla/better-intra/commit/56a6db5))
+- perf(profile): mount the roulette card before its worker data arrives ([338a5d6](https://github.com/nicopasla/better-intra/commit/338a5d6))
+
 ## [1.8.2] - 2026-08-24
 
 ### Features 🎉
@@ -1100,7 +1127,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.2...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.3...HEAD
+[1.8.3]: https://github.com/nicopasla/better-intra/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/nicopasla/better-intra/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/nicopasla/better-intra/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/nicopasla/better-intra/compare/v1.7.2...v1.8.0
