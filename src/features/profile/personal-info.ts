@@ -2,6 +2,7 @@ import { getConfig } from "../../config.ts";
 import { openClusterDialog } from "../clusters/map-dialog.ts";
 import { addFriend, removeFriend, isFriend } from "../friends/friends.ts";
 import { getCloudLogin, syncToCloud } from "../account/account.ts";
+import { getLoginFromPage } from "../../utils/profile-login.ts";
 import HOLY_GRAPH_SVG from "../../assets/svg/holy-graph.svg?raw";
 import CLUSTERS_SVG from "../../assets/svg/clusters.svg?raw";
 import USER_COG_SVG from "../../assets/svg/user-cog.svg?raw";
@@ -9,10 +10,7 @@ import CHECK_SVG from "../../assets/svg/check.svg?raw";
 import PLUS_SVG from "../../assets/svg/plus.svg?raw";
 
 function getProfileLogin(): string {
-  const pathParts = location.pathname.split("/").filter(Boolean);
-  if (pathParts[0] === "users" && pathParts[1]) return pathParts[1];
-  const loginEl = document.querySelector<HTMLElement>('p[class="text-sm"]');
-  return loginEl?.textContent?.trim() || "";
+  return getLoginFromPage() ?? "";
 }
 
 export async function initFriendBadge() {

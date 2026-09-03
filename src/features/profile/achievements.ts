@@ -2,6 +2,7 @@ import { html, render } from "lit-html";
 import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { getConfig } from "../../config.ts";
 import { getCloudLogin } from "../account/account.ts";
+import { getLoginFromPage } from "../../utils/profile-login.ts";
 import { INTRA_FONT } from "../logtime/constants.ts";
 import CHECK_CIRCLE_SVG from "../../assets/svg/check-circle.svg?raw";
 
@@ -46,33 +47,6 @@ function waitForToken(timeout = 15000): Promise<string | null> {
       resolve(null);
     }, timeout);
   });
-}
-
-function getLoginFromPage(): string | null {
-  for (const link of document.querySelectorAll<HTMLAnchorElement>(
-    'a[href^="https://projects.intra.42.fr/"]',
-  )) {
-    const parts = link.pathname.split("/").filter(Boolean);
-    const last = parts[parts.length - 1] || null;
-    if (last && /^[a-z]/.test(last) && isNaN(Number(last))) return last;
-  }
-  for (const link of document.querySelectorAll<HTMLAnchorElement>(
-    'a[href^="https://profile.intra.42.fr/users/"]',
-  )) {
-    const parts = link.pathname.split("/").filter(Boolean);
-    const usersIdx = parts.indexOf("users");
-    if (usersIdx !== -1 && parts.length > usersIdx + 1) {
-      const login = parts[usersIdx + 1];
-      if (
-        login &&
-        login !== "achievements" &&
-        login !== "slots" &&
-        login !== "projects"
-      )
-        return login;
-    }
-  }
-  return null;
 }
 
 async function fetchAchievements(

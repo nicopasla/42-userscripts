@@ -3,6 +3,7 @@ import { unsafeHTML } from "lit-html/directives/unsafe-html.js";
 import { getConfig } from "../../config.ts";
 import { getCloudLogin } from "../account/account.ts";
 import { hashLogin } from "../../utils/crypto.ts";
+import { getLoginFromPage } from "../../utils/profile-login.ts";
 import { INTRA_FONT } from "../logtime/constants.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 import { getEffectiveTheme } from "./theme/theme-manager.ts";
@@ -583,26 +584,6 @@ async function handleCursusSwitch(cursusId: string) {
   } else {
     removeMarksSkeleton();
   }
-}
-
-function getLoginFromPage(): string | null {
-  const link = document.querySelector<HTMLAnchorElement>(
-    'a[href^="https://projects.intra.42.fr/"]',
-  );
-  if (link) {
-    const parts = link.pathname.split("/").filter(Boolean);
-    const login = parts[parts.length - 1] || null;
-    return login;
-  }
-  const profileLink = document.querySelector<HTMLAnchorElement>(
-    'a[href^="https://profile.intra.42.fr/users/"]',
-  );
-  if (profileLink) {
-    const parts = profileLink.pathname.split("/").filter(Boolean);
-    const login = parts[parts.length - 1] || null;
-    return login;
-  }
-  return null;
 }
 
 async function injectStarTotalBadge(
