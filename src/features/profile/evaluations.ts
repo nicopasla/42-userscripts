@@ -1,12 +1,13 @@
 import { getConfig } from "../../config.ts";
+import RELOAD_SVG from "../../assets/svg/reload.svg?raw";
 
 const CARD_TITLE = "PENDING EVALUATIONS";
 
-function findNativeCard(): HTMLElement | null {
+function findNativeCard(root: Document = document): HTMLElement | null {
   const grid =
-    document.querySelector(".dash-main") ||
-    document.querySelector(".bg-white.md\\:h-96")?.parentElement ||
-    document.body;
+    root.querySelector(".dash-main") ||
+    root.querySelector(".bg-white.md\\:h-96")?.parentElement ||
+    root.body;
   const cards = grid.querySelectorAll(".bg-white");
   for (const card of cards) {
     if (card.textContent?.toUpperCase().includes(CARD_TITLE)) {
@@ -17,6 +18,121 @@ function findNativeCard(): HTMLElement | null {
 }
 
 let sorted = false;
+let refreshing = false;
+
+function ensureRefreshStyle() {
+  if (document.getElementById("ft-ev-refresh-style")) return;
+  const style = document.createElement("style");
+  style.id = "ft-ev-refresh-style";
+  style.textContent = [
+    "@keyframes ft-ev-spin{to{transform:rotate(360deg)}}",
+    ".ft-ev-spinning{animation:ft-ev-spin .8s linear infinite}",
+    "@keyframes ft-ev-rotator{0%{transform:rotate(0deg)}100%{transform:rotate(270deg)}}",
+    ".ft-ev-wheel{animation:ft-ev-rotator 1.4s linear infinite}",
+    "@keyframes ft-ev-dash{0%{stroke-dashoffset:125.6}50%{stroke-dashoffset:31.4;transform:rotate(135deg)}100%{stroke-dashoffset:125.6;transform:rotate(450deg)}}",
+    ".ft-ev-wheel-path{stroke-dasharray:125.6;stroke-dashoffset:0;transform-origin:center;animation:ft-ev-dash 1.4s ease-in-out infinite}",
+  ].join("");
+  document.head.appendChild(style);
+}
+
+// The overlay wraps the pending-evaluations content only (title + action
+// buttons stay untouched above it) — that's the closest positioned ancestor
+// of the rows/content, i.e. the parent of the card's header row.
+function findContentArea(nativeCard: HTMLElement): HTMLElement | null {
+  const hideBtn = findHideBtn(nativeCard);
+  const header = hideBtn?.closest(".mb-2") as HTMLElement | null;
+  const wrapper = header?.parentElement;
+  return (wrapper?.lastElementChild as HTMLElement | null) ?? null;
+}
+
+function showRefreshOverlay(nativeCard: HTMLElement) {
+  if (nativeCard.querySelector("#ft-ev-refresh-overlay")) return;
+  const target = findContentArea(nativeCard) || nativeCard;
+  if (getComputedStyle(target).position === "static") {
+    target.dataset.ftEvResetPosition = "1";
+    target.style.position = "relative";
+  }
+  const overlay = document.createElement("div");
+  overlay.id = "ft-ev-refresh-overlay";
+  overlay.className =
+    "absolute inset-0 flex items-center justify-center bg-white/70 z-10 pointer-events-none";
+  overlay.innerHTML =
+    '<svg class="ft-ev-wheel text-legacy-main" viewBox="0 0 50 50" style="width:32px;height:32px">' +
+    '<circle class="ft-ev-wheel-path" cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"></circle>' +
+    "</svg>";
+  target.appendChild(overlay);
+}
+
+function hideRefreshOverlay(nativeCard: HTMLElement) {
+  const overlay = nativeCard.querySelector("#ft-ev-refresh-overlay");
+  const target = overlay?.parentElement as HTMLElement | undefined;
+  overlay?.remove();
+  if (target?.dataset.ftEvResetPosition) {
+    target.style.position = "";
+    delete target.dataset.ftEvResetPosition;
+  }
+}
+
+function injectRefreshButton(nativeCard: HTMLElement) {
+  if (nativeCard.querySelector("#ft-ev-refresh-btn")) return;
+  const hideBtn = findHideBtn(nativeCard);
+  const row = hideBtn?.parentElement;
+  if (!row) return;
+  ensureRefreshStyle();
+
+  const btn = document.createElement("button");
+  btn.id = "ft-ev-refresh-btn";
+  btn.type = "button";
+  btn.title = "Refresh";
+  btn.className =
+    "flex items-center justify-center text-legacy-main bg-transparent border border-legacy-main py-1.5 px-1 cursor-pointer shrink-0";
+  btn.innerHTML = `<span id="ft-ev-refresh-icon" style="display:flex;width:12px;height:12px">${RELOAD_SVG}</span>`;
+  row.insertBefore(btn, row.firstChild);
+}
+
+const MIN_REFRESH_MS = 1000;
+
+async function refreshCard(nativeCard: HTMLElement) {
+  if (refreshing) return;
+  refreshing = true;
+  const startedAt = Date.now();
+  const icon = nativeCard.querySelector("#ft-ev-refresh-icon");
+  icon?.classList.add("ft-ev-spinning");
+  showRefreshOverlay(nativeCard);
+  try {
+    const res = await fetch(location.href, {
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    if (!res.ok) return;
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const freshCard = findNativeCard(doc);
+    if (!freshCard) return;
+
+    nativeCard.innerHTML = freshCard.innerHTML;
+    sorted = false;
+    injectRefreshButton(nativeCard);
+
+    const show = await getConfig("PROFILE_SHOW_EVALUATIONS");
+    if (show) {
+      sortRows(nativeCard);
+    } else {
+      const btn = findHideBtn(nativeCard);
+      if (btn) btn.textContent = "Hide";
+    }
+  } catch (err) {
+    console.error("[better-intra] evaluations refresh failed", err);
+  } finally {
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < MIN_REFRESH_MS) {
+      await new Promise((r) => setTimeout(r, MIN_REFRESH_MS - elapsed));
+    }
+    refreshing = false;
+    if (icon?.isConnected) icon.classList.remove("ft-ev-spinning");
+    hideRefreshOverlay(nativeCard);
+  }
+}
 
 function sortRows(nativeCard: HTMLElement) {
   const oldWraps = nativeCard.querySelectorAll(
@@ -181,6 +297,12 @@ function toggleSort(nativeCard: HTMLElement) {
 function hookToggleButton(nativeCard: HTMLElement) {
   nativeCard.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
+    if (target.closest("#ft-ev-refresh-btn")) {
+      e.preventDefault();
+      e.stopPropagation();
+      refreshCard(nativeCard);
+      return;
+    }
     const t = target.textContent?.trim().toLowerCase() || "";
     if (t === "hide" || t === "show") {
       e.preventDefault();
@@ -203,12 +325,21 @@ export async function initEvaluations() {
     return;
 
   const show = await getConfig("PROFILE_SHOW_EVALUATIONS");
+  let hooked = false;
 
   const check = () => {
     const native = findNativeCard();
     if (!native) {
       requestAnimationFrame(check);
       return;
+    }
+    // The refresh button lives in the card header and doesn't depend on
+    // pending-evaluation rows being present, so wire it up as soon as the
+    // card itself is found instead of waiting on the rows below.
+    if (!hooked) {
+      injectRefreshButton(native);
+      hookToggleButton(native);
+      hooked = true;
     }
     const rows = native.querySelectorAll(
       ".flex.justify-between.w-full.items-center, .flex.flex-row.justify-between",
@@ -223,7 +354,6 @@ export async function initEvaluations() {
       const btn = findHideBtn(native);
       if (btn) btn.textContent = "Hide";
     }
-    hookToggleButton(native);
   };
 
   requestAnimationFrame(check);

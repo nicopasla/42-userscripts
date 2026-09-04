@@ -6,6 +6,27 @@ import FORTY_TWO_SVG from "../../assets/svg/42_Logo.svg?raw";
 import { AccountState, createInitialState } from "./state.ts";
 import { createHandlers } from "./handlers.ts";
 
+function renderRestrictActivationToggle(
+  state: AccountState,
+  handlers: ReturnType<typeof createHandlers>,
+): ReturnType<typeof html> {
+  return html`
+    <label
+      class="label cursor-pointer flex items-center justify-center gap-2 w-full max-w-sm"
+    >
+      <input
+        type="checkbox"
+        class="checkbox checkbox-sm"
+        .checked="${state.restrictActivation}"
+        @change="${handlers.handleToggleRestrictActivation}"
+      />
+      <span class="label-text text-sm opacity-80"
+        >Only activate on intra.42.fr &amp; api.betterintra.com</span
+      >
+    </label>
+  `;
+}
+
 function renderAccountTab(
   state: AccountState,
   handlers: ReturnType<typeof createHandlers>,
@@ -39,6 +60,7 @@ function renderAccountTab(
             ${unsafeHTML(FORTY_TWO_SVG)}
           </span>
         </button>
+        ${renderRestrictActivationToggle(state, handlers)}
       </div>
     `;
   }
@@ -175,6 +197,9 @@ function renderAccountTab(
           Wipe All Data
         </button>
       </div>
+      <div class="flex justify-center">
+        ${renderRestrictActivationToggle(state, handlers)}
+      </div>
     </div>
   `;
 }
@@ -188,6 +213,7 @@ export async function initAccountSettings(container: HTMLElement) {
     state.login = await getCloudLogin();
     state.token = (await getConfig("CLOUD_TOKEN")) || "";
     state.needsReconnect = !!(await getConfig("CLOUD_AUTH_FAILED"));
+    state.restrictActivation = await getConfig("RESTRICT_ACTIVATION");
     if (state.token && state.login) {
       state.activeSessions = await testCloudConnection();
     }
