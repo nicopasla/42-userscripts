@@ -35,7 +35,7 @@
       { "x": "90%", "y": "10%", "dir": "up", "label": "MI" }
     ],
     "mi": [
-      { "x": "80%", "y": "8%", "dir": "up", "label": "CHILLZONE" },
+      { "x": "80%", "y": "8%", "dir": "up", "label": "BELFIUS ROOM" },
       { "x": "74%", "y": "39%", "dir": "right", "label": "EXIT" },
       { "x": "69%", "y": "70%", "dir": "down", "label": "CHILLZONE" }
     ]
