@@ -245,6 +245,12 @@ export const injectCustomStyles = () => {
       transform: translate3d(0, 0, 0);
       backface-visibility: hidden;
     }
+    @media (min-width: 1280px) {
+      ${BACKGROUND_SELECTOR} {
+        height: auto !important;
+        min-height: 18rem !important;
+      }
+    }
     .bg-mode-fill { background-size: cover !important; background-repeat: no-repeat !important; background-position: center !important; }
     .bg-mode-fit { background-size: contain !important; background-repeat: no-repeat !important; background-position: center !important; }
     .bg-mode-stretch { background-size: 100% 100% !important; background-repeat: no-repeat !important; background-position: center !important; }

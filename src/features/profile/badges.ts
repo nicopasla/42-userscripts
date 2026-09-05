@@ -68,6 +68,29 @@ export async function getBadgeUrl(name: string): Promise<string | null> {
   return data.badgeBaseUrl.replace("{name}", resolved);
 }
 
+export function wrapTitleBadges(root: ParentNode): void {
+  const badgeEls = root.querySelectorAll<HTMLElement>(
+    '[class*="text-primary-foreground"][class*="inline-flex"]',
+  );
+  if (!badgeEls.length) return;
+
+  const containers = new Set<HTMLElement>();
+  for (const el of badgeEls) {
+    if (el.parentElement) containers.add(el.parentElement);
+  }
+
+  for (const container of containers) {
+    container.style.setProperty("flex-wrap", "wrap", "important");
+  }
+}
+
+export function applyTitleBadgeWrap() {
+  if (location.hostname !== "profile-v3.intra.42.fr") return;
+  if (!(location.pathname === "/" || location.pathname.startsWith("/users")))
+    return;
+  wrapTitleBadges(document);
+}
+
 let badgesInitialized = false;
 
 export async function initBadges() {

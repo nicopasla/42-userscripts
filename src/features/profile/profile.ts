@@ -15,7 +15,7 @@ import { initProjectBadges } from "./project-badges.ts";
 import { initProjectsSort } from "./projects-sort.ts";
 import { initRouletteStats } from "./roulette-stats.ts";
 import { initEvaluations } from "./evaluations.ts";
-import { initBadges } from "./badges.ts";
+import { initBadges, applyTitleBadgeWrap } from "./badges.ts";
 import { initTranscript } from "./transcript.ts";
 import { initPace } from "./pace.ts";
 import { ensureCampusData } from "../clusters/clusters.data.ts";
@@ -74,6 +74,7 @@ export async function initProfile() {
           handleProfileRedirect(),
           initMilestones(),
           initBadges(),
+          applyTitleBadgeWrap(),
           initTranscript(),
           initPace(),
         ]);
