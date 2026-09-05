@@ -9,6 +9,7 @@ import ADVANCED_SVG from "../../assets/svg/advanced.svg?raw";
 import GRID_SVG from "../../assets/svg/grid.svg?raw";
 import { CONFIG_DEFAULT, ConfigKey } from "../../config.ts";
 import { CLUSTERS as CLUSTER_OPTIONS } from "../clusters/clusters.data.ts";
+import { RAINBOW_PALETTES } from "../logtime/rainbow-presets.ts";
 
 export const HUB_INFO = {
   name: "Better Intra",
@@ -104,6 +105,7 @@ export type SettingKind =
   | "discord-panel"
   | "calendar-panel"
   | "theme-preset"
+  | "rainbow-palette"
   | "campus-info"
   | "feature-cards";
 
@@ -282,17 +284,16 @@ export const HUB_SETTING_DEFS: Record<FeatureId, readonly HubSettingDef[]> = {
     },
     {
       feature: "logtime",
-      key: "LOGTIME_CALENDAR_VIEW",
-      label: "Calendar view",
-      desc: "Choose how months are displayed in the logtime card.",
-      kind: "select",
-      defaultValue: CONFIG_DEFAULT.LOGTIME_CALENDAR_VIEW,
-      options: [
-        { label: "Normal", value: "normal" },
-        { label: "Compact", value: "compact" },
-        { label: "Heatmap", value: "heatmap" },
-        { label: "Carousel", value: "carousel" },
-      ],
+      key: "LOGTIME_RAINBOW_PALETTE",
+      label: "Rainbow colors",
+      desc: "Gradient shown when you reach your monthly goal.",
+      kind: "rainbow-palette",
+      defaultValue: CONFIG_DEFAULT.LOGTIME_RAINBOW_PALETTE,
+      options: Object.entries(RAINBOW_PALETTES).map(([id, p]) => ({
+        value: id,
+        label: p.label,
+        color: p.colors.join(", "),
+      })),
       grid: true,
       colSpan: 1,
     },

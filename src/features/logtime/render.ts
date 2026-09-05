@@ -491,6 +491,7 @@ export function renderContainer(
         --intra-font: ${INTRA_FONT};
         --border-color: ${config.labels_color};
         --calendar-color: ${config.calendar_color};
+        --rainbow-colors: ${config.rainbow_colors};
         --labels-color: ${adjustedLabelsColor};
         --muted: color-mix(in srgb, var(--color-base-300) 70%, transparent);
         --muted-foreground: var(--color-base-content);

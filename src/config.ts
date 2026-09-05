@@ -35,6 +35,7 @@ export interface BetterIntraConfig {
   LOGTIME_SHOW_DAYS_MODE: "date" | "days" | "both";
   LOGTIME_CALENDAR_COLOR: string;
   LOGTIME_LABELS_COLOR: string;
+  LOGTIME_RAINBOW_PALETTE: string;
   LOGTIME_CALENDAR_VIEW: string;
 
   // Clusters Feature Settings
@@ -150,6 +151,7 @@ export const CONFIG_DEFAULT: BetterIntraConfig = {
   LOGTIME_SHOW_DAYS_MODE: "date",
   LOGTIME_CALENDAR_COLOR: "#00BCBA",
   LOGTIME_LABELS_COLOR: "#26a641",
+  LOGTIME_RAINBOW_PALETTE: "rainbow",
   LOGTIME_CALENDAR_VIEW: "normal",
 
   CLUSTERS_SHOW_MARKERS: true,
@@ -245,6 +247,7 @@ export const CLOUD_SYNC_KEYS: ConfigKey[] = [
   "LOGTIME_SHOW_DAYS_MODE",
   "LOGTIME_CALENDAR_COLOR",
   "LOGTIME_LABELS_COLOR",
+  "LOGTIME_RAINBOW_PALETTE",
   "LOGTIME_CALENDAR_VIEW",
   "CLUSTERS_SHOW_MARKERS",
   "CLUSTERS_DEFAULT_ID",

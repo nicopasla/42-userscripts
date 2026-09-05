@@ -86,17 +86,7 @@
 }
 
 .badge-rainbow {
-  background: linear-gradient(90deg,
-      #ff0000,
-      #ff7f00,
-      #ffeb3b,
-      #4caf50,
-      #00bcd4,
-      #2196f3,
-      #3f51b5,
-      #9c27b0,
-      #e91e63,
-      #ff0000);
+  background: linear-gradient(90deg, var(--rainbow-colors, #ff0000, #ff7f00, #ffeb3b, #4caf50, #00bcd4, #2196f3, #3f51b5, #9c27b0, #e91e63, #ff0000));
   background-size: 200% 100% !important;
   animation: rainbow-shift 5s linear infinite !important;
   border: none !important;
@@ -114,7 +104,7 @@
 
 .liquid-fill-full {
   height: 100%;
-  background: linear-gradient(90deg, #ff0000, #ffeb3b, #e91e63, #ff0000);
+  background: linear-gradient(90deg, var(--rainbow-colors, #ff0000, #ffeb3b, #e91e63, #ff0000));
   background-size: 200% 100%;
   animation: rainbow-shift 5s linear infinite;
   width: 100%;

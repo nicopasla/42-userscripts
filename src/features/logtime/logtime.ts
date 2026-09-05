@@ -1,5 +1,6 @@
 import { render } from "lit-html";
 import { getConfig } from "../../config.ts";
+import { resolveRainbowColors } from "./rainbow-presets.ts";
 import { hashLogin } from "../../utils/crypto.ts";
 import {
   findLogtimeMount,
@@ -135,6 +136,9 @@ const getConfigs = async () => ({
   show_days_mode: await getConfig("LOGTIME_SHOW_DAYS_MODE"),
   calendar_color: await getConfig("LOGTIME_CALENDAR_COLOR"),
   labels_color: await getConfig("LOGTIME_LABELS_COLOR"),
+  rainbow_colors: resolveRainbowColors(
+    await getConfig("LOGTIME_RAINBOW_PALETTE"),
+  ),
   disable_animations: await getConfig("DISABLE_ANIMATIONS"),
   max_earnings: await getConfig("LOGTIME_MAX_EARNINGS"),
   calendar_view: await getConfig("LOGTIME_CALENDAR_VIEW"),
@@ -611,6 +615,7 @@ export function applyPublicLogtimeSettings(logtime: {
   emoji?: string;
   emojiDivisor?: string | number;
   emojiRate?: string | number;
+  rainbowPalette?: string;
 }) {
   if (!isLoaded || !logtime) return;
 
@@ -623,6 +628,9 @@ export function applyPublicLogtimeSettings(logtime: {
       : CONFIG.divisor;
   CONFIG.rate =
     logtime.emojiRate !== undefined ? Number(logtime.emojiRate) : CONFIG.rate;
+  if (logtime.rainbowPalette !== undefined) {
+    CONFIG.rainbow_colors = resolveRainbowColors(logtime.rainbowPalette);
+  }
 
   if (lastStats) {
     renderLogtime(lastStats);

@@ -31,6 +31,7 @@ import CLOUD_SVG from "../../assets/svg/cloud.svg?raw";
 import ICON_SVG from "../../assets/svg/icon.svg?raw";
 import GRIP_VERTICAL_SVG from "../../assets/svg/grip-vertical.svg?raw";
 import LINK_SVG from "../../assets/svg/link.svg?raw";
+import CHEVRON_DOWN_SVG from "../../assets/svg/chevron-down.svg?raw";
 import { renderAboutPanel } from "./hub.about.ts";
 import { renderDiscordPanel } from "../discord/discord.ui.ts";
 import { renderCalendarPanel } from "../calendar/calendar.ui.ts";
@@ -540,6 +541,70 @@ function renderSettingControl(def: HubSettingDef, enabled: boolean) {
             @change="${(e: Event) =>
               saveSetting(def.key!, (e.target as HTMLInputElement).value)}"
           />`;
+
+        case "rainbow-palette": {
+          const options = def.options ?? [];
+          const current =
+            options.find((o) => o.value === value) ??
+            (options[0] as (typeof options)[number]);
+          return html`<div class="w-full">
+            <details
+              class="dropdown"
+              style="position: relative; position-area: auto !important;"
+              @mousedown="${(e: Event) => e.stopPropagation()}"
+              @click="${(e: Event) => e.stopPropagation()}"
+            >
+              <summary
+                class="btn btn-sm btn-outline flex items-center gap-2 justify-between w-full border-base-content/30"
+                data-tip="${current.label}"
+              >
+                <span
+                  class="h-3 flex-1 rounded-full border border-base-300"
+                  style="background: linear-gradient(90deg, ${current.color});"
+                ></span>
+                <span class="opacity-80 text-xs">${current.label}</span>
+                <span
+                  class="size-3 shrink-0 opacity-60 flex items-center justify-center"
+                  >${unsafeHTML(
+                    CHEVRON_DOWN_SVG.replace(
+                      "<svg",
+                      '<svg width="12" height="12"',
+                    ),
+                  )}</span
+                >
+              </summary>
+              <ul
+                class="menu menu-sm dropdown-content z-20 mb-2 rounded-box bg-base-100 p-1 shadow-xl"
+                style="bottom: 100% !important; right: 0 !important; left: auto !important; transform-origin: bottom; width:max-content; min-width:14rem;"
+              >
+                ${options.map(
+                  (o) =>
+                    html`<li>
+                      <button
+                        type="button"
+                        class="flex items-center gap-2 whitespace-nowrap ${o.value ===
+                        value
+                          ? "menu-active"
+                          : ""}"
+                        @click="${(e: Event) => {
+                          saveSetting(def.key!, o.value ?? "");
+                          (e.currentTarget as HTMLElement)
+                            .closest("details")
+                            ?.removeAttribute("open");
+                        }}"
+                      >
+                        <span
+                          class="h-3 w-10 rounded-full border border-base-300"
+                          style="background: linear-gradient(90deg, ${o.color});"
+                        ></span>
+                        <span>${o.label}</span>
+                      </button>
+                    </li>`,
+                )}
+              </ul>
+            </details>
+          </div>`;
+        }
 
         case "radio-group": {
           const options =
