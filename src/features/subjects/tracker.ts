@@ -166,7 +166,7 @@ export async function initSubjectTracker(): Promise<void> {
       // Worker unreachable → fall back to latest local knowledge.
       nextLocal = {
         lastUrl: local.lastUrl ?? normalizeUrl(url),
-        versionDate: local.versionDate ?? Date.now(),
+        versionDate: local.versionDate,
         changedAt: local.changedAt,
         checkedAt: Date.now(),
       };
@@ -228,10 +228,10 @@ export async function initSubjectTracker(): Promise<void> {
         checkedAt: Date.now(),
       };
     } else {
-      // No prior record → seed a baseline so the badge shows immediately.
+      // No prior record and no known change → keep no date so no badge shows.
       nextLocal = {
         lastUrl: normalizeUrl(url),
-        versionDate: local.versionDate ?? Date.now(),
+        versionDate: local.versionDate,
         changedAt: local.changedAt,
         checkedAt: Date.now(),
       };
