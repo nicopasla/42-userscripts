@@ -464,107 +464,122 @@ function renderPanelContent(
   };
 
   const badgesPanel = html`
-    <div
-      class="flex flex-col gap-3 rounded-box border border-base-300 bg-base-200/50 p-3"
-    >
-      <div class="text-xs font-semibold uppercase tracking-wider opacity-50">
-        Badges
-      </div>
-
-      <div class="form-control">
-        <label class="label py-1">
-          <span class="label-text opacity-80">Background color</span>
-        </label>
-        <div class="flex gap-2 items-center">
-          <input
-            type="color"
-            class="input input-bordered w-full h-10 p-1"
-            .value="${state.badgeBg || "#00babc"}"
-            @input="${(e: Event) =>
-              onFormUpdate({ badgeBg: (e.target as HTMLInputElement).value })}"
-          />
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm shrink-0"
-            @click="${() => onFormUpdate({ badgeBg: "" })}"
+    <div class="flex flex-col gap-3">
+      <div class="flex gap-3 flex-col sm:flex-row">
+        <div
+          class="rounded-box border border-base-300 bg-base-200/50 p-3 flex-1 flex flex-col justify-center"
+        >
+          <div
+            class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
           >
-            Default
-          </button>
+            Background color
+          </div>
+          <div class="form-control">
+            <div class="flex gap-2 items-center">
+              <input
+                type="color"
+                class="input input-bordered w-full h-10 p-1"
+                .value="${state.badgeBg || "#00babc"}"
+                @input="${(e: Event) =>
+                  onFormUpdate({
+                    badgeBg: (e.target as HTMLInputElement).value,
+                  })}"
+              />
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm shrink-0"
+                @click="${() => onFormUpdate({ badgeBg: "" })}"
+              >
+                Default
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="rounded-box border border-base-300 bg-base-200/50 p-3 flex-1 flex flex-col justify-center"
+        >
+          <div class="form-control">
+            <label
+              class="flex items-center justify-between cursor-pointer gap-2"
+            >
+              <span class="label-text opacity-80"
+                >Wrap onto multiple lines</span
+              >
+              <input
+                type="checkbox"
+                class="toggle toggle-sm shrink-0"
+                .checked="${state.badgeWrap}"
+                @change="${(e: Event) =>
+                  onFormUpdate({
+                    badgeWrap: (e.target as HTMLInputElement).checked,
+                  })}"
+              />
+            </label>
+          </div>
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-3 items-center">
-        <span class="text-xs opacity-50 w-full pb-1"
-          >Drag to reorder · click the eye to hide</span
+      <div class="rounded-box border border-base-300 bg-base-200/50 p-3">
+        <div
+          class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
         >
-        ${badgeTitles.map((title, idx) => {
-          const isHidden = knownHidden.has(title.toLowerCase());
-          return html`
-            <div
-              class="btn btn-sm border shadow-sm transition-all select-none gap-2 font-bold normal-case px-3 cursor-grab active:cursor-grabbing ${isHidden
-                ? "opacity-30 line-through saturate-50 scale-95"
-                : ""}"
-              data-ft-badge-idx="${idx}"
-              draggable="true"
-              @dragstart="${(e: DragEvent) => {
-                if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-                (e.currentTarget as HTMLElement).style.opacity = "0.3";
-                badgeDragIdx = idx;
-              }}"
-              @dragover="${(e: DragEvent) => e.preventDefault()}"
-              @dragend="${(e: DragEvent) => {
-                (e.currentTarget as HTMLElement).style.opacity = "";
-                badgeDragIdx = null;
-              }}"
-              @drop="${(e: DragEvent) => {
-                e.preventDefault();
-                if (badgeDragIdx !== null) moveBadge(badgeDragIdx, idx);
-                badgeDragIdx = null;
-              }}"
-            >
-              <span
-                class="size-3 shrink-0 opacity-40 pointer-events-none flex items-center justify-center"
-                >${unsafeHTML(GRIP_VERTICAL_SVG)}</span
-              >
-              <button
-                type="button"
-                class="p-1 -ml-1 rounded hover:bg-black/10 transition-colors cursor-pointer flex items-center justify-center text-white"
-                @click="${() => setBadgeHidden(title, !isHidden)}"
-                data-tip="${isHidden ? "Show badge" : "Hide badge"}"
-              >
-                ${isHidden
-                  ? html`<span
-                      class="size-4 opacity-80 flex items-center justify-center"
-                      >${unsafeHTML(EYE_SLASH_SVG)}</span
-                    >`
-                  : html`<span
-                      class="size-4 opacity-60 flex items-center justify-center"
-                      >${unsafeHTML(EYE_SVG)}</span
-                    >`}
-              </button>
-              <span class="pointer-events-none">${title}</span>
-            </div>
-          `;
-        })}
-      </div>
-
-      <div class="divider my-1"></div>
-
-      <div class="form-control">
-        <label class="flex items-center justify-between cursor-pointer">
-          <span class="label-text opacity-80"
-            >Wrap badges onto multiple lines</span
+          Order & visibility
+        </div>
+        <div class="flex flex-wrap gap-3 items-center">
+          <span class="text-xs opacity-50 w-full pb-1"
+            >Drag to reorder · click the eye to hide</span
           >
-          <input
-            type="checkbox"
-            class="toggle toggle-sm"
-            .checked="${state.badgeWrap}"
-            @change="${(e: Event) =>
-              onFormUpdate({
-                badgeWrap: (e.target as HTMLInputElement).checked,
-              })}"
-          />
-        </label>
+          ${badgeTitles.map((title, idx) => {
+            const isHidden = knownHidden.has(title.toLowerCase());
+            return html`
+              <div
+                class="btn btn-sm border shadow-sm transition-all select-none gap-2 font-bold normal-case px-3 cursor-grab active:cursor-grabbing ${isHidden
+                  ? "opacity-30 line-through saturate-50 scale-95"
+                  : ""}"
+                data-ft-badge-idx="${idx}"
+                draggable="true"
+                @dragstart="${(e: DragEvent) => {
+                  if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+                  (e.currentTarget as HTMLElement).style.opacity = "0.3";
+                  badgeDragIdx = idx;
+                }}"
+                @dragover="${(e: DragEvent) => e.preventDefault()}"
+                @dragend="${(e: DragEvent) => {
+                  (e.currentTarget as HTMLElement).style.opacity = "";
+                  badgeDragIdx = null;
+                }}"
+                @drop="${(e: DragEvent) => {
+                  e.preventDefault();
+                  if (badgeDragIdx !== null) moveBadge(badgeDragIdx, idx);
+                  badgeDragIdx = null;
+                }}"
+              >
+                <span
+                  class="size-3 shrink-0 opacity-40 pointer-events-none flex items-center justify-center"
+                  >${unsafeHTML(GRIP_VERTICAL_SVG)}</span
+                >
+                <button
+                  type="button"
+                  class="p-1 -ml-1 rounded hover:bg-black/10 transition-colors cursor-pointer flex items-center justify-center text-white"
+                  @click="${() => setBadgeHidden(title, !isHidden)}"
+                  data-tip="${isHidden ? "Show badge" : "Hide badge"}"
+                >
+                  ${isHidden
+                    ? html`<span
+                        class="size-4 opacity-80 flex items-center justify-center"
+                        >${unsafeHTML(EYE_SLASH_SVG)}</span
+                      >`
+                    : html`<span
+                        class="size-4 opacity-60 flex items-center justify-center"
+                        >${unsafeHTML(EYE_SVG)}</span
+                      >`}
+                </button>
+                <span class="pointer-events-none">${title}</span>
+              </div>
+            `;
+          })}
+        </div>
       </div>
     </div>
   `;
