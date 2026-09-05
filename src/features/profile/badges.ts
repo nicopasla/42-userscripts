@@ -1,5 +1,6 @@
 import { getConfig } from "../../config.ts";
 import { fetchCampusList } from "../campus/campus.ts";
+import { TITLE_BADGE_SELECTOR } from "./selectors.ts";
 
 const CAMPUS_BASE = "https://api.betterintra.com/gh/campuses";
 
@@ -69,9 +70,7 @@ export async function getBadgeUrl(name: string): Promise<string | null> {
 }
 
 export function wrapTitleBadges(root: ParentNode): void {
-  const badgeEls = root.querySelectorAll<HTMLElement>(
-    '[class*="text-primary-foreground"][class*="inline-flex"]',
-  );
+  const badgeEls = root.querySelectorAll<HTMLElement>(TITLE_BADGE_SELECTOR);
   if (!badgeEls.length) return;
 
   const containers = new Set<HTMLElement>();
@@ -84,11 +83,112 @@ export function wrapTitleBadges(root: ParentNode): void {
   }
 }
 
+export function getTitleBadges(
+  root: ParentNode,
+): { title: string; el: HTMLElement }[] {
+  const list: { title: string; el: HTMLElement }[] = [];
+  for (const el of root.querySelectorAll<HTMLElement>(TITLE_BADGE_SELECTOR)) {
+    if (el.closest("[data-ft-badge-menu], [data-ft-badge-more]")) continue;
+    const title = el.textContent?.trim() || "";
+    if (title) list.push({ title, el });
+  }
+  return list;
+}
+
+export interface BadgeLayoutOpts {
+  order: string[];
+  wrap: boolean;
+}
+
+export function applyBadgeLayout(
+  root: ParentNode,
+  opts: BadgeLayoutOpts,
+): void {
+  const badges = getTitleBadges(root);
+  if (!badges.length) return;
+
+  const container = badges[0].el.parentElement;
+  if (!container) return;
+
+  const hiddenSet = new Set(
+    opts.order
+      .filter((name) => name.startsWith("-"))
+      .map((name) => name.substring(1).trim().toLowerCase()),
+  );
+
+  const desiredWrap = opts.wrap ? "wrap" : "nowrap";
+  if (container.style.getPropertyValue("flex-wrap") !== desiredWrap) {
+    container.style.setProperty("flex-wrap", desiredWrap, "important");
+  }
+
+  for (const { title, el } of badges) {
+    const hidden = hiddenSet.has(title.toLowerCase());
+    const display = hidden ? "none" : "";
+    if (
+      el.style.getPropertyValue("display") !== display ||
+      el.style.getPropertyPriority("display") !==
+        (display === "none" ? "important" : "")
+    ) {
+      el.style.setProperty(
+        "display",
+        display,
+        display === "none" ? "important" : "",
+      );
+    }
+  }
+
+  const ordered = opts.order
+    .filter((name) => !name.startsWith("-"))
+    .map((name) => name.trim().toLowerCase());
+  if (ordered.length) {
+    const byTitle = new Map(badges.map((b) => [b.title.toLowerCase(), b.el]));
+
+    const orderedEls: HTMLElement[] = [];
+    for (const name of ordered) {
+      const el = byTitle.get(name);
+      if (el) orderedEls.push(el);
+    }
+    for (const { title, el } of badges) {
+      if (!byTitle.has(title.toLowerCase())) continue;
+      if (!orderedEls.includes(el)) orderedEls.push(el);
+    }
+    const namedSet = new Set(ordered);
+    for (const { el } of badges) {
+      const name = el.textContent?.trim().toLowerCase() || "";
+      if (!namedSet.has(name)) orderedEls.push(el);
+    }
+
+    const currentEls = [...container.children] as HTMLElement[];
+
+    const sameOrder =
+      orderedEls.length === currentEls.length &&
+      orderedEls.every((el, i) => el === currentEls[i]);
+
+    if (!sameOrder) {
+      const fragment = document.createDocumentFragment();
+      for (const el of orderedEls) fragment.appendChild(el);
+      container.appendChild(fragment);
+    }
+  }
+}
+
+let lastAppliedKey = "";
+
 export function applyTitleBadgeWrap() {
   if (location.hostname !== "profile-v3.intra.42.fr") return;
   if (!(location.pathname === "/" || location.pathname.startsWith("/users")))
     return;
-  wrapTitleBadges(document);
+  void (async () => {
+    const order = (await getConfig("PROFILE_BADGE_ORDER")) as string[];
+    const wrap = await getConfig("PROFILE_BADGE_WRAP");
+    const key = `${JSON.stringify(order || [])}|${wrap}`;
+    if (key === lastAppliedKey) return;
+    lastAppliedKey = key;
+    applyBadgeLayout(document, {
+      order: order || [],
+      wrap,
+    });
+  })();
 }
 
 let badgesInitialized = false;
@@ -99,9 +199,7 @@ export async function initBadges() {
 
   if (location.pathname !== "/") return;
 
-  const badgeEls = document.querySelectorAll<HTMLElement>(
-    '[class*="text-primary-foreground"][class*="inline-flex"]',
-  );
+  const badgeEls = document.querySelectorAll<HTMLElement>(TITLE_BADGE_SELECTOR);
 
   for (const el of badgeEls) {
     const name = el.textContent?.trim() || "";

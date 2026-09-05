@@ -8,9 +8,13 @@ import {
   syncMyVisuals,
 } from "../account/account.ts";
 import { applyImgs, injectCustomStyles, VisualUrls } from "./visuals.ts";
+import { getTitleBadges, applyBadgeLayout } from "./badges.ts";
 import { getEffectiveTheme } from "./theme/theme-manager.ts";
 import { sharedCSS } from "../../assets/shared-styles.ts";
 import LINK_SVG from "../../assets/svg/link.svg?raw";
+import GRIP_VERTICAL_SVG from "../../assets/svg/grip-vertical.svg?raw";
+import EYE_SVG from "../../assets/svg/eye.svg?raw";
+import EYE_SLASH_SVG from "../../assets/svg/eye-slash.svg?raw";
 import { renderAvatarEditor } from "./avatar-editor.ts";
 import { uploadImage } from "./image-upload.ts";
 import FORTY_TWO_SVG from "../../assets/svg/42_Logo.svg?raw";
@@ -29,8 +33,16 @@ interface FormState {
   avatarPosX: number;
   avatarPosY: number;
   avatarScale: number;
+  badgeBg: string;
+  badgeOrder: string[];
+  badgeWrap: boolean;
   uploading: string;
 }
+
+type ProfileTab = "avatar" | "banner" | "background" | "badges";
+
+let activeTab: ProfileTab = "avatar";
+let badgeDragIdx: number | null = null;
 
 function addToHistory(url: string, history: string[]): string[] {
   if (!url) return history;
@@ -167,8 +179,402 @@ function renderPanelContent(
   isConnected: boolean,
   needsReconnect: boolean,
   onConnect: () => void,
+  onTabChange: (tab: ProfileTab) => void,
 ) {
   const isTransparent = state.avatarBg === "transparent";
+
+  const tabItems: { id: ProfileTab; label: string }[] = [
+    { id: "avatar", label: "Avatar" },
+    { id: "banner", label: "Banner" },
+    { id: "background", label: "Background" },
+    { id: "badges", label: "Badges" },
+  ];
+
+  const avatarPanel = html`
+    <div class="rounded-box border border-base-300 bg-base-200/50 p-3">
+      <div class="flex gap-5 items-start">
+        <div class="flex-1 min-w-0">
+          ${renderUrlField(
+            "PROFILE_IMAGE_URL",
+            "Image URL",
+            state.avatar,
+            (val) => onFormUpdate({ avatar: val }),
+            history.avatar,
+            "avatar",
+            state.uploading,
+            () => onClearHistory("avatar"),
+          )}
+          <div class="flex gap-2 items-center mt-2">
+            <div class="join w-full">
+              <input
+                type="radio"
+                name="PROFILE_AVATAR_BG_MODE"
+                class="btn btn-sm join-item flex-1"
+                aria-label="Transparent"
+                value="transparent"
+                ?checked="${isTransparent}"
+                @change="${() => onFormUpdate({ avatarBg: "transparent" })}"
+              />
+              <input
+                type="radio"
+                name="PROFILE_AVATAR_BG_MODE"
+                class="btn btn-sm join-item flex-1"
+                aria-label="Color"
+                value="custom"
+                ?checked="${!isTransparent}"
+                @change="${() => onFormUpdate({ avatarBg: "#00bcba" })}"
+              />
+            </div>
+            <div
+              id="ft-avatar-bg-color-wrap"
+              class="${isTransparent ? "hidden" : ""}"
+            >
+              <input
+                type="color"
+                id="PROFILE_AVATAR_BG_COLOR"
+                class="input input-bordered input-sm p-1 h-8 w-14"
+                .value="${isTransparent ? "#00bcba" : state.avatarBg}"
+                @input="${(e: Event) =>
+                  onFormUpdate({
+                    avatarBg: (e.target as HTMLInputElement).value,
+                  })}"
+              />
+            </div>
+          </div>
+          <div class="pt-2">
+            <span class="text-xs opacity-60">Border</span>
+            <div class="join w-full mt-1">
+              <input
+                type="radio"
+                name="PROFILE_DECORATION"
+                class="btn btn-sm join-item flex-1"
+                aria-label="None"
+                value="none"
+                ?checked="${state.decoration === "none"}"
+                @change="${() => onFormUpdate({ decoration: "none" })}"
+              />
+              <input
+                type="radio"
+                name="PROFILE_DECORATION"
+                class="btn btn-sm join-item flex-1"
+                aria-label="Solid"
+                value="solid"
+                ?checked="${state.decoration === "solid"}"
+                @change="${() => onFormUpdate({ decoration: "solid" })}"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="w-64 shrink-0 flex flex-col items-start">
+          ${state.avatar
+            ? renderAvatarEditor(
+                {
+                  url: state.avatar,
+                  posX: state.avatarPosX,
+                  posY: state.avatarPosY,
+                  scale: state.avatarScale,
+                  bgColor: state.avatarBg,
+                  decoration: state.decoration,
+                },
+                (changes) => {
+                  const updates: Partial<FormState> = {};
+                  if (changes.scale !== undefined)
+                    updates.avatarScale = changes.scale;
+                  if (changes.posX !== undefined)
+                    updates.avatarPosX = changes.posX;
+                  if (changes.posY !== undefined)
+                    updates.avatarPosY = changes.posY;
+                  onFormUpdate(updates);
+                },
+              )
+            : html`<div
+                class="w-52 h-52 rounded-full bg-base-300 flex items-center justify-center"
+              >
+                <span class="text-xs opacity-50">No avatar URL set</span>
+              </div>`}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const bannerPanel = html`
+    <div class="rounded-box border border-base-300 bg-base-200/50 p-3">
+      <div
+        class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
+      >
+        Banner
+      </div>
+      ${state.bannerColor
+        ? ""
+        : html`${renderUrlField(
+            "PROFILE_BANNER_URL",
+            "Image URL",
+            state.banner,
+            (val) => onFormUpdate({ banner: val }),
+            history.banner,
+            "banner",
+            state.uploading,
+            () => onClearHistory("banner"),
+          )}
+          ${renderModeRadios("PROFILE_BANNER_MODE", state.bannerMode, (val) =>
+            onFormUpdate({ bannerMode: val }),
+          )}`}
+      ${state.bannerColor
+        ? html`<div class="form-control w-full">
+            <label class="label py-1">
+              <span class="label-text opacity-80">Color</span>
+            </label>
+            <input
+              type="color"
+              class="input input-bordered w-full h-10 p-1"
+              .value="${state.bannerColor}"
+              @input="${(e: Event) =>
+                onFormUpdate({
+                  bannerColor: (e.target as HTMLInputElement).value,
+                })}"
+            />
+          </div>`
+        : ""}
+      <div class="join w-full mt-2">
+        <input
+          type="radio"
+          name="PROFILE_BANNER_TYPE"
+          class="btn btn-sm join-item flex-1"
+          aria-label="Image"
+          value="image"
+          ?checked="${!state.bannerColor}"
+          @change="${() => onFormUpdate({ bannerColor: "", banner: "" })}"
+        />
+        <input
+          type="radio"
+          name="PROFILE_BANNER_TYPE"
+          class="btn btn-sm join-item flex-1"
+          aria-label="Color"
+          value="color"
+          ?checked="${state.bannerColor !== ""}"
+          @change="${() =>
+            onFormUpdate({ bannerColor: "#333333", banner: "" })}"
+        />
+      </div>
+    </div>
+  `;
+
+  const backgroundPanel = html`
+    <div class="rounded-box border border-base-300 bg-base-200/50 p-3">
+      <div
+        class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
+      >
+        Background
+      </div>
+      ${state.backgroundColor
+        ? ""
+        : html`${renderUrlField(
+            "PROFILE_BACKGROUND_URL",
+            "Image URL",
+            state.background,
+            (val) => onFormUpdate({ background: val }),
+            history.background,
+            "background",
+            state.uploading,
+            () => onClearHistory("background"),
+          )}
+          ${renderModeRadios(
+            "PROFILE_BACKGROUND_MODE",
+            state.backgroundMode,
+            (val) => onFormUpdate({ backgroundMode: val }),
+          )}`}
+      ${state.backgroundColor
+        ? html`<div class="form-control w-full">
+            <label class="label py-1">
+              <span class="label-text opacity-80">Color</span>
+            </label>
+            <input
+              type="color"
+              class="input input-bordered w-full h-10 p-1"
+              .value="${state.backgroundColor}"
+              @input="${(e: Event) =>
+                onFormUpdate({
+                  backgroundColor: (e.target as HTMLInputElement).value,
+                })}"
+            />
+          </div>`
+        : ""}
+      <div class="join w-full mt-2">
+        <input
+          type="radio"
+          name="PROFILE_BACKGROUND_TYPE"
+          class="btn btn-sm join-item flex-1"
+          aria-label="Image"
+          value="image"
+          ?checked="${!state.backgroundColor}"
+          @change="${() =>
+            onFormUpdate({ backgroundColor: "", background: "" })}"
+        />
+        <input
+          type="radio"
+          name="PROFILE_BACKGROUND_TYPE"
+          class="btn btn-sm join-item flex-1"
+          aria-label="Color"
+          value="color"
+          ?checked="${state.backgroundColor !== ""}"
+          @change="${() =>
+            onFormUpdate({ backgroundColor: "#333333", background: "" })}"
+        />
+      </div>
+    </div>
+  `;
+
+  const liveBadges = getTitleBadges(document).map((b) => b.title);
+  const normalizedOrder = state.badgeOrder.filter((n) => !n.startsWith("-"));
+  const knownHidden = new Set(
+    state.badgeOrder
+      .filter((n) => n.startsWith("-"))
+      .map((n) => n.substring(1).trim().toLowerCase()),
+  );
+  const mergedTitles = [
+    ...normalizedOrder,
+    ...liveBadges.filter((t) => !normalizedOrder.includes(t)),
+  ];
+  const badgeTitles = mergedTitles.filter(
+    (t, i) => mergedTitles.indexOf(t) === i,
+  );
+
+  const setBadgeHidden = (title: string, hidden: boolean) => {
+    const clean = state.badgeOrder
+      .filter((n) => n.trim().toLowerCase() !== title.toLowerCase())
+      .filter((n) => n !== `-${title}` && n.substring(1) !== title);
+    const next = [...clean];
+    if (hidden) next.push(`-${title}`);
+    else next.push(title);
+    const idx = badgeTitles.indexOf(title);
+    if (idx === -1) next.push(title);
+    onFormUpdate({ badgeOrder: next });
+  };
+
+  const moveBadge = (from: number, to: number) => {
+    if (from === to) return;
+    const list = [...badgeTitles];
+    const [removed] = list.splice(from, 1);
+    list.splice(to, 0, removed);
+    const hidden = badgeTitles
+      .filter((t) => knownHidden.has(t.toLowerCase()))
+      .map((t) => `-${t}`);
+    onFormUpdate({ badgeOrder: [...list, ...hidden] });
+  };
+
+  const badgesPanel = html`
+    <div
+      class="flex flex-col gap-3 rounded-box border border-base-300 bg-base-200/50 p-3"
+    >
+      <div class="text-xs font-semibold uppercase tracking-wider opacity-50">
+        Badges
+      </div>
+
+      <div class="form-control">
+        <label class="label py-1">
+          <span class="label-text opacity-80">Background color</span>
+        </label>
+        <div class="flex gap-2 items-center">
+          <input
+            type="color"
+            class="input input-bordered w-full h-10 p-1"
+            .value="${state.badgeBg || "#00babc"}"
+            @input="${(e: Event) =>
+              onFormUpdate({ badgeBg: (e.target as HTMLInputElement).value })}"
+          />
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm shrink-0"
+            @click="${() => onFormUpdate({ badgeBg: "" })}"
+          >
+            Default
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 items-center">
+        <span class="text-xs opacity-50 w-full pb-1"
+          >Drag to reorder · click the eye to hide</span
+        >
+        ${badgeTitles.map((title, idx) => {
+          const isHidden = knownHidden.has(title.toLowerCase());
+          return html`
+            <div
+              class="btn btn-sm border shadow-sm transition-all select-none gap-2 font-bold normal-case px-3 cursor-grab active:cursor-grabbing ${isHidden
+                ? "opacity-30 line-through saturate-50 scale-95"
+                : ""}"
+              data-ft-badge-idx="${idx}"
+              draggable="true"
+              @dragstart="${(e: DragEvent) => {
+                if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+                (e.currentTarget as HTMLElement).style.opacity = "0.3";
+                badgeDragIdx = idx;
+              }}"
+              @dragover="${(e: DragEvent) => e.preventDefault()}"
+              @dragend="${(e: DragEvent) => {
+                (e.currentTarget as HTMLElement).style.opacity = "";
+                badgeDragIdx = null;
+              }}"
+              @drop="${(e: DragEvent) => {
+                e.preventDefault();
+                if (badgeDragIdx !== null) moveBadge(badgeDragIdx, idx);
+                badgeDragIdx = null;
+              }}"
+            >
+              <span
+                class="size-3 shrink-0 opacity-40 pointer-events-none flex items-center justify-center"
+                >${unsafeHTML(GRIP_VERTICAL_SVG)}</span
+              >
+              <button
+                type="button"
+                class="p-1 -ml-1 rounded hover:bg-black/10 transition-colors cursor-pointer flex items-center justify-center text-white"
+                @click="${() => setBadgeHidden(title, !isHidden)}"
+                data-tip="${isHidden ? "Show badge" : "Hide badge"}"
+              >
+                ${isHidden
+                  ? html`<span
+                      class="size-4 opacity-80 flex items-center justify-center"
+                      >${unsafeHTML(EYE_SLASH_SVG)}</span
+                    >`
+                  : html`<span
+                      class="size-4 opacity-60 flex items-center justify-center"
+                      >${unsafeHTML(EYE_SVG)}</span
+                    >`}
+              </button>
+              <span class="pointer-events-none">${title}</span>
+            </div>
+          `;
+        })}
+      </div>
+
+      <div class="divider my-1"></div>
+
+      <div class="form-control">
+        <label class="flex items-center justify-between cursor-pointer">
+          <span class="label-text opacity-80"
+            >Wrap badges onto multiple lines</span
+          >
+          <input
+            type="checkbox"
+            class="toggle toggle-sm"
+            .checked="${state.badgeWrap}"
+            @change="${(e: Event) =>
+              onFormUpdate({
+                badgeWrap: (e.target as HTMLInputElement).checked,
+              })}"
+          />
+        </label>
+      </div>
+    </div>
+  `;
+
+  const panels: Record<ProfileTab, unknown> = {
+    avatar: avatarPanel,
+    banner: bannerPanel,
+    background: backgroundPanel,
+    badges: badgesPanel,
+  };
 
   return html`
     <style>
@@ -220,275 +626,36 @@ function renderPanelContent(
             </div>
           `
         : html`
-            <div class="flex flex-col gap-3">
-              <!-- Top row: Avatar card with preview inside -->
-              <div class="shrink-0">
-                <div
-                  class="rounded-box border border-base-300 bg-base-200/50 p-3"
-                >
-                  <div
-                    class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
+            <div role="tablist" class="tabs tabs-box shrink-0">
+              ${tabItems.map(
+                (tab) => html`
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected="${activeTab === tab.id}"
+                    class="tab ${activeTab === tab.id ? "tab-active" : ""}"
+                    @click="${() => onTabChange(tab.id)}"
                   >
-                    Avatar
-                  </div>
-                  <div class="flex gap-5 items-start">
-                    <div class="flex-1 min-w-0">
-                      ${renderUrlField(
-                        "PROFILE_IMAGE_URL",
-                        "Image URL",
-                        state.avatar,
-                        (val) => onFormUpdate({ avatar: val }),
-                        history.avatar,
-                        "avatar",
-                        state.uploading,
-                        () => onClearHistory("avatar"),
-                      )}
-                      <div class="flex gap-2 items-center mt-2">
-                        <div class="join w-full">
-                          <input
-                            type="radio"
-                            name="PROFILE_AVATAR_BG_MODE"
-                            class="btn btn-sm join-item flex-1"
-                            aria-label="Transparent"
-                            value="transparent"
-                            ?checked="${isTransparent}"
-                            @change="${() =>
-                              onFormUpdate({ avatarBg: "transparent" })}"
-                          />
-                          <input
-                            type="radio"
-                            name="PROFILE_AVATAR_BG_MODE"
-                            class="btn btn-sm join-item flex-1"
-                            aria-label="Color"
-                            value="custom"
-                            ?checked="${!isTransparent}"
-                            @change="${() =>
-                              onFormUpdate({ avatarBg: "#00bcba" })}"
-                          />
-                        </div>
-                        <div
-                          id="ft-avatar-bg-color-wrap"
-                          class="${isTransparent ? "hidden" : ""}"
-                        >
-                          <input
-                            type="color"
-                            id="PROFILE_AVATAR_BG_COLOR"
-                            class="input input-bordered input-sm p-1 h-8 w-14"
-                            .value="${isTransparent
-                              ? "#00bcba"
-                              : state.avatarBg}"
-                            @input="${(e: Event) =>
-                              onFormUpdate({
-                                avatarBg: (e.target as HTMLInputElement).value,
-                              })}"
-                          />
-                        </div>
-                      </div>
-                      <div class="pt-2">
-                        <span class="text-xs opacity-60">Border</span>
-                        <div class="join w-full mt-1">
-                          <input
-                            type="radio"
-                            name="PROFILE_DECORATION"
-                            class="btn btn-sm join-item flex-1"
-                            aria-label="None"
-                            value="none"
-                            ?checked="${state.decoration === "none"}"
-                            @change="${() =>
-                              onFormUpdate({ decoration: "none" })}"
-                          />
-                          <input
-                            type="radio"
-                            name="PROFILE_DECORATION"
-                            class="btn btn-sm join-item flex-1"
-                            aria-label="Solid"
-                            value="solid"
-                            ?checked="${state.decoration === "solid"}"
-                            @change="${() =>
-                              onFormUpdate({ decoration: "solid" })}"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Preview inside the card -->
-                    <div class="w-64 shrink-0 flex flex-col items-start">
-                      ${state.avatar
-                        ? renderAvatarEditor(
-                            {
-                              url: state.avatar,
-                              posX: state.avatarPosX,
-                              posY: state.avatarPosY,
-                              scale: state.avatarScale,
-                              bgColor: state.avatarBg,
-                              decoration: state.decoration,
-                            },
-                            (changes) => {
-                              const updates: Partial<FormState> = {};
-                              if (changes.scale !== undefined)
-                                updates.avatarScale = changes.scale;
-                              if (changes.posX !== undefined)
-                                updates.avatarPosX = changes.posX;
-                              if (changes.posY !== undefined)
-                                updates.avatarPosY = changes.posY;
-                              onFormUpdate(updates);
-                            },
-                          )
-                        : html`<div
-                            class="w-52 h-52 rounded-full bg-base-300 flex items-center justify-center"
-                          >
-                            <span class="text-xs opacity-50"
-                              >No avatar URL set</span
-                            >
-                          </div>`}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- Banner + Background row -->
-              <div class="shrink-0 flex gap-5">
-                <div
-                  class="flex-1 rounded-box border border-base-300 bg-base-200/50 p-3"
-                >
-                  <div
-                    class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
-                  >
-                    Banner
-                  </div>
-                  ${state.bannerColor
-                    ? ""
-                    : html`${renderUrlField(
-                        "PROFILE_BANNER_URL",
-                        "Image URL",
-                        state.banner,
-                        (val) => onFormUpdate({ banner: val }),
-                        history.banner,
-                        "banner",
-                        state.uploading,
-                        () => onClearHistory("banner"),
-                      )}
-                      ${renderModeRadios(
-                        "PROFILE_BANNER_MODE",
-                        state.bannerMode,
-                        (val) => onFormUpdate({ bannerMode: val }),
-                      )}`}
-                  ${state.bannerColor
-                    ? html`<div class="form-control w-full">
-                        <label class="label py-1">
-                          <span class="label-text opacity-80">Color</span>
-                        </label>
-                        <input
-                          type="color"
-                          class="input input-bordered w-full h-10 p-1"
-                          .value="${state.bannerColor}"
-                          @input="${(e: Event) =>
-                            onFormUpdate({
-                              bannerColor: (e.target as HTMLInputElement).value,
-                            })}"
-                        />
-                      </div>`
-                    : ""}
-                  <div class="join w-full mt-2">
-                    <input
-                      type="radio"
-                      name="PROFILE_BANNER_TYPE"
-                      class="btn btn-sm join-item flex-1"
-                      aria-label="Image"
-                      value="image"
-                      ?checked="${!state.bannerColor}"
-                      @change="${() =>
-                        onFormUpdate({ bannerColor: "", banner: "" })}"
-                    />
-                    <input
-                      type="radio"
-                      name="PROFILE_BANNER_TYPE"
-                      class="btn btn-sm join-item flex-1"
-                      aria-label="Color"
-                      value="color"
-                      ?checked="${state.bannerColor !== ""}"
-                      @change="${() =>
-                        onFormUpdate({ bannerColor: "#333333", banner: "" })}"
-                    />
-                  </div>
-                </div>
-
-                <div
-                  class="flex-1 rounded-box border border-base-300 bg-base-200/50 p-3"
-                >
-                  <div
-                    class="text-xs font-semibold uppercase tracking-wider opacity-50 mb-3"
-                  >
-                    Background
-                  </div>
-                  ${state.backgroundColor
-                    ? ""
-                    : html`${renderUrlField(
-                        "PROFILE_BACKGROUND_URL",
-                        "Image URL",
-                        state.background,
-                        (val) => onFormUpdate({ background: val }),
-                        history.background,
-                        "background",
-                        state.uploading,
-                        () => onClearHistory("background"),
-                      )}
-                      ${renderModeRadios(
-                        "PROFILE_BACKGROUND_MODE",
-                        state.backgroundMode,
-                        (val) => onFormUpdate({ backgroundMode: val }),
-                      )}`}
-                  ${state.backgroundColor
-                    ? html`<div class="form-control w-full">
-                        <label class="label py-1">
-                          <span class="label-text opacity-80">Color</span>
-                        </label>
-                        <input
-                          type="color"
-                          class="input input-bordered w-full h-10 p-1"
-                          .value="${state.backgroundColor}"
-                          @input="${(e: Event) =>
-                            onFormUpdate({
-                              backgroundColor: (e.target as HTMLInputElement)
-                                .value,
-                            })}"
-                        />
-                      </div>`
-                    : ""}
-                  <div class="join w-full mt-2">
-                    <input
-                      type="radio"
-                      name="PROFILE_BACKGROUND_TYPE"
-                      class="btn btn-sm join-item flex-1"
-                      aria-label="Image"
-                      value="image"
-                      ?checked="${!state.backgroundColor}"
-                      @change="${() =>
-                        onFormUpdate({ backgroundColor: "", background: "" })}"
-                    />
-                    <input
-                      type="radio"
-                      name="PROFILE_BACKGROUND_TYPE"
-                      class="btn btn-sm join-item flex-1"
-                      aria-label="Color"
-                      value="color"
-                      ?checked="${state.backgroundColor !== ""}"
-                      @change="${() =>
-                        onFormUpdate({
-                          backgroundColor: "#333333",
-                          background: "",
-                        })}"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <button
-                id="profile-save"
-                class="btn btn-success font-bold shrink-0"
-              >
-                Save Changes
-              </button>
+                    ${tab.label}
+                  </button>
+                `,
+              )}
             </div>
+
+            <div
+              role="tabpanel"
+              style="min-height: 260px;"
+              class="flex flex-col"
+            >
+              ${panels[activeTab]}
+            </div>
+
+            <button
+              id="profile-save"
+              class="btn btn-success font-bold shrink-0"
+            >
+              Save Changes
+            </button>
           `}
     </div>
   `;
@@ -498,6 +665,8 @@ export const createSettingsModal = async (
   onSaveCallback: (updatedVisuals: VisualUrls) => void,
 ) => {
   if (document.getElementById("profile-modal-host")) return;
+
+  activeTab = "avatar";
 
   const token = await getConfig("CLOUD_TOKEN");
   const authFailed = !!(await getConfig("CLOUD_AUTH_FAILED"));
@@ -590,6 +759,9 @@ export const createSettingsModal = async (
     avatarPosX: await getConfig("PROFILE_AVATAR_POSITION_X"),
     avatarPosY: await getConfig("PROFILE_AVATAR_POSITION_Y"),
     avatarScale: await getConfig("PROFILE_AVATAR_SCALE"),
+    badgeBg: await getConfig("PROFILE_BADGE_BG"),
+    badgeOrder: await getConfig("PROFILE_BADGE_ORDER"),
+    badgeWrap: await getConfig("PROFILE_BADGE_WRAP"),
   };
 
   const state: FormState = { ...saved, uploading: "" };
@@ -630,6 +802,9 @@ export const createSettingsModal = async (
       "PROFILE_AVATAR_POSITION_X",
       "PROFILE_AVATAR_POSITION_Y",
       "PROFILE_AVATAR_SCALE",
+      "PROFILE_BADGE_BG",
+      "PROFILE_BADGE_ORDER",
+      "PROFILE_BADGE_WRAP",
     ]);
     close();
     location.reload();
@@ -768,6 +943,10 @@ export const createSettingsModal = async (
         isConnected,
         needsReconnect,
         handleConnect42,
+        (tab) => {
+          activeTab = tab;
+          rerender();
+        },
       ),
       shadow,
     );
@@ -782,7 +961,8 @@ export const createSettingsModal = async (
     shadow
       .querySelector("#profile-save")
       ?.addEventListener("click", async () => {
-        const batchData: Record<string, string | number> = {};
+        const batchData: Record<string, string | number | boolean | string[]> =
+          {};
         const keysToRemove: string[] = [];
 
         if (!state.avatar) {
@@ -826,8 +1006,17 @@ export const createSettingsModal = async (
         batchData["PROFILE_AVATAR_POSITION_Y"] = state.avatarPosY;
         batchData["PROFILE_AVATAR_SCALE"] = state.avatarScale;
 
+        if (!state.badgeBg) {
+          keysToRemove.push("PROFILE_BADGE_BG");
+        } else {
+          batchData["PROFILE_BADGE_BG"] = state.badgeBg;
+        }
+
+        batchData["PROFILE_BADGE_ORDER"] = state.badgeOrder;
+        batchData["PROFILE_BADGE_WRAP"] = state.badgeWrap;
+
         if (Object.keys(batchData).length > 0)
-          await chrome.storage.local.set(batchData as Record<string, string>);
+          await chrome.storage.local.set(batchData as Record<string, unknown>);
         if (keysToRemove.length > 0)
           await chrome.storage.local.remove(keysToRemove);
 
@@ -856,6 +1045,7 @@ export const createSettingsModal = async (
           avatarPosX: state.avatarPosX,
           avatarPosY: state.avatarPosY,
           avatarScale: state.avatarScale,
+          badgeBg: state.badgeBg || "",
         };
 
         try {
@@ -880,6 +1070,11 @@ function liveApplyBannerBg(state: FormState) {
     backgroundColor: state.backgroundColor,
     avatarBg: state.avatarBg,
     decoration: state.decoration,
+    badgeBg: state.badgeBg,
+  });
+  applyBadgeLayout(document, {
+    order: state.badgeOrder,
+    wrap: state.badgeWrap,
   });
 }
 

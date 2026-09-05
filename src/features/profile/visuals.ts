@@ -7,6 +7,7 @@ import {
   AVATAR_SELECTOR,
   BANNER_SELECTOR,
   BACKGROUND_SELECTOR,
+  TITLE_BADGE_SELECTOR,
 } from "./selectors.ts";
 
 export interface VisualUrls {
@@ -22,6 +23,7 @@ export interface VisualUrls {
   avatarPosX?: number;
   avatarPosY?: number;
   avatarScale?: number;
+  badgeBg?: string;
   theme?: { profileColor?: string } | null;
   logtime?: {
     calendarColor?: string;
@@ -96,6 +98,7 @@ const getVisualKey = (urls: VisualUrls) =>
     avatarPosX: urls.avatarPosX ?? 50,
     avatarPosY: urls.avatarPosY ?? 50,
     avatarScale: urls.avatarScale ?? 100,
+    badgeBg: urls.badgeBg || "",
     theme: urls.theme || null,
     logtime: urls.logtime || null,
   });
@@ -153,6 +156,11 @@ const hasBackground = (el: HTMLElement | null, url?: string) => {
   return inlineMatch?.[2] === url || computedMatch?.[2] === url;
 };
 
+export const badgeColorCss = (badgeBg?: string): string => {
+  if (!badgeBg) return "";
+  return `background-color: ${badgeBg} !important; border-color: ${badgeBg} !important;`;
+};
+
 const needsReapply = (urls: VisualUrls) => {
   const avatar = document.querySelector(AVATAR_SELECTOR) as HTMLElement | null;
   const banner = document.querySelector(BANNER_SELECTOR) as HTMLElement | null;
@@ -191,6 +199,15 @@ const needsReapply = (urls: VisualUrls) => {
     if (
       !style ||
       style.textContent !== `${BACKGROUND_SELECTOR} { ${expectedColor} }`
+    )
+      return true;
+  }
+  {
+    const badgeCss = badgeColorCss(urls.badgeBg);
+    const style = document.getElementById("ft-badge-color-style");
+    if (
+      (style?.textContent || "") !==
+      (badgeCss ? `${TITLE_BADGE_SELECTOR} { ${badgeCss} }` : "")
     )
       return true;
   }
@@ -396,6 +413,12 @@ export const applyImgs = (urls: VisualUrls | null) => {
     applyThemeToProfileCard(urls.theme);
   }
 
+  setStyleForSelector(
+    "ft-badge-color-style",
+    TITLE_BADGE_SELECTOR,
+    badgeColorCss(urls.badgeBg),
+  );
+
   if (urls.logtime) {
     const logtime = urls.logtime;
     initLogtime().then(() => applyPublicLogtimeSettings(logtime));
@@ -545,6 +568,7 @@ export const updateVisuals = async () => {
         avatarPosX: await getConfig("PROFILE_AVATAR_POSITION_X"),
         avatarPosY: await getConfig("PROFILE_AVATAR_POSITION_Y"),
         avatarScale: await getConfig("PROFILE_AVATAR_SCALE"),
+        badgeBg: await getConfig("PROFILE_BADGE_BG"),
       };
 
       if (
@@ -552,7 +576,8 @@ export const updateVisuals = async () => {
         !visualCache.banner &&
         !visualCache.bannerColor &&
         !visualCache.background &&
-        !visualCache.backgroundColor
+        !visualCache.backgroundColor &&
+        !visualCache.badgeBg
       ) {
         avatarEl.style.setProperty("opacity", "1", "important");
       } else if (!document.getElementById("profile-modal-host")) {
@@ -569,6 +594,7 @@ export const updateVisuals = async () => {
           cached.bannerColor ||
           cached.background ||
           cached.backgroundColor ||
+          cached.badgeBg ||
           cached.theme ||
           cached.logtime)
       ) {
@@ -593,6 +619,7 @@ export const updateVisuals = async () => {
               cloudUrls.bannerColor ||
               cloudUrls.background ||
               cloudUrls.backgroundColor ||
+              cloudUrls.badgeBg ||
               cloudUrls.theme ||
               cloudUrls.logtime)
           ) {

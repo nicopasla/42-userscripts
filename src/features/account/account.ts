@@ -186,6 +186,7 @@ export async function syncMyVisuals(visuals: {
   avatarPosX?: number;
   avatarPosY?: number;
   avatarScale?: number;
+  badgeBg?: string;
 }): Promise<void> {
   const login = await getCloudLogin();
   const token = await getConfig("CLOUD_TOKEN");
@@ -215,6 +216,7 @@ export async function syncMyVisuals(visuals: {
             PROFILE_AVATAR_POSITION_X: visuals.avatarPosX ?? 50,
             PROFILE_AVATAR_POSITION_Y: visuals.avatarPosY ?? 50,
             PROFILE_AVATAR_SCALE: visuals.avatarScale ?? 100,
+            PROFILE_BADGE_BG: visuals.badgeBg || "",
             PROFILE_IMAGE_HISTORY: await getConfig("PROFILE_IMAGE_HISTORY"),
             PROFILE_BANNER_HISTORY: await getConfig("PROFILE_BANNER_HISTORY"),
             PROFILE_BACKGROUND_HISTORY: await getConfig(
@@ -259,6 +261,7 @@ export async function fetchUserVisuals(
       avatarPosX: Number(data.avatarPosX ?? 50),
       avatarPosY: Number(data.avatarPosY ?? 50),
       avatarScale: Number(data.avatarScale ?? 100),
+      badgeBg: String(data.badgeBg || ""),
       theme: (data.theme as { profileColor?: string }) || null,
       logtime: (data.logtime as Record<string, unknown>) || null,
     };
