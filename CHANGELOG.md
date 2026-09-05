@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [1.8.4] - 2026-09-05
+
+### Features 🎉
+
+- feat(logtime): add selectable rainbow color palette when goal is met ([3634567](https://github.com/nicopasla/better-intra/commit/3634567))
+- feat(profile): badge customization, reorder/hide ([c17f59c](https://github.com/nicopasla/better-intra/commit/c17f59c))
+
+### Bug fixes 🐛
+
+- fix(subjects): stop showing updated badge when offline or without baseline ([a16f090](https://github.com/nicopasla/better-intra/commit/a16f090))
+- fix(profile): wrap native title badges to prevent banner overflow ([8fd5ce9](https://github.com/nicopasla/better-intra/commit/8fd5ce9))
+- fix: update belgium.json ([a0821a4](https://github.com/nicopasla/better-intra/commit/a0821a4))
+- fix(profile): resolve holy graph login on default profile page ([47f75f9](https://github.com/nicopasla/better-intra/commit/47f75f9))
+
+### Maintenance 🧹
+
+- chore(profile): lay badge color and wrap toggle out on the same row ([6235fb1](https://github.com/nicopasla/better-intra/commit/6235fb1))
+
 ## [1.8.3] - 2026-08-30
 
 ### Features 🎉
@@ -1127,7 +1145,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.3...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.4...HEAD
+[1.8.4]: https://github.com/nicopasla/better-intra/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/nicopasla/better-intra/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/nicopasla/better-intra/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/nicopasla/better-intra/compare/v1.8.0...v1.8.1

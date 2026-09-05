@@ -1,7 +1,7 @@
 {
   "name": "better-intra",
   "private": true,
-  "version": "1.8.3",
+  "version": "1.8.4",
   "type": "module",
   "scripts": {
     "dev:firefox": "concurrently \"npm run watch:firefox\" \"npm run web-ext:firefox\"",
@@ -20,16 +20,16 @@
     "generate:description": "node scripts/convert-description.js"
   },
   "devDependencies": {
-    "@types/chrome": "^0.2.7",
-    "@vitest/ui": "^4.1.11",
+    "@types/chrome": "^0.2.8",
+    "@vitest/ui": "^5.0.0",
     "concurrently": "^10.0.5",
     "cross-env": "^10.1.0",
-    "daisyui": "^5.7.22",
+    "daisyui": "^5.7.28",
     "jsdom": "^30.0.1",
-    "sharp": "^0.35.3",
-    "typescript": "~6.0.3",
+    "sharp": "^0.35.4",
+    "typescript": "^7.0.2",
     "vite": "^8.2.2",
-    "vitest": "^4.1.11",
+    "vitest": "^5.0.0",
     "web-ext": "^10.6.0"
   },
   "dependencies": {
