@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.8.5] - 2026-09-07
+
+### Features 🎉
+
+- feat(friends): redesign friends widget UI ([5c4c99b](https://github.com/nicopasla/better-intra/commit/5c4c99b))
+
+### Maintenance 🧹
+
+- chore(discord): add steps to Discord integration process ([e29842e](https://github.com/nicopasla/better-intra/commit/e29842e))
+- chore(hub): rename color value from Coffee to Aubergine ([0f4a92f](https://github.com/nicopasla/better-intra/commit/0f4a92f))
+
 ## [1.8.4] - 2026-09-05
 
 ### Features 🎉
@@ -1145,7 +1156,8 @@
 - chore(profile): Refactor profile visuals ([8aa3ff8](https://github.com/nicopasla/better-intra/commit/8aa3ff8))
 - chore: Update README ([773a0f2](https://github.com/nicopasla/better-intra/commit/773a0f2))
 
-[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.4...HEAD
+[unreleased]: https://github.com/nicopasla/better-intra/compare/v1.8.5...HEAD
+[1.8.5]: https://github.com/nicopasla/better-intra/compare/v1.8.4...v1.8.5
 [1.8.4]: https://github.com/nicopasla/better-intra/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/nicopasla/better-intra/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/nicopasla/better-intra/compare/v1.8.1...v1.8.2
