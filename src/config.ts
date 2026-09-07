@@ -83,7 +83,9 @@ export interface BetterIntraConfig {
   SHORTCUTS_ALIGNMENT: "left" | "center" | "right";
 
   FRIENDS_LIST: string[];
-  FRIENDS_SORT_MODE: "online" | "name" | "level" | "wallet" | "correction";
+  FRIENDS_SORT_MODE: "name" | "level" | "wallet" | "correction";
+  FRIENDS_SORT_DIR: "asc" | "desc";
+  FRIENDS_ONLINE_ONLY: boolean;
   SHOW_FRIENDS_WIDGET: boolean;
   SHOW_CUSTOM_AVATARS_IN_FRIENDS: boolean;
   FRIENDS_DATA_CACHE: { data: unknown[]; timestamp: number } | null;
@@ -205,6 +207,8 @@ export const CONFIG_DEFAULT: BetterIntraConfig = {
 
   FRIENDS_LIST: [],
   FRIENDS_SORT_MODE: "level",
+  FRIENDS_SORT_DIR: "desc",
+  FRIENDS_ONLINE_ONLY: false,
   SHOW_FRIENDS_WIDGET: true,
   SHOW_CUSTOM_AVATARS_IN_FRIENDS: true,
   FRIENDS_DATA_CACHE: null,
@@ -287,6 +291,8 @@ export const CLOUD_SYNC_KEYS: ConfigKey[] = [
   "SHORTCUTS_ALIGNMENT",
   "FRIENDS_LIST",
   "FRIENDS_SORT_MODE",
+  "FRIENDS_SORT_DIR",
+  "FRIENDS_ONLINE_ONLY",
   "SHOW_FRIENDS_WIDGET",
   "SHOW_CUSTOM_AVATARS_IN_FRIENDS",
   "DISCORD_ENABLED",

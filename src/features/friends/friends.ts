@@ -119,7 +119,11 @@ export async function fetchFriendsData(
 
   // Check cache for full list fetches
   const cached = await getCachedData();
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+  if (
+    cached &&
+    cached.data.length > 0 &&
+    Date.now() - cached.timestamp < CACHE_TTL
+  ) {
     return cached.data;
   }
 
@@ -132,8 +136,13 @@ export async function fetchFriendsData(
     if (res.ok) {
       const data = (await res.json()) as { friends?: FriendData[] };
       const friends = data.friends ?? [];
-      setCachedData(friends);
-      return friends;
+      if (friends.length > 0) {
+        setCachedData(friends);
+        return friends;
+      }
+      // Fresh fetch returned empty — fall back to last known non-empty data
+      if (cached && cached.data.length > 0) return cached.data;
+      return [];
     } else if (res.status === 401) {
       await chrome.storage.local.set({ CLOUD_AUTH_FAILED: true });
     }
@@ -141,5 +150,7 @@ export async function fetchFriendsData(
     console.error("Failed to fetch friends data:", e);
   }
 
+  // On failure, fall back to last known non-empty data if present
+  if (cached && cached.data.length > 0) return cached.data;
   return [];
 }
