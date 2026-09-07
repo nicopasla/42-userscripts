@@ -11,25 +11,11 @@ const WORKER_URL = "https://api.betterintra.com";
 
 type StepState = "locked" | "active" | "done";
 
-function stepCircle(num: number, state: StepState) {
-  if (state === "done") {
-    return html`<span
-      class="size-9 rounded-full bg-success text-success-content flex items-center justify-center text-sm font-bold shrink-0"
-      >✓</span
-    >`;
-  }
-  const cls =
-    state === "locked"
-      ? "bg-base-200 text-base-content/40"
-      : "bg-base-100 text-base-content font-bold ring-1 ring-accent";
-  return html`<span
-    class="size-9 rounded-full ${cls} flex items-center justify-center text-sm shrink-0"
-    >${num}</span
-  >`;
+function stepClass(s: StepState) {
+  return s === "done" ? "step-success" : s === "active" ? "step-primary" : "";
 }
 
 function stepCard(
-  num: number,
   label: string,
   desc: ReturnType<typeof html>,
   state: StepState,
@@ -41,7 +27,6 @@ function stepCard(
         ? "opacity-40 grayscale pointer-events-none"
         : "bg-base-300/50"}"
     >
-      ${stepCircle(num, state)}
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between gap-3">
           <div class="flex flex-col">
@@ -152,7 +137,9 @@ export function renderDiscordPanel() {
             >
             Connect
           </button>`
-        : html`<span class="text-sm text-green-500 font-medium">Connected</span>`;
+        : html`<span class="text-sm text-green-500 font-medium"
+            >Connected</span
+          >`;
 
       const step2Controls = html`<input
         type="checkbox"
@@ -273,117 +260,129 @@ export function renderDiscordPanel() {
               Get evaluation reminders via Discord DM - booked and 15-min reveal
               notifications.
             </p>
-            <div class="flex flex-col gap-2">
-              ${stepCard(
-                1,
-                "Connect 42 Account",
-                html`Link your 42 account for cloud features`,
-                s1,
-                step1Controls,
-              )}
-              ${stepCard(
-                2,
-                "Link Discord Account",
-                html`Authorize the bot to send you DMs - it will auto-join
-                  <a
-                    href="https://discord.gg/rFhA36rq9"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline hover:text-accent"
-                    >Le Bassin</a
-                  >
-                  for you.`,
-                s2,
-                step3Controls,
-              )}
-              ${stepCard(
-                3,
-                "Enable Notifications",
-                html`Allow Discord DM alerts for evaluations`,
-                s3,
-                step2Controls,
-              )}
-              ${discordId && discordOn
-                ? html`
-                    <div
-                      class="flex items-center gap-4 pl-13 pr-4 py-2 ${quietOn
-                        ? ""
-                        : "opacity-60"}"
-                    >
-                      <span class="shrink-0 font-medium">Quiet hours</span>
-                      <input
-                        type="checkbox"
-                        class="toggle toggle-accent"
-                        .checked="${quietOn}"
-                        @change="${(e: Event) => {
-                          chrome.storage.local.set({
-                            DISCORD_QUIET_ENABLED: (
-                              e.target as HTMLInputElement
-                            ).checked,
-                          });
-                        }}"
-                      />
-                      ${quietOn
-                        ? html`
-                            <label class="flex items-center gap-2 ml-auto">
-                              <span class="text-sm text-base-content/70"
-                                >From</span
-                              >
-                              <input
-                                type="time"
-                                class="input input-bordered w-32"
-                                .value="${qStart}"
-                                @change="${(e: Event) => {
-                                  chrome.storage.local.set({
-                                    DISCORD_QUIET_START: (
-                                      e.target as HTMLInputElement
-                                    ).value,
-                                  });
-                                }}"
-                              />
-                            </label>
-                            <label class="flex items-center gap-2">
-                              <span class="text-sm text-base-content/70"
-                                >To</span
-                              >
-                              <input
-                                type="time"
-                                class="input input-bordered w-32"
-                                .value="${qEnd}"
-                                @change="${(e: Event) => {
-                                  chrome.storage.local.set({
-                                    DISCORD_QUIET_END: (
-                                      e.target as HTMLInputElement
-                                    ).value,
-                                  });
-                                }}"
-                              />
-                            </label>
-                          `
-                        : ""}
-                    </div>
-                  `
-                : ""}
-              ${stepCard(
-                4,
-                "Test Notifications",
-                html`Send a test DM to verify everything works`,
-                s4,
-                step4Controls,
-              )}
-              ${has42 && discordId
-                ? html`
-                    <div
-                      class="flex items-center gap-3 px-4 py-3 rounded-xl ${evalActive
-                        ? "bg-green-500/15 text-green-500"
-                        : "bg-red-500/15 text-red-500"} font-medium"
-                    >
-                      <span class="text-xl">${evalActive ? "✓" : "✗"}</span>
-                      Evaluations ${evalActive ? "active" : "inactive"}
-                    </div>
-                  `
-                : ""}
-            </div>
+            <ul class="steps steps-vertical w-full">
+              <li class="step ${stepClass(s1)}">
+                <div class="w-full text-left">
+                  ${stepCard(
+                    "Connect 42 Account",
+                    html`Link your 42 account for cloud features`,
+                    s1,
+                    step1Controls,
+                  )}
+                </div>
+              </li>
+              <li class="step ${stepClass(s2)}">
+                <div class="w-full text-left">
+                  ${stepCard(
+                    "Link Discord Account",
+                    html`Authorize the bot to send you DMs - it will auto-join
+                      <a
+                        href="https://discord.gg/rFhA36rq9"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="underline hover:text-accent"
+                        >Le Bassin</a
+                      >
+                      for you.`,
+                    s2,
+                    step3Controls,
+                  )}
+                </div>
+              </li>
+              <li class="step ${stepClass(s3)}">
+                <div class="w-full text-left">
+                  ${stepCard(
+                    "Enable Notifications",
+                    html`Allow Discord DM alerts for evaluations`,
+                    s3,
+                    step2Controls,
+                  )}
+                  ${discordId && discordOn
+                    ? html`
+                        <div
+                          class="flex items-center gap-4 px-4 py-2 ${quietOn
+                            ? ""
+                            : "opacity-60"}"
+                        >
+                          <span class="shrink-0 font-medium">Quiet hours</span>
+                          <input
+                            type="checkbox"
+                            class="toggle toggle-accent"
+                            .checked="${quietOn}"
+                            @change="${(e: Event) => {
+                              chrome.storage.local.set({
+                                DISCORD_QUIET_ENABLED: (
+                                  e.target as HTMLInputElement
+                                ).checked,
+                              });
+                            }}"
+                          />
+                          ${quietOn
+                            ? html`
+                                <label class="flex items-center gap-2 ml-auto">
+                                  <span class="text-sm text-base-content/70"
+                                    >From</span
+                                  >
+                                  <input
+                                    type="time"
+                                    class="input input-bordered w-32"
+                                    .value="${qStart}"
+                                    @change="${(e: Event) => {
+                                      chrome.storage.local.set({
+                                        DISCORD_QUIET_START: (
+                                          e.target as HTMLInputElement
+                                        ).value,
+                                      });
+                                    }}"
+                                  />
+                                </label>
+                                <label class="flex items-center gap-2">
+                                  <span class="text-sm text-base-content/70"
+                                    >To</span
+                                  >
+                                  <input
+                                    type="time"
+                                    class="input input-bordered w-32"
+                                    .value="${qEnd}"
+                                    @change="${(e: Event) => {
+                                      chrome.storage.local.set({
+                                        DISCORD_QUIET_END: (
+                                          e.target as HTMLInputElement
+                                        ).value,
+                                      });
+                                    }}"
+                                  />
+                                </label>
+                              `
+                            : ""}
+                        </div>
+                      `
+                    : ""}
+                </div>
+              </li>
+              <li class="step ${stepClass(s4)}">
+                <div class="w-full text-left">
+                  ${stepCard(
+                    "Test Notifications",
+                    html`Send a test DM to verify everything works`,
+                    s4,
+                    step4Controls,
+                  )}
+                  ${has42 && discordId
+                    ? html`
+                        <div
+                          class="flex items-center gap-3 px-4 py-3 rounded-xl ${evalActive
+                            ? "bg-green-500/15 text-green-500"
+                            : "bg-red-500/15 text-red-500"} font-medium"
+                        >
+                          <span class="text-xl">${evalActive ? "✓" : "✗"}</span>
+                          Evaluations ${evalActive ? "active" : "inactive"}
+                        </div>
+                      `
+                    : ""}
+                </div>
+              </li>
+            </ul>
           </div>
         `,
         container,
